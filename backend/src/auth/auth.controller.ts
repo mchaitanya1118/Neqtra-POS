@@ -29,7 +29,8 @@ export class AuthController {
         throw error;
       }
       this.logger.error(`Login failed: ${error.message}`, error.stack);
-      throw new InternalServerErrorException('An unexpected error occurred during login');
+      // TEMPORARY: Expose error message for debugging production issue
+      throw new InternalServerErrorException(`Login error: ${error.message}`);
     }
   }
 }
