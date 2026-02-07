@@ -10,7 +10,7 @@ type User = {
 type AuthState = {
     user: User | null;
     token: string | null;
-    login: (credentials: { passcode?: string; username?: string; password?: string }) => Promise<User | null>;
+    login: (credentials: { passcode?: string; username?: string; password?: string }) => Promise<{ success: boolean; error?: string; user?: User }>;
     logout: () => void;
 };
 
@@ -30,15 +30,22 @@ export const useAuthStore = create<AuthState>()(
                     });
 
                     if (!response.ok) {
-                        return null;
+                        const errorData = await response.json().catch(() => ({}));
+                        return {
+                            success: false,
+                            error: errorData.message || `Login failed: ${response.status} ${response.statusText}`
+                        };
                     }
 
                     const data = await response.json();
                     set({ user: data.user, token: data.access_token });
-                    return data.user;
+                    return { success: true, user: data.user };
                 } catch (error) {
                     console.error('Login error:', error);
-                    return null;
+                    return {
+                        success: false,
+                        error: error instanceof Error ? error.message : 'Network error or server unreachable'
+                    };
                 }
             },
             logout: () => set({ user: null, token: null }),

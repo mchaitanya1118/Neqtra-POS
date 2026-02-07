@@ -31,15 +31,15 @@ export default function LoginPage() {
     const handleEnter = async () => {
         if (passcode.length < 4) return;
 
-        const user = await login({ passcode });
-        if (user) {
-            if (user.role === 'Waiter') {
+        const result = await login({ passcode });
+        if (result.success && result.user) {
+            if (result.user.role === 'Waiter') {
                 router.push('/tables');
             } else {
                 router.push('/billing');
             }
         } else {
-            setError('Invalid Passcode');
+            setError(result.error || 'Invalid Passcode');
             setPasscode('');
         }
     };
@@ -50,15 +50,15 @@ export default function LoginPage() {
             return;
         }
 
-        const user = await login({ username, password });
-        if (user) {
-            if (user.role === 'Waiter') {
+        const result = await login({ username, password });
+        if (result.success && result.user) {
+            if (result.user.role === 'Waiter') {
                 router.push('/tables');
             } else {
                 router.push('/billing');
             }
         } else {
-            setError('Invalid credentials');
+            setError(result.error || 'Invalid credentials');
         }
     };
 
