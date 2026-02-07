@@ -15,12 +15,12 @@ export class AuthService {
   };
 
   async login(loginDto: LoginDto) {
-    if (loginDto.passcode) {
+    if (loginDto?.passcode) {
       const user = this.validPasscodes[loginDto.passcode];
       if (user) return this.success(user);
     }
 
-    if (loginDto.username && loginDto.password) {
+    if (loginDto?.username && loginDto?.password) {
       const user = this.validUsers[loginDto.username];
       if (user && user.password === loginDto.password) {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
