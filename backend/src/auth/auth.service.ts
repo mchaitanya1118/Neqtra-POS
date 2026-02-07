@@ -14,18 +14,22 @@ export class AuthService implements OnModuleInit {
   ) { }
 
   async onModuleInit() {
-    const count = await this.usersRepository.count();
-    if (count === 0) {
-      this.logger.log('No users found. Seeding default admin user...');
-      const admin = this.usersRepository.create({
-        name: 'Admin User',
-        username: 'admin',
-        password: 'password',
-        passcode: '1234',
-        role: 'Admin',
-      });
-      await this.usersRepository.save(admin);
-      this.logger.log('Default admin user seeded. Username: admin, Passcode: 1234');
+    try {
+      const count = await this.usersRepository.count();
+      if (count === 0) {
+        this.logger.log('No users found. Seeding default admin user...');
+        const admin = this.usersRepository.create({
+          name: 'Admin User',
+          username: 'admin',
+          password: 'password',
+          passcode: '1234',
+          role: 'Admin',
+        });
+        await this.usersRepository.save(admin);
+        this.logger.log('Default admin user seeded. Username: admin, Passcode: 1234');
+      }
+    } catch (error) {
+      this.logger.error(`Failed to seed database: ${error.message}`, error.stack);
     }
   }
 
