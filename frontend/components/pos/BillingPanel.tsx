@@ -376,12 +376,7 @@ export function BillingPanel() {
     return (
         <div className="flex flex-col h-full relative">
             {/* DEBUG OVERLAY */}
-            <div className="bg-red-900 text-white text-[10px] p-1 font-mono z-[100]">
-                DEBUG: TableID={useTableStore.getState().selectedTableId},
-                SelTable={selectedTable?.label || 'NULL'},
-                TablesCount={useTableStore.getState().tables?.length},
-                HasOrder={existingOrder ? 'YES' : 'NO'}
-            </div>
+
 
             {/* Header / Tabs */}
             <div className="flex bg-[#333] text-white font-bold text-sm tracking-wide shrink-0">
@@ -660,7 +655,7 @@ export function BillingPanel() {
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="p-2 grid grid-cols-4 gap-2 bg-white dark:bg-[#1e1e1e]">
+                <div className="p-2 grid grid-cols-2 md:grid-cols-4 gap-2 bg-white dark:bg-[#1e1e1e] pb-safe-area">
                     {/* Place/Update Order */}
                     {/* Place/Update Order */}
                     {/* Always visible, disabled if no items/changes */
@@ -696,7 +691,7 @@ export function BillingPanel() {
                             disabled={isProcessing || !existingOrder}
                             className="col-span-2 py-3 bg-[#d32f2f] hover:bg-[#b71c1c] disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded font-bold text-sm shadow-sm transition-colors uppercase tracking-wide"
                         >
-                            {(!existingOrder && selectedTable?.status === 'OCCUPIED') ? 'Force Free' : (paymentTxnId ? 'Verify Payment' : 'Settle Bill')}
+                            {(!existingOrder && selectedTable?.status === 'OCCUPIED') ? 'Force Free' : (paymentTxnId ? 'Verify Pmt' : 'Settle')}
                         </button>
                     )}
 
