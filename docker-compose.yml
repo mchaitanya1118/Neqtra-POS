@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - DB_DATABASE=neqtra_pos
+      - PHONEPE_MERCHANT_ID=${PHONEPE_MERCHANT_ID}
+      - PHONEPE_SALT_KEY=${PHONEPE_SALT_KEY}
+      - PHONEPE_SALT_INDEX=${PHONEPE_SALT_INDEX}
+      - PHONEPE_HOST_URL=${PHONEPE_HOST_URL}
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=http://backend:3001
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      - backend
+
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=neqtra_pos
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

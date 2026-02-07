@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  /* Base Colors - Dark Theme Default */
+  --background: #111315; /* Deep Obsidian */
+  --surface: #1a1d1f;    /* Soft Charcoal */
+  --surface-light: #272b30;
+  
+  --foreground: #ffffff;
+  --foreground-muted: #9a9cae;
+  
+  /* Pastel Category Colors */
+  --pastel-mint: #d4f2e7;
+  --pastel-mint-fg: #1f4d3d;
+  
+  --pastel-pink: #f2d4e7;
+  --pastel-pink-fg: #4d1f3d;
+  
+  --pastel-lavender: #e7d4f2;
+  --pastel-lavender-fg: #3d1f4d;
+  
+  --pastel-blue: #d4e7f2;
+  --pastel-blue-fg: #1f3d4d;
+  
+  --pastel-cream: #f2e7d4;
+  --pastel-cream-fg: #4d3d1f;
+
+  /* Functional */
+  --primary: #ffffff;
+  --primary-fg: #000000;
+  
+  --success: #4ade80;
+  --destructive: #f87171;
+  --border: #2e3238;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-light: var(--surface-light);
+  
+  --color-foreground: var(--foreground);
+  --color-muted: var(--foreground-muted);
+  
+  --color-pastel-mint: var(--pastel-mint);
+  --color-pastel-mint-fg: var(--pastel-mint-fg);
+  
+  --color-pastel-pink: var(--pastel-pink);
+  --color-pastel-pink-fg: var(--pastel-pink-fg);
+  
+  --color-pastel-lavender: var(--pastel-lavender);
+  --color-pastel-lavender-fg: var(--pastel-lavender-fg);
+  
+  --color-pastel-blue: var(--pastel-blue);
+  --color-pastel-blue-fg: var(--pastel-blue-fg);
+  
+  --color-pastel-cream: var(--pastel-cream);
+  --color-pastel-cream-fg: var(--pastel-cream-fg);
+  
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
