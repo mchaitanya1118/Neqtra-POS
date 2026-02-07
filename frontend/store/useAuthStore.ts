@@ -10,8 +10,10 @@ type User = {
 type AuthState = {
     user: User | null;
     token: string | null;
+    hasHydrated: boolean;
     login: (credentials: { passcode?: string; username?: string; password?: string }) => Promise<{ success: boolean; error?: string; user?: User }>;
     logout: () => void;
+    setHasHydrated: (state: boolean) => void;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -19,6 +21,7 @@ export const useAuthStore = create<AuthState>()(
         (set) => ({
             user: null,
             token: null,
+            hasHydrated: false,
             login: async (credentials) => {
                 try {
                     const response = await fetch('/api/auth/login', {
@@ -49,9 +52,13 @@ export const useAuthStore = create<AuthState>()(
                 }
             },
             logout: () => set({ user: null, token: null }),
+            setHasHydrated: (state) => set({ hasHydrated: state }),
         }),
         {
             name: 'auth-storage',
+            onRehydrateStorage: () => (state) => {
+                state?.setHasHydrated(true);
+            },
         }
     )
 );

@@ -1,25 +1,62 @@
 "use client";
 
-import React, { useState } from 'react';
-import { User, KeyRound, CreditCard, Delete, Divide, Monitor } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { User, KeyRound, CreditCard, Delete, Divide } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export default function LoginPage() {
     const [passcode, setPasscode] = useState('');
-    const [activeTab, setActiveTab] = useState<'login' | 'passcode' | 'swipe'>('passcode');
+    const [activeTab, setActiveTab] = useState<'login' | 'passcode'>('passcode');
     const router = useRouter();
 
-    const { login } = useAuthStore();
+    const { login, user, hasHydrated } = useAuthStore();
     const [error, setError] = useState('');
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+    useEffect(() => {
+        if (hasHydrated && user) {
+            const target = user.role === 'Waiter' ? '/tables' : '/billing';
+            router.replace(target);
+        }
+    }, [user, hasHydrated, router]);
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
 
+    const submitPasscode = async (code: string) => {
+        if (isLoggingIn) return;
+        setIsLoggingIn(true);
+        setError('');
+
+        try {
+            const result = await login({ passcode: code });
+            if (result.success && result.user) {
+                if (result.user.role === 'Waiter') {
+                    router.push('/tables');
+                } else {
+                    router.push('/billing');
+                }
+            } else {
+                setError(result.error || 'Invalid Passcode');
+                setPasscode('');
+                setIsLoggingIn(false);
+            }
+        } catch (err) {
+            setError('Login failed');
+            setIsLoggingIn(false);
+        }
+    };
+
     const handleNumClick = (num: string) => {
         if (passcode.length < 4) {
-            setPasscode(prev => prev + num);
-            setError(''); // Clear error on input
+            const newPasscode = passcode + num;
+            setPasscode(newPasscode);
+            setError('');
+
+            if (newPasscode.length === 4) {
+                submitPasscode(newPasscode);
+            }
         }
     };
 
@@ -30,18 +67,7 @@ export default function LoginPage() {
 
     const handleEnter = async () => {
         if (passcode.length < 4) return;
-
-        const result = await login({ passcode });
-        if (result.success && result.user) {
-            if (result.user.role === 'Waiter') {
-                router.push('/tables');
-            } else {
-                router.push('/billing');
-            }
-        } else {
-            setError(result.error || 'Invalid Passcode');
-            setPasscode('');
-        }
+        submitPasscode(passcode);
     };
 
     const handleLoginSubmit = async () => {
@@ -49,16 +75,26 @@ export default function LoginPage() {
             setError('Please enter both username and password');
             return;
         }
+        if (isLoggingIn) return;
 
-        const result = await login({ username, password });
-        if (result.success && result.user) {
-            if (result.user.role === 'Waiter') {
-                router.push('/tables');
+        setIsLoggingIn(true);
+        setError('');
+
+        try {
+            const result = await login({ username, password });
+            if (result.success && result.user) {
+                if (result.user.role === 'Waiter') {
+                    router.push('/tables');
+                } else {
+                    router.push('/billing');
+                }
             } else {
-                router.push('/billing');
+                setError(result.error || 'Invalid credentials');
+                setIsLoggingIn(false);
             }
-        } else {
-            setError(result.error || 'Invalid credentials');
+        } catch (err) {
+            setError('Login failed');
+            setIsLoggingIn(false);
         }
     };
 
@@ -78,22 +114,39 @@ export default function LoginPage() {
             {/* Main Content */}
             <div className="flex-1 flex overflow-hidden">
 
-                {/* Left Side - Illustration */}
-                <div className="flex-[0.8] flex items-center justify-center bg-surface border-r border-border">
-                    <div className="opacity-20 flex flex-col items-center">
-                        <Monitor size={200} strokeWidth={1} />
-                        <div className="mt-4 border-2 border-current rounded-lg p-2 w-32 h-10 flex justify-center items-center">
-                            <div className="bg-current rounded-full w-full h-1"></div>
-                        </div>
-                    </div>
-                </div>
+
 
                 {/* Center Content Area */}
-                <div className="flex-[1.4] flex flex-col items-center justify-center pt-10 px-8 relative bg-background">
+                <div className="flex-1 flex flex-col items-center justify-center pt-10 px-8 relative bg-background">
+
+                    {/* Top Navigation Tabs */}
+                    <div className="flex items-center gap-4 mb-8 bg-surface p-1 rounded-lg border border-border">
+                        <button
+                            onClick={() => setActiveTab('passcode')}
+                            className={`flex items-center gap-2 px-6 py-2 rounded-md transition-all ${activeTab === 'passcode'
+                                ? 'bg-primary text-primary-fg shadow-sm'
+                                : 'text-muted hover:text-foreground'
+                                }`}
+                        >
+                            <KeyRound size={18} />
+                            <span className="font-medium">Passcode</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('login')}
+                            className={`flex items-center gap-2 px-6 py-2 rounded-md transition-all ${activeTab === 'login'
+                                ? 'bg-primary text-primary-fg shadow-sm'
+                                : 'text-muted hover:text-foreground'
+                                }`}
+                        >
+                            <User size={18} />
+                            <span className="font-medium">Login</span>
+                        </button>
+                    </div>
+
                     {activeTab === 'passcode' && (
                         <>
                             <h2 className="text-xl font-semibold mb-8 text-foreground">
-                                Enter the Passcode to access this Billing Station
+                                Enter the Passcode to access
                             </h2>
                             {error && <p className="text-destructive mb-4">{error}</p>}
 
@@ -184,53 +237,6 @@ export default function LoginPage() {
                             </button>
                         </div>
                     )}
-
-                    {activeTab === 'swipe' && (
-                        <div className="flex flex-col items-center justify-center text-muted">
-                            <CreditCard size={100} strokeWidth={1} className="mb-4" />
-                            <p className="text-lg">Please swipe your access card</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Right Side - Actions */}
-                <div className="w-48 bg-surface border-l border-border flex flex-col justify-center">
-
-                    <button
-                        onClick={() => setActiveTab('login')}
-                        className={`h-32 flex flex-col items-center justify-center gap-2 text-muted hover:bg-surface-light transition-colors relative ${activeTab === 'login' ? 'text-foreground' : ''}`}
-                    >
-                        <User size={32} />
-                        <span className="font-medium">Login</span>
-                        {activeTab === 'login' && <div className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-primary"></div>}
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTab('passcode')}
-                        className={`h-32 flex flex-col items-center justify-center gap-2 text-muted hover:bg-surface-light transition-colors relative ${activeTab === 'passcode' ? 'text-foreground' : ''}`}
-                    >
-                        {/* Custom Passcode Icon */}
-                        <div className="flex flex-col items-center">
-                            <div className="flex gap-0.5 mb-1">
-                                <div className="w-1 h-1 bg-current rounded-full"></div>
-                                <div className="w-1 h-1 bg-current rounded-full"></div>
-                                <div className="w-1 h-1 bg-current rounded-full"></div>
-                            </div>
-                            <KeyRound size={32} />
-                        </div>
-                        <span className="font-medium">Passcode</span>
-                        {activeTab === 'passcode' && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary"></div>}
-                    </button>
-
-                    <button
-                        onClick={() => setActiveTab('swipe')}
-                        className={`h-32 flex flex-col items-center justify-center gap-2 text-muted hover:bg-surface-light transition-colors relative ${activeTab === 'swipe' ? 'text-foreground' : ''}`}
-                    >
-                        <CreditCard size={32} />
-                        <span className="font-medium">Swipe Card</span>
-                        {activeTab === 'swipe' && <div className="absolute right-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-primary"></div>}
-                    </button>
-
                 </div>
             </div>
 

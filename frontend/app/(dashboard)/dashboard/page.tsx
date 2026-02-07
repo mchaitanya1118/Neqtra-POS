@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
 import { PnLCalendar } from "@/components/dashboard/PnLCalendar";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface DashboardMetrics {
     dailyRevenue: number;
@@ -28,11 +29,17 @@ interface DashboardMetrics {
 export default function DashboardPage() {
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [loading, setLoading] = useState(true);
+    const { token } = useAuthStore();
 
     useEffect(() => {
         const fetchMetrics = async () => {
+            if (!token) return;
             try {
-                const res = await fetch(`${API_URL}/dashboard`);
+                const res = await fetch(`${API_URL}/dashboard`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
                 if (res.ok) {
                     const data = await res.json();
                     setMetrics(data);
@@ -44,7 +51,7 @@ export default function DashboardPage() {
             }
         };
         fetchMetrics();
-    }, []);
+    }, [token]);
 
     if (loading) return <div className="p-8 text-muted">Loading dashboard...</div>;
     if (!metrics) return <div className="p-8 text-red-500">Failed to load dashboard data.</div>;
