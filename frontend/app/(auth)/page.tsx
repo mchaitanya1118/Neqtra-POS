@@ -219,33 +219,10 @@ export default function LoginPage() {
 
             {/* Right Side - Image/Pattern */}
             <div className="hidden lg:block flex-1 bg-black relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center opacity-40 mix-blend-screen grayscale contrast-125"></div>
+                <div className="absolute inset-0 bg-[url('/login-bg.png')] bg-cover bg-center opacity-90 contrast-125"></div>
 
-                {/* Overlay Gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/20" />
-
-                {/* Floating Elements (Decorative) */}
-                <div className="absolute top-20 right-20 w-32 h-32 bg-white/5 backdrop-blur-3xl rounded-full blur-2xl"></div>
-                <div className="absolute bottom-40 left-20 w-64 h-64 bg-white/5 backdrop-blur-3xl rounded-full blur-3xl"></div>
-
-                {/* Content Overlay */}
-                <div className="absolute bottom-0 left-0 right-0 p-16 text-white text-left z-10">
-                    <div className="max-w-xl">
-                        <div className="w-16 h-1 bg-white mb-8"></div>
-                        <blockquote className="text-3xl font-medium leading-tight mb-6 tracking-tight">
-                            "Neqtra transformed how we manage our rush hours. It's not just a POS, it's the heart of our cafe."
-                        </blockquote>
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-lg font-bold backdrop-blur-md">
-                                SJ
-                            </div>
-                            <div>
-                                <div className="font-bold text-lg">Sarah Jenkins</div>
-                                <div className="text-white/60 text-sm font-medium">Owner, The Daily Grind</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {/* Overlay Gradient for subtle fade */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
             </div>
         </div>
     );
