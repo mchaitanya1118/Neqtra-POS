@@ -143,7 +143,7 @@ function BillingContent() {
 
         {/* Items Grid */}
         <div className="flex-1 overflow-y-auto p-4 content-start pb-24 md:pb-4">
-          <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
             {filteredItems.map((item: any) => {
               // Find quantity in cart
               const inCart = cartItems.find(i => i.menuItemId === item.id);
@@ -151,9 +151,9 @@ function BillingContent() {
                 <button
                   key={item.id}
                   onClick={() => addItem(item)}
-                  className="bg-white dark:bg-[#333] border-l-4 border-l-green-500 rounded-r-md shadow-sm p-3 flex flex-col items-start hover:shadow-md transition-shadow active:scale-[0.98] group relative min-h-[80px]"
+                  className="bg-white dark:bg-[#333] border-l-4 border-l-green-500 rounded-r-md shadow-sm p-2 md:p-3 flex flex-col items-start h-full hover:shadow-md transition-shadow active:scale-[0.98] group relative min-h-[80px]"
                 >
-                  <span className="font-semibold text-gray-800 dark:text-gray-100 text-sm text-left line-clamp-2 leading-tight">
+                  <span className="font-semibold text-gray-800 dark:text-gray-100 text-xs md:text-sm text-left line-clamp-3 leading-tight w-full">
                     {item.title}
                   </span>
                   {/* <span className="text-xs text-gray-400 mt-1">₹{item.price}</span> */}

@@ -70,6 +70,10 @@ export class OrdersService {
         isNewOrder = true;
       }
 
+      if (createOrderDto.type) {
+        order.type = createOrderDto.type;
+      }
+
       // Update discount info if provided (always updateable in PENDING state)
       if (createOrderDto.discount !== undefined) {
         order.discount = createOrderDto.discount;
@@ -83,6 +87,17 @@ export class OrdersService {
           id: itemDto.menuItemId,
         });
         if (menuItem) {
+          // Check Stock
+          if (menuItem.isStockManaged) {
+            if (menuItem.stock < itemDto.quantity) {
+              throw new BadRequestException(
+                `Insufficient stock for ${menuItem.title}. Available: ${menuItem.stock}`,
+              );
+            }
+            menuItem.stock -= itemDto.quantity;
+            await this.menuItemRepo.save(menuItem);
+          }
+
           const orderItem = new OrderItem();
           orderItem.menuItem = menuItem;
           orderItem.quantity = itemDto.quantity;

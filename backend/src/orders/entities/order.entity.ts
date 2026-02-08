@@ -20,6 +20,9 @@ export class Order {
   @Column({ default: 'PENDING' }) // PENDING, CONFIRMED, COMPLETED, CANCELLED
   status: string;
 
+  @Column({ default: 'DINE_IN' })
+  type: string; // DINE_IN, DELIVERY, PICK_UP
+
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
   totalAmount: number;
 

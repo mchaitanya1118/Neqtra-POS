@@ -23,6 +23,12 @@ export class MenuItem {
   @Column({ nullable: true })
   imageUrl: string;
 
+  @Column({ default: 0 })
+  stock: number;
+
+  @Column({ default: false })
+  isStockManaged: boolean;
+
   @ManyToOne(() => Category, (category) => category.items, {
     onDelete: 'CASCADE',
   })

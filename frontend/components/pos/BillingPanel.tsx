@@ -203,7 +203,8 @@ export function BillingPanel() {
         // Validation
         const hasChanges = items.length > 0 ||
             (customer?.id !== existingOrder?.customerId) ||
-            (parseFloat(discount || "0") !== Number(existingOrder?.discount || 0));
+            (parseFloat(discount || "0") !== Number(existingOrder?.discount || 0)) ||
+            (discountType !== (existingOrder?.discountType || 'FIXED'));
 
         if (!hasChanges && !existingOrder) {
             alert("Nothing to process! Cart is empty.");
@@ -668,7 +669,7 @@ export function BillingPanel() {
                     {true && (
                         <button
                             onClick={() => handleAction('SAVE')}
-                            disabled={isProcessing || !(items.length > 0 || (existingOrder && (parseFloat(discount) !== Number(existingOrder.discount) || customer?.id !== existingOrder.customerId)))}
+                            disabled={isProcessing || !(items.length > 0 || (existingOrder && (parseFloat(discount) !== Number(existingOrder.discount) || customer?.id !== existingOrder.customerId || discountType !== (existingOrder.discountType || 'FIXED'))))}
                             className="col-span-2 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded font-bold text-sm shadow-sm transition-colors uppercase tracking-wide"
                         >
                             {existingOrder ? 'Update Order' : 'Place Order'}
@@ -744,25 +745,39 @@ export function BillingPanel() {
                 order={kotOrder}
                 tableLabel={selectedTable?.label}
                 onPrint={() => {
-                    // Actual Logic to Print KOT
-                    // For now, browser print via a hidden window similar to Receipt, 
-                    // or just alert "Printed". 
-                    // Reusing handlePrint logic but for KOT content?
-                    // Let's create a specialized KOT print function or reuse the modal content.
-
                     const printContent = `
-                        <div style="font-family: monospace; padding: 20px; width: 300px;">
-                            <h2 style="text-align: center; margin-bottom: 5px;">KOT</h2>
-                            <p style="text-align: center; margin: 0;">Table: ${selectedTable?.label || kotOrder?.tableName}</p>
-                            <p style="text-align: center; margin: 0; font-size: 12px;">Ord: #${kotOrder?.id}</p>
+                        <html>
+                        <head>
+                            <title>KOT - ${kotOrder?.tableName}</title>
+                            <style>
+                                body { font-family: monospace; padding: 20px; width: 300px; margin: 0 auto; }
+                                .header { text-align: center; margin-bottom: 10px; border-bottom: 2px dashed #000; padding-bottom: 10px; }
+                                .item { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; }
+                                .meta { font-size: 12px; text-align: center; margin-bottom: 10px; }
+                                .qty { font-size: 16px; }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <h2 style="margin:0;">KOT</h2>
+                                <h3 style="margin:5px 0 0 0;">${selectedTable?.label || kotOrder?.tableName}</h3>
+                            </div>
+                            <div class="meta">
+                                Order #${kotOrder?.id}<br/>
+                                ${new Date().toLocaleTimeString()}<br/>
+                                ${kotOrder?.type || 'DINE IN'}
+                            </div>
                             <hr style="border-top: 1px dashed black; margin: 10px 0;" />
-                            ${kotOrder?.items?.map((i: any) =>
-                        `<div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-bottom: 5px;">
-                                    <span>${i.menuItem?.title || i.title}</span>
-                                    <span>x${i.quantity}</span>
-                                </div>`
-                    ).join('')}
-                        </div>
+                            <div>
+                                ${kotOrder?.items?.map((i: any) => `
+                                    <div class="item">
+                                        <span>${i.menuItem?.title || i.title}</span>
+                                        <span class="qty">x${i.quantity}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </body>
+                        </html>
                     `;
 
                     const win = window.open('', '', 'height=600,width=400');
@@ -772,7 +787,8 @@ export function BillingPanel() {
                         setTimeout(() => {
                             win.print();
                             win.close();
-                            setIsKOTOpen(false); // Close modal after print initiated
+                            setIsKOTOpen(false);
+                            // Optionally confirm KOT printed status to backend?
                         }, 500);
                     }
                 }}

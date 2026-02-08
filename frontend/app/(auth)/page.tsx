@@ -162,12 +162,12 @@ export default function LoginPage() {
                             </div>
 
                             {/* Keypad Grid */}
-                            <div className="grid grid-cols-3 gap-x-12 gap-y-8 mb-8">
+                            <div className="grid grid-cols-3 gap-x-6 gap-y-6 md:gap-x-12 md:gap-y-8 mb-8">
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                                     <button
                                         key={num}
                                         onClick={() => handleNumClick(num.toString())}
-                                        className="w-16 h-16 rounded-full border border-border text-foreground text-2xl font-light hover:bg-surface flex items-center justify-center transition-colors"
+                                        className="w-14 h-14 md:w-16 md:h-16 rounded-full border border-border text-foreground text-xl md:text-2xl font-light hover:bg-surface flex items-center justify-center transition-colors"
                                     >
                                         {num}
                                     </button>
@@ -176,21 +176,21 @@ export default function LoginPage() {
                                 {/* Bottom Row */}
                                 <button
                                     onClick={handleBackspace}
-                                    className="w-16 h-16 rounded bg-surface-light text-foreground flex items-center justify-center hover:bg-surface border border-border transition-colors"
+                                    className="w-14 h-14 md:w-16 md:h-16 rounded bg-surface-light text-foreground flex items-center justify-center hover:bg-surface border border-border transition-colors"
                                 >
                                     <Delete size={24} />
                                 </button>
 
                                 <button
                                     onClick={() => handleNumClick('0')}
-                                    className="w-16 h-16 rounded-full border border-border text-foreground text-2xl font-light hover:bg-surface flex items-center justify-center transition-colors"
+                                    className="w-14 h-14 md:w-16 md:h-16 rounded-full border border-border text-foreground text-xl md:text-2xl font-light hover:bg-surface flex items-center justify-center transition-colors"
                                 >
                                     0
                                 </button>
 
                                 <button
                                     onClick={handleEnter}
-                                    className="w-16 h-16 rounded bg-primary text-primary-fg flex items-center justify-center hover:opacity-90 transition-colors transform rotate-180"
+                                    className="w-14 h-14 md:w-16 md:h-16 rounded bg-primary text-primary-fg flex items-center justify-center hover:opacity-90 transition-colors transform rotate-180"
                                 >
                                     {/* Enter Icon */}
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
