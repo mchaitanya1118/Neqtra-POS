@@ -57,7 +57,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 </button>
 
                 {/* Logo */}
-                <div className="flex items-center">
+                <div className="hidden md:flex items-center">
                     <span className="text-2xl font-bold text-[#d32f2f] italic font-serif tracking-tighter">
                         Neqtra
                     </span>

@@ -180,11 +180,11 @@ export default function TablesPage() {
     return (
         <div className="min-h-screen bg-[#f3f4f6] dark:bg-zinc-950 flex flex-col font-sans">
             {/* Top Toolbar */}
-            <header className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 px-4 py-3 flex flex-wrap items-center justify-between gap-4 shadow-sm z-10">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-xl font-bold text-gray-800 dark:text-white">Table View</h1>
+            <header className="bg-white dark:bg-zinc-900 border-b border-gray-200 dark:border-zinc-800 px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm z-10">
+                <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
+                    <h1 className="text-xl font-bold text-gray-800 dark:text-white whitespace-nowrap">Table View</h1>
 
-                    <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-md px-3 py-1.5 border border-gray-200 dark:border-zinc-700 w-64">
+                    <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-md px-3 py-1.5 border border-gray-200 dark:border-zinc-700 w-full sm:w-64">
                         <Search className="w-4 h-4 text-gray-400 mr-2" />
                         <input
                             className="bg-transparent border-none outline-none text-sm w-full text-gray-700 dark:text-gray-200 placeholder:text-gray-400"
@@ -195,22 +195,22 @@ export default function TablesPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <button onClick={() => fetchTables()} className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md text-sm font-semibold hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors text-gray-700 dark:text-gray-200">
+                <div className="grid grid-cols-2 sm:flex items-center gap-2 w-full md:w-auto">
+                    <button onClick={() => fetchTables()} className="flex items-center justify-center gap-2 px-3 py-2 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-zinc-700 rounded-md text-sm font-semibold hover:bg-gray-50 dark:hover:bg-zinc-700 transition-colors text-gray-700 dark:text-gray-200">
                         <RefreshCw className="w-4 h-4" />
                         Refresh
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-[#d32f2f] hover:bg-[#b71c1c] text-white rounded-md text-sm font-bold shadow-sm transition-colors">
+                    <button className="flex items-center justify-center gap-2 px-3 py-2 bg-[#d32f2f] hover:bg-[#b71c1c] text-white rounded-md text-sm font-bold shadow-sm transition-colors">
                         <Truck className="w-4 h-4" />
                         Delivery
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-[#d32f2f] hover:bg-[#b71c1c] text-white rounded-md text-sm font-bold shadow-sm transition-colors">
+                    <button className="flex items-center justify-center gap-2 px-3 py-2 bg-[#d32f2f] hover:bg-[#b71c1c] text-white rounded-md text-sm font-bold shadow-sm transition-colors">
                         <ShoppingBag className="w-4 h-4" />
                         Pick Up
                     </button>
                     <button
                         onClick={openCreateModal}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#d32f2f] hover:bg-[#b71c1c] text-white rounded-md text-sm font-bold shadow-sm transition-all hover:shadow-md"
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-[#d32f2f] hover:bg-[#b71c1c] text-white rounded-md text-sm font-bold shadow-sm transition-all hover:shadow-md"
                     >
                         <Plus className="w-4 h-4" />
                         Add Table
@@ -219,29 +219,29 @@ export default function TablesPage() {
             </header>
 
             {/* Sub-Header & Legend */}
-            <div className="px-6 py-4 flex flex-wrap items-center justify-between gap-4 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-0">
-                <div className="flex items-center gap-4">
-                    <button className="bg-[#d32f2f] text-white px-4 py-1.5 rounded text-sm font-bold flex items-center gap-2 shadow-sm">
+            <div className="px-4 md:px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-sm sticky top-0 z-0">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                    <button className="bg-[#d32f2f] text-white px-4 py-1.5 rounded text-sm font-bold flex items-center gap-2 shadow-sm whitespace-nowrap">
                         <Plus className="w-3 h-3" /> Contactless
                     </button>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-900/50 rounded text-xs font-bold text-[#d32f2f] shadow-sm">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-900/50 rounded text-xs font-bold text-[#d32f2f] shadow-sm whitespace-nowrap">
                         <AlertCircle className="w-3 h-3" />
                         Reconnect Bridge Service
                     </div>
                 </div>
 
                 {/* Legend */}
-                <div className="flex items-center gap-4 text-xs font-medium text-gray-600 dark:text-gray-400 overflow-x-auto">
-                    <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-4 text-xs font-medium text-gray-600 dark:text-gray-400 overflow-x-auto w-full md:w-auto pb-2 md:pb-0 no-scrollbar">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <div className="w-3 h-3 rounded-full bg-white border border-gray-300"></div> Blank Table
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <div className="w-3 h-3 rounded-full bg-[#fef9c3] border border-yellow-300"></div> Running Table
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <div className="w-3 h-3 rounded-full bg-green-500"></div> Printed Table
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <div className="w-3 h-3 rounded-full bg-yellow-200 border border-yellow-400"></div> Paid Table
                     </div>
                 </div>
