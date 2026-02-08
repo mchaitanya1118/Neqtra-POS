@@ -96,7 +96,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             {/* Right Section */}
             <div className="flex items-center gap-1 md:gap-4">
                 {/* Nav Icons */}
-                <div className="flex items-center gap-1 md:gap-2 border-r border-gray-200 dark:border-gray-700 pr-4 mr-2">
+                <div className="hidden md:flex items-center gap-1 md:gap-2 border-r border-gray-200 dark:border-gray-700 pr-4 mr-2">
                     {navItems.map((item) => {
                         const isActive = pathname === item.path;
                         return (
