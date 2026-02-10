@@ -10,6 +10,7 @@ import { OrderItem } from './entities/order-item.entity';
 import { MenuItem } from '../entities/menu-item.entity';
 import { Table } from '../entities/table.entity';
 import { Payment } from './entities/payment.entity';
+import { Customer } from '../customers/entities/customer.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
@@ -32,6 +33,8 @@ export class OrdersService {
     private tableRepo: Repository<Table>,
     @InjectRepository(Payment)
     private paymentRepo: Repository<Payment>,
+    @InjectRepository(Customer)
+    private customerRepo: Repository<Customer>,
     private kitchenGateway: KitchenGateway,
   ) {
     this.razorpay = new Razorpay({
@@ -68,6 +71,11 @@ export class OrdersService {
           order.customerId = createOrderDto.customerId;
         }
         isNewOrder = true;
+      }
+
+      // Always update customerId if provided
+      if (createOrderDto.customerId) {
+        order.customerId = createOrderDto.customerId;
       }
 
       if (createOrderDto.type) {
@@ -185,7 +193,6 @@ export class OrdersService {
         { tableName: table.label, status: 'CONFIRMED' },
         { tableName: table.label, status: 'PARTIAL' },
         { tableName: table.label, status: 'SERVED' },
-        { tableName: table.label, status: 'DUE' }, // Safety net
       ],
       relations: ['items', 'items.menuItem', 'payments'], // Removed 'customer' to prevent crash
       order: { createdAt: 'DESC' },
@@ -269,6 +276,24 @@ export class OrdersService {
       amount === undefined || amount === null ? currentRemaining : amount;
 
     if (payAmount > 0.01) {
+      if (method === 'DUE' || method === 'ON_ACCOUNT') {
+        if (!order.customerId) {
+          throw new BadRequestException(
+            'Customer must be assigned to settle as DUE',
+          );
+        }
+        const customer = await this.customerRepo.findOneBy({
+          id: order.customerId,
+        });
+        if (customer) {
+          customer.totalDue += payAmount;
+          await this.customerRepo.save(customer);
+          console.log(
+            `[settle] Updated Customer ${customer.name} Total Due to ${customer.totalDue}`,
+          );
+        }
+      }
+
       const payment = this.paymentRepo.create({
         amount: payAmount,
         method,

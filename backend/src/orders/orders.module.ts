@@ -5,16 +5,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Payment } from './entities/payment.entity';
+import { Customer } from '../customers/entities/customer.entity';
 import { MenuItem } from '../entities/menu-item.entity';
 import { Table } from '../entities/table.entity';
 import { KitchenGateway } from './kitchen.gateway';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem, MenuItem, Table, Payment]),
+    TypeOrmModule.forFeature([Order, OrderItem, MenuItem, Table, Payment, Customer]),
   ],
   controllers: [OrdersController],
   providers: [OrdersService, KitchenGateway],
   exports: [KitchenGateway], // Export if needed by other modules
 })
-export class OrdersModule {}
+export class OrdersModule { }

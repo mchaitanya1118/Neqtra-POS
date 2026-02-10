@@ -33,16 +33,18 @@ export default function LoginPage() {
             const result = await login({ passcode: code });
             if (result.success && result.user) {
                 if (result.user.role === 'Waiter') {
-                    router.push('/tables');
+                    window.location.href = '/tables';
                 } else {
-                    router.push('/billing');
+                    window.location.href = '/billing';
                 }
             } else {
+                console.error("Login failed:", result.error);
                 setError(result.error || 'Invalid Passcode');
                 setPasscode('');
                 setIsLoggingIn(false);
             }
         } catch (err) {
+            console.error("Login error:", err);
             setError('Login failed');
             setIsLoggingIn(false);
         }
@@ -79,15 +81,17 @@ export default function LoginPage() {
             const result = await login({ username, password });
             if (result.success && result.user) {
                 if (result.user.role === 'Waiter') {
-                    router.push('/tables');
+                    window.location.href = '/tables';
                 } else {
-                    router.push('/billing');
+                    window.location.href = '/billing';
                 }
             } else {
+                console.error("Login failed:", result.error);
                 setError(result.error || 'Invalid credentials');
                 setIsLoggingIn(false);
             }
         } catch (err) {
+            console.error("Login error:", err);
             setError('Login failed');
             setIsLoggingIn(false);
         }

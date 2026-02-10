@@ -52,10 +52,9 @@ export function BillingPanel() {
     const [isTableModalOpen, setIsTableModalOpen] = useState(false);
     const [tableModalMode, setTableModalMode] = useState<'SELECT' | 'SHIFT'>('SELECT');
 
-    const [paymentMode, setPaymentMode] = useState<'Cash' | 'Card' | 'Online' | 'Due' | 'Other' | 'Part'>('Cash');
+    const [paymentMode, setPaymentMode] = useState<'Cash' | 'Card' | 'Online' | 'Due'>('Cash');
     const [activeTab, setActiveTab] = useState<'Dine In' | 'Delivery' | 'Pick Up'>('Dine In');
     const [isProcessing, setIsProcessing] = useState(false);
-    const [itsPaid, setItsPaid] = useState(false);
 
     // Modals
     const [isSplitOpen, setIsSplitOpen] = useState(false);
@@ -249,7 +248,45 @@ export function BillingPanel() {
             }
 
             // 2. Handle Payment logic
-            if ((action === 'SETTLE' || itsPaid) && currentOrder) {
+            if (action === 'SETTLE' && currentOrder) {
+                // Enforce Customer for Due Payments
+                if (paymentMode === 'Due' && !customer) {
+                    alert("Please select a customer to settle as Due.");
+                    setIsCustomerModalOpen(true);
+                    return;
+                }
+
+                // Sync Customer if it's new or changed BEFORE settling
+                if (customer && (currentOrder as any).customerId !== customer.id) {
+                    try {
+                        // Update the order with the customer ID
+                        const updateRes = await fetch(`${API_URL}/orders`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                tableName: selectedTable?.label,
+                                customerId: customer.id,
+                                items: items.map((i: any) => ({
+                                    menuItemId: i.menuItem.id,
+                                    quantity: i.quantity
+                                })),
+                                type: (currentOrder as any).type || 'DINE_IN',
+                                discount: discount,
+                                discountType: discountType
+                            })
+                        });
+
+                        if (!updateRes.ok) {
+                            console.error("Failed to link customer");
+                            // We continue, but it might fail if backend requires it
+                        } else {
+                            // Update currentOrder locally to reflect change
+                            (currentOrder as any).customerId = customer.id;
+                        }
+                    } catch (e) {
+                        console.error("Failed to sync customer", e);
+                    }
+                }
 
                 // ONLINE (PHONEPE) FLOW
                 if (paymentMode === 'Online') {
@@ -364,7 +401,6 @@ export function BillingPanel() {
             if (selectedTable && currentOrder) updateStatus(selectedTable.id, 'OCCUPIED');
 
             fetchActiveOrder();
-            setItsPaid(false);
 
         } catch (e: any) {
             console.error(e);
@@ -626,13 +662,19 @@ export function BillingPanel() {
 
                 {/* Payment Modes */}
                 <div className="flex items-center justify-between px-4 py-3 bg-[#424242] text-xs font-bold uppercase">
-                    {['Cash', 'Card', 'Online', 'Due', 'Other', 'Part'].map(mode => (
+                    {['Cash', 'Card', 'Online', 'Due'].map(mode => (
                         <label key={mode} className="flex items-center gap-2 cursor-pointer hover:opacity-80">
                             <input
                                 type="radio"
                                 name="payment"
                                 checked={paymentMode === mode}
-                                onChange={e => setPaymentMode(mode as any)}
+                                onChange={(e) => {
+                                    if (mode === 'Due' && !customer) {
+                                        alert("Please select a customer first to assign Dues.");
+                                        return;
+                                    }
+                                    setPaymentMode(mode as any);
+                                }}
                                 className="accent-white"
                             />
                             {mode}
@@ -640,59 +682,16 @@ export function BillingPanel() {
                     ))}
                 </div>
 
-                {/* Additional Options */}
-                <div className="flex items-center justify-between px-4 py-2 bg-[#333] text-[10px] text-gray-400 font-bold uppercase border-b border-gray-700">
-                    <label className="flex items-center gap-1 cursor-pointer select-none">
-                        <input
-                            type="checkbox"
-                            checked={itsPaid}
-                            onChange={e => setItsPaid(e.target.checked)}
-                            className="accent-[#d32f2f]"
-                        />
-                        It's Paid
-                    </label>
-                    <label className="flex items-center gap-1"><input type="checkbox" defaultChecked /> Loyalty</label>
-                    <label className="flex items-center gap-1"><input type="checkbox" /> Virtual Wallet</label>
-                </div>
-
                 {/* Footer Buttons */}
-                <div className="p-2 grid grid-cols-2 md:grid-cols-4 gap-2 bg-white dark:bg-[#1e1e1e] pb-safe-area">
+                <div className="p-2 flex gap-2 bg-white dark:bg-[#1e1e1e] pb-safe-area shrink-0">
                     {/* Place/Update Order */}
-                    {/* Place/Update Order */}
-                    {/* Always visible, disabled if no items/changes */
-                        /* Logic: Disabled if (items empty AND existingOrder unchanged) OR isProcessing */
-                        /* But wait, if items empty, Place Order is basically useless unless updating customer/discount. */
-                        /* User request: "display... but dont active... untill the items are added" */
-                        /* So, active ONLY if items > 0. (Maybe ignore customer/discount only updates for simplified UX or include them?) */
-                        /* Let's include changes checking. */
-                    }
                     {true && (
                         <button
                             onClick={() => handleAction('SAVE')}
                             disabled={isProcessing || !(items.length > 0 || (existingOrder && (parseFloat(discount) !== Number(existingOrder.discount) || customer?.id !== existingOrder.customerId || discountType !== (existingOrder.discountType || 'FIXED'))))}
-                            className="col-span-2 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded font-bold text-sm shadow-sm transition-colors uppercase tracking-wide"
+                            className="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded font-bold text-sm shadow-sm transition-colors uppercase tracking-wide"
                         >
                             {existingOrder ? 'Update Order' : 'Place Order'}
-                        </button>
-                    )}
-
-                    {/* Settle Bill logic: Always visible, disabled if no active order */}
-                    {true && (
-                        <button
-                            onClick={() => {
-                                if (!existingOrder && selectedTable?.status === 'OCCUPIED') {
-                                    if (confirm("Force free this table?")) {
-                                        updateStatus(selectedTable.id, 'FREE');
-                                        fetchActiveOrder();
-                                    }
-                                    return;
-                                }
-                                handleAction('SETTLE')
-                            }}
-                            disabled={isProcessing || !existingOrder}
-                            className="col-span-2 py-3 bg-[#d32f2f] hover:bg-[#b71c1c] disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded font-bold text-sm shadow-sm transition-colors uppercase tracking-wide"
-                        >
-                            {(!existingOrder && selectedTable?.status === 'OCCUPIED') ? 'Force Free' : (paymentTxnId ? 'Verify Pmt' : 'Settle')}
                         </button>
                     )}
 
@@ -701,18 +700,65 @@ export function BillingPanel() {
                         <button
                             onClick={() => handleAction('PRINT')}
                             disabled={isProcessing}
-                            className="col-span-1 py-3 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white rounded font-bold text-sm shadow-sm transition-colors uppercase"
+                            className="px-4 py-3 bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white rounded font-bold text-sm shadow-sm transition-colors uppercase flex items-center gap-2"
                         >
-                            Print Bill
+                            <Printer className="w-4 h-4" />
+                            <span className="hidden md:inline">Print</span>
                         </button>
                     )}
 
-                    {/* Empty spacer if buttons missing to keep layout */}
+                    {/* Cancel Order (For Empty/Stuck Orders) */}
+                    {existingOrder && existingOrder.items.length === 0 && (
+                        <button
+                            onClick={async () => {
+                                if (confirm("This order is empty. Do you want to cancel it and free the table?")) {
+                                    setIsProcessing(true);
+                                    try {
+                                        await fetch(`${API_URL}/orders/${existingOrder.id}`, { method: 'DELETE' });
+                                        alert("Order Cancelled & Table Freed");
 
+                                        // Critical: Update the Table Store state to reflect the change
+                                        if (selectedTable) {
+                                            updateStatus(selectedTable.id, 'FREE');
+                                        }
+                                        fetchTables(); // Sync with backend
 
-                    <div className="col-span-1 border border-dashed border-gray-400 rounded flex items-center justify-center">
-                        <span className="text-[10px] text-gray-500 font-bold text-center px-2">KOT Auto-Triggers</span>
-                    </div>
+                                        // Reset local order state
+                                        fetchActiveOrder();
+                                    } catch (e) {
+                                        alert("Failed to cancel order");
+                                    } finally {
+                                        setIsProcessing(false);
+                                    }
+                                }
+                            }}
+                            disabled={isProcessing}
+                            className="flex-1 py-3 bg-red-800 hover:bg-red-900 text-white rounded font-bold text-sm shadow-sm transition-colors uppercase tracking-wide"
+                        >
+                            Cancel Order
+                        </button>
+                    )}
+
+                    {/* Settle Bill logic: Visible if order has items OR (no order but table occupied - force free) */}
+                    {true && (!existingOrder || existingOrder.items.length > 0) && (
+                        <button
+                            onClick={() => {
+                                if (!existingOrder && selectedTable?.status === 'OCCUPIED') {
+                                    if (confirm("Force free this table?")) {
+                                        updateStatus(selectedTable.id, 'FREE');
+                                        fetchTables(); // Sync headers
+                                        fetchActiveOrder();
+                                    }
+                                    return;
+                                }
+                                handleAction('SETTLE')
+                            }}
+                            disabled={isProcessing || !existingOrder}
+                            className="flex-1 py-3 bg-[#d32f2f] hover:bg-[#b71c1c] disabled:opacity-50 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded font-bold text-sm shadow-sm transition-colors uppercase tracking-wide"
+                        >
+                            {(!existingOrder && selectedTable?.status === 'OCCUPIED') ? 'Force Free' : (paymentTxnId ? 'Verify Pmt' : 'Settle')}
+                        </button>
+                    )}
                 </div>
             </div>
 
