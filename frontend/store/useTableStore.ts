@@ -28,18 +28,16 @@ export const useTableStore = create<TableState>()(
             isLoading: false,
 
             fetchTables: async () => {
+                if (get().isLoading) return; // Deduplicate requests
                 set({ isLoading: true });
                 try {
                     const res = await fetch(`${API_URL}/tables`);
+                    if (!res.ok) throw new Error("Failed to fetch tables");
+
                     const data = await res.json();
 
                     if (Array.isArray(data)) {
                         set({ tables: data, isLoading: false });
-
-                        // Removed Auto-select to prevent overriding URL params
-                        // if (!get().selectedTableId && data.length > 0) {
-                        //     set({ selectedTableId: data[0].id });
-                        // }
                     } else {
                         console.error("Fetched tables data is not an array:", data);
                         set({ tables: [], isLoading: false });

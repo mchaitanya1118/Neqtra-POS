@@ -25,13 +25,20 @@ interface MenuState {
 
 export const useMenuStore = create<MenuState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             categories: [],
             isLoading: false,
             fetchMenu: async () => {
+                const state = get();
+                if (state.isLoading) return;
+                // If we already have categories, don't refetch automatically unless forced (future improvement)
+                // For now, just deduplicate inflight
+
                 set({ isLoading: true });
                 try {
                     const res = await fetch(`${API_URL}/menu/categories`);
+                    if (!res.ok) throw new Error("Failed to fetch menu");
+
                     const data = await res.json();
                     const mapped = data.map((c: any) => ({
                         ...c,

@@ -54,7 +54,7 @@ export const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(({ order }, ref)
                 <div className="text-center mb-6">
                     <h1 className="text-xl font-bold uppercase mb-2">Resto POS</h1>
                     <p className="text-xs text-muted-foreground">123 Food Street, City</p>
-                    <p className="text-xs text-muted-foreground">Tel: +123 456 7890</p>
+                    <p className="text-xs text-muted-foreground">Tel: 9000072227</p>
                 </div>
 
                 <div className="border-b border-dashed border-black mb-4 pb-2">

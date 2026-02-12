@@ -6,6 +6,8 @@ import { useCartStore } from "@/store/useCartStore";
 import { useTableStore } from "@/store/useTableStore";
 import { useSearchParams } from "next/navigation";
 import { BillingPanel } from "@/components/pos/BillingPanel";
+import { VirtualProductGrid } from "@/components/pos/VirtualProductGrid";
+import { motion } from "framer-motion";
 import { Search, ShoppingBag as ShoppingBagIcon, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -141,32 +143,9 @@ function BillingContent() {
           </div>
         </div>
 
-        {/* Items Grid */}
-        <div className="flex-1 overflow-y-auto p-4 content-start pb-24 md:pb-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-3">
-            {filteredItems.map((item: any) => {
-              // Find quantity in cart
-              const inCart = cartItems.find(i => i.menuItemId === item.id);
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => addItem(item)}
-                  className="bg-white dark:bg-[#333] border-l-4 border-l-green-500 rounded-r-md shadow-sm p-2 md:p-3 flex flex-col items-start h-full hover:shadow-md transition-shadow active:scale-[0.98] group relative min-h-[80px]"
-                >
-                  <span className="font-semibold text-gray-800 dark:text-gray-100 text-xs md:text-sm text-left line-clamp-3 leading-tight w-full">
-                    {item.title}
-                  </span>
-                  {/* <span className="text-xs text-gray-400 mt-1">₹{item.price}</span> */}
-
-                  {inCart && (
-                    <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold shadow-sm">
-                      {inCart.quantity}
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+        {/* Items Grid - Virtualized */}
+        <div className="flex-1 p-2 w-full min-h-0">
+          <VirtualProductGrid items={filteredItems} onAddItem={addItem} />
         </div>
 
         {/* Mobile Floating Cart Button */}
@@ -186,11 +165,10 @@ function BillingContent() {
       </div>
 
       {/* RIGHT: Billing Panel (Responsive Drawer) */}
+
       <div className={cn(
-        "bg-white dark:bg-[#1e1e1e] border-l border-gray-200 dark:border-gray-700 flex flex-col transition-all duration-300 ease-in-out z-30",
-        // Desktop: Fixed width, always visible
+        "bg-white dark:bg-[#1e1e1e] border-l border-gray-200 dark:border-gray-700 flex flex-col transition-transform duration-300 ease-spring z-30",
         "md:w-[450px] lg:w-[500px] md:relative md:translate-y-0",
-        // Mobile: Full screen fixed overlay, slide up/down
         "fixed inset-0 w-full h-full",
         isCartOpen ? "translate-y-0" : "translate-y-full md:translate-y-0"
       )}>

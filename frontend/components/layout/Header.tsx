@@ -142,7 +142,7 @@ export function Header({ onMenuClick }: HeaderProps) {
                 {/* Support Info (Pink Area) */}
                 <div className="hidden lg:flex flex-col items-end bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded border-l-4 border-l-[#f8bbd0]">
                     <span className="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">Call For Support</span>
-                    <span className="text-sm font-bold text-[#d32f2f]">07969 223344</span>
+                    <span className="text-sm font-bold text-[#d32f2f]">9000072227</span>
                 </div>
             </div>
         </header>

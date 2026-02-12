@@ -6,6 +6,7 @@ import { useTableStore } from "@/store/useTableStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Trash2, User, Users, ChevronUp, ChevronDown, RefreshCw, Printer, AlertCircle, Clock, Percent, DollarSign, UserPlus, X } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
 import dynamic from 'next/dynamic';
@@ -80,8 +81,15 @@ export function BillingPanel() {
     const [lastOrder, setLastOrder] = useState<any>(null);
 
     // Fetch active order when table changes
+    // Fetch active order when table changes
+    const abortControllerRef = useRef<AbortController | null>(null);
+
     const fetchActiveOrder = async () => {
-        console.log(`[BillingPanel] Fetching active order for table:`, selectedTable);
+        // Cancel previous request
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+        }
+
         if (!selectedTable) {
             setExistingOrder(null);
             setCustomer(null);
@@ -89,8 +97,17 @@ export function BillingPanel() {
             setDiscountType('FIXED');
             return;
         }
+
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+
+        console.log(`[BillingPanel] Fetching active order for table:`, selectedTable.id);
+
         try {
-            const res = await fetch(`${API_URL}/orders/${selectedTable.id}/active`);
+            const res = await fetch(`${API_URL}/orders/${selectedTable.id}/active`, {
+                signal: controller.signal
+            });
+
             if (res.ok) {
                 const data = await res.json();
                 setExistingOrder(data);
@@ -111,9 +128,17 @@ export function BillingPanel() {
                 setDiscount("");
                 setDiscountType('FIXED');
             }
-        } catch (e) {
+        } catch (e: any) {
+            if (e.name === 'AbortError') {
+                console.log('Fetch aborted');
+                return;
+            }
             console.error("Failed to fetch active order", e);
             setExistingOrder(null);
+        } finally {
+            if (abortControllerRef.current === controller) {
+                abortControllerRef.current = null;
+            }
         }
     };
 
@@ -416,25 +441,25 @@ export function BillingPanel() {
 
 
             {/* Header / Tabs */}
-            <div className="flex bg-[#333] text-white font-bold text-sm tracking-wide shrink-0">
-                <button
-                    onClick={() => setActiveTab('Dine In')}
-                    className={cn("flex-1 py-3 text-center transition-colors", activeTab === 'Dine In' ? "bg-[#d32f2f]" : "bg-[#4a4a4a]")}
-                >
-                    Dine In
-                </button>
-                <button
-                    onClick={() => setActiveTab('Delivery')}
-                    className={cn("flex-1 py-3 text-center transition-colors border-l border-gray-600", activeTab === 'Delivery' ? "bg-[#d32f2f]" : "bg-[#4a4a4a]")}
-                >
-                    Delivery
-                </button>
-                <button
-                    onClick={() => setActiveTab('Pick Up')}
-                    className={cn("flex-1 py-3 text-center transition-colors border-l border-gray-600", activeTab === 'Pick Up' ? "bg-[#d32f2f]" : "bg-[#4a4a4a]")}
-                >
-                    Pick Up
-                </button>
+            <div className="flex bg-[#333] text-white font-bold text-sm tracking-wide shrink-0 relative">
+                {['Dine In', 'Delivery', 'Pick Up'].map((tab) => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab as any)}
+                        className="flex-1 py-3 text-center relative z-10 mix-blend-screen"
+                    >
+                        {tab}
+                        {activeTab === tab && (
+                            <motion.div
+                                layoutId="activeTab"
+                                className="absolute inset-0 bg-[#d32f2f]"
+                                initial={false}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                style={{ zIndex: -1 }}
+                            />
+                        )}
+                    </button>
+                ))}
             </div>
 
             {/* Info Bar */}
