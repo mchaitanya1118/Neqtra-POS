@@ -1,14 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useMenuStore } from "@/store/useMenuStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useTableStore } from "@/store/useTableStore";
 import { useSearchParams } from "next/navigation";
 import { BillingPanel } from "@/components/pos/BillingPanel";
 import { VirtualProductGrid } from "@/components/pos/VirtualProductGrid";
-import { motion } from "framer-motion";
-import { Search, ShoppingBag as ShoppingBagIcon, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Search,
+  ShoppingBag as ShoppingBagIcon,
+  ChevronDown,
+  List,
+  RotateCw,
+  LayoutGrid
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { Suspense } from "react";
@@ -16,7 +23,7 @@ import { Suspense } from "react";
 function BillingContent() {
   const { categories, fetchMenu } = useMenuStore();
   const { items: cartItems, addItem, removeItem } = useCartStore();
-  const [selectedCategory, setSelectedCategory] = useState<any>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
 
@@ -25,11 +32,17 @@ function BillingContent() {
     fetchMenu();
   }, []);
 
+  // Derive active category object from ID
+  const activeCategory = useMemo(() => {
+    if (!selectedCategoryId) return categories[0] || null;
+    return categories.find(c => c.id === selectedCategoryId) || categories[0] || null;
+  }, [categories, selectedCategoryId]);
+
   useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
-      setSelectedCategory(categories[0]);
+    if (categories.length > 0 && !selectedCategoryId) {
+      setSelectedCategoryId(categories[0].id);
     }
-  }, [categories, selectedCategory]);
+  }, [categories, selectedCategoryId]);
 
   // Handle Table Selection from URL
   const searchParams = useSearchParams();
@@ -39,17 +52,13 @@ function BillingContent() {
 
   useEffect(() => {
     const handleSelection = async () => {
-      // 1. If logic finds the table, select it
       if (Array.isArray(tables) && tables.length > 0) {
         if (initTableId) {
           const id = parseInt(initTableId);
           const table = tables.find(t => t.id === id);
           if (table) {
-            console.log(`[BillingPage] Found table by ID: ${id}. Selecting...`);
             selectTable(id);
             return;
-          } else {
-            console.log(`[BillingPage] Table ID ${id} not found in current list.`);
           }
         }
 
@@ -57,84 +66,120 @@ function BillingContent() {
           const targetName = decodeURIComponent(initTableName);
           const table = tables.find(t => t.label === targetName);
           if (table) {
-            console.log(`[BillingPage] Found table by Name: ${targetName}. Selecting...`);
             selectTable(table.id);
             return;
-          } else {
-            console.log(`[BillingPage] Table Name ${targetName} not found in current list.`);
           }
         }
       }
 
-      // 2. If we reach here, we haven't found the table.
       if (!Array.isArray(tables) || tables.length === 0) {
-        console.log("[BillingPage] No tables loaded, fetching...");
         fetchTables();
-      } else {
-        console.warn("[BillingPage] Target table not found in loaded tables.");
       }
     };
 
     handleSelection();
   }, [initTableName, initTableId, tables, selectTable]);
 
-  // Initial Fetch on mount ALWAYS to ensure fresh data
+  // Initial Fetch on mount
   useEffect(() => {
     fetchTables();
   }, []);
 
 
-  const filteredItems = selectedCategory?.items?.filter((item: any) =>
-    item.title.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  // Select first category after categories load
+  useEffect(() => {
+    if (categories.length > 0 && !selectedCategoryId) {
+      setSelectedCategoryId(categories[0].id);
+    }
+  }, [categories, selectedCategoryId]);
+
+  const filteredItems = useMemo(() => {
+    // If a category is selected, use its items. Otherwise, show all items from all categories.
+    const baseItems = activeCategory ? (activeCategory.items || []) : categories.flatMap(cat => cat.items || []);
+
+    return baseItems.filter((item: any) =>
+      item.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [activeCategory, categories, searchTerm]);
 
   return (
-    <div className="flex h-full w-full bg-gray-100 dark:bg-[#1a1b1e] overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-background overflow-hidden font-sans relative">
+
+      {/* Background Ambience */}
+      <div className="fixed inset-0 bg-[url('/login-bg.png')] bg-cover bg-center opacity-[0.03] pointer-events-none" />
+      <div className="fixed inset-0 bg-gradient-to-br from-background via-background/95 to-background/80 pointer-events-none" />
 
       {/* LEFT: Category Sidebar (Desktop) */}
-      <div className="hidden md:flex w-48 flex-shrink-0 bg-[#2d3748] text-white flex-col overflow-y-auto border-r border-gray-700">
-        {categories.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setSelectedCategory(cat)}
-            className={cn(
-              "py-4 px-4 text-left text-sm font-semibold border-l-4 transition-colors border-transparent hover:bg-gray-700",
-              selectedCategory?.id === cat.id ? "bg-[#d32f2f] border-l-white" : "text-gray-300"
-            )}
-          >
-            {cat.title}
-          </button>
-        ))}
-      </div>
+      <aside className="hidden md:flex w-64 flex-shrink-0 bg-surface/30 backdrop-blur-md border-r border-surface-light flex-col overflow-y-auto custom-scrollbar relative z-10 transition-all duration-300">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-8 px-2">
+            <h2 className="text-[10px] font-bold text-muted uppercase tracking-widest flex items-center gap-2">
+              <LayoutGrid className="w-3 h-3" />
+              Registry
+            </h2>
+            <button onClick={() => fetchMenu()} className="text-muted hover:text-primary transition-colors">
+              <RotateCw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategoryId(cat.id)}
+                className={cn(
+                  "w-full py-3.5 px-6 text-left text-sm font-bold rounded-[32px] transition-all duration-300 relative group overflow-hidden",
+                  selectedCategoryId === cat.id
+                    ? "bg-primary text-primary-fg shadow-[0_8px_20px_rgba(105,215,189,0.25)]"
+                    : "text-muted hover:text-foreground hover:bg-surface-light"
+                )}
+              >
+                {cat.title}
+                {selectedCategoryId === cat.id && (
+                  <motion.div
+                    layoutId="activeCategoryDot"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-primary-fg/50"
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      </aside>
 
       {/* CENTER: Items Grid */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#f1f5f9] dark:bg-[#1e1e1e] relative">
-        {/* Search Bar & Mobile Categories */}
-        <div className="bg-white dark:bg-[#252526] border-b border-gray-200 dark:border-gray-700 flex flex-col gap-2 shadow-sm z-10">
-          {/* Search Input */}
-          <div className="p-3 flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <main className="flex-1 flex flex-col min-w-0 bg-transparent relative z-10">
+
+        {/* Search Bar & Mobile Headers */}
+        <div className="bg-background/80 backdrop-blur-xl border-b border-surface-light flex flex-col gap-4 z-10 p-4 md:p-6 transition-all">
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
               <input
-                className="w-full pl-9 pr-4 py-2 bg-gray-100 dark:bg-[#333] border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                placeholder="Search item"
+                className="w-full pl-12 pr-6 py-3.5 bg-surface-light/50 border border-transparent focus:border-primary/50 rounded-full text-sm text-foreground focus:outline-none transition-all placeholder:text-muted/50 backdrop-blur-md ring-1 ring-transparent focus:ring-primary/20"
+                placeholder="Search menu patterns..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
+
+            <div className="hidden lg:flex items-center gap-3 bg-surface/50 backdrop-blur-sm border border-surface-light rounded-full px-4 py-2">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-[10px] font-bold text-muted uppercase tracking-widest whitespace-nowrap">Live Menu Bridge</span>
+            </div>
           </div>
 
           {/* Mobile Category Horizontal Scroll */}
-          <div className="md:hidden overflow-x-auto flex gap-2 px-3 pb-3 no-scrollbar">
+          <div className="md:hidden overflow-x-auto flex gap-2 pb-1 no-scrollbar pt-2 border-t border-surface-light/50">
             {categories.map(cat => (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => setSelectedCategoryId(cat.id)}
                 className={cn(
-                  "flex-shrink-0 px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-colors border",
-                  selectedCategory?.id === cat.id
-                    ? "bg-[#d32f2f] text-white border-[#d32f2f]"
-                    : "bg-white dark:bg-[#333] text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                  "flex-shrink-0 px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all",
+                  selectedCategoryId === cat.id
+                    ? "bg-primary text-primary-fg shadow-lg shadow-primary/20"
+                    : "bg-surface-light/50 text-muted hover:text-foreground border border-surface-light"
                 )}
               >
                 {cat.title}
@@ -144,43 +189,57 @@ function BillingContent() {
         </div>
 
         {/* Items Grid - Virtualized */}
-        <div className="flex-1 p-2 w-full min-h-0">
+        <div className="flex-1 p-4 md:p-6 w-full h-[600px] min-h-0 bg-transparent overflow-hidden">
           <VirtualProductGrid items={filteredItems} onAddItem={addItem} />
         </div>
 
         {/* Mobile Floating Cart Button */}
-        <div className="md:hidden absolute bottom-6 right-6 z-20">
+        <div className="md:hidden absolute bottom-8 right-8 z-20">
           <button
             onClick={() => setIsCartOpen(true)}
-            className="w-14 h-14 bg-[#d32f2f] rounded-full shadow-lg flex items-center justify-center text-white relative animate-in zoom-in duration-200"
+            className="w-16 h-16 bg-primary rounded-full shadow-[0_10px_30px_rgba(105,215,189,0.4)] flex items-center justify-center text-primary-fg relative transition-transform active:scale-95 group"
           >
-            <ShoppingBagIcon className="w-6 h-6" />
-            {cartItems.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-white text-[#d32f2f] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#d32f2f]">
-                {cartItems.reduce((acc, item) => acc + item.quantity, 0)}
-              </span>
-            )}
+            <ShoppingBagIcon className="w-7 h-7" />
+            <AnimatePresence>
+              {cartItems.length > 0 && (
+                <motion.span
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  className="absolute -top-1 -right-1 bg-destructive text-white text-[10px] font-bold w-6 h-6 rounded-full flex items-center justify-center border-4 border-background shadow-lg"
+                >
+                  {cartItems.reduce((acc, item) => acc + item.quantity, 0)}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </button>
         </div>
-      </div>
+      </main>
 
       {/* RIGHT: Billing Panel (Responsive Drawer) */}
-
       <div className={cn(
-        "bg-white dark:bg-[#1e1e1e] border-l border-gray-200 dark:border-gray-700 flex flex-col transition-transform duration-300 ease-spring z-30",
-        "md:w-[450px] lg:w-[500px] md:relative md:translate-y-0",
-        "fixed inset-0 w-full h-full",
-        isCartOpen ? "translate-y-0" : "translate-y-full md:translate-y-0"
+        "bg-surface/90 backdrop-blur-2xl border-l border-surface-light flex flex-col transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-30 shadow-2xl overflow-hidden",
+        "md:w-[480px] lg:w-[540px] md:relative md:translate-y-0",
+        "fixed inset-0 w-full h-full md:h-auto",
+        isCartOpen ? "translate-y-0 opacity-100" : "translate-y-full md:translate-y-0 opacity-0 md:opacity-100"
       )}>
         {/* Mobile Close Handle */}
-        <div className="md:hidden bg-[#333] text-white p-2 flex items-center justify-between shrink-0">
-          <span className="font-bold pl-2">Current Order</span>
-          <button onClick={() => setIsCartOpen(false)} className="p-1 hover:bg-gray-700 rounded-full">
+        <div className="md:hidden bg-surface/50 backdrop-blur px-6 py-6 flex items-center justify-between shrink-0 border-b border-surface-light">
+          <div>
+            <span className="font-serif italic font-bold text-2xl tracking-tight">Active Ledger</span>
+            <p className="text-[10px] font-bold text-muted uppercase tracking-widest mt-1">Transaction Node #8291</p>
+          </div>
+          <button
+            onClick={() => setIsCartOpen(false)}
+            className="w-12 h-12 bg-surface-light rounded-full flex items-center justify-center text-foreground transition-all active:scale-90"
+          >
             <ChevronDown className="w-6 h-6" />
           </button>
         </div>
 
-        <BillingPanel />
+        <div className="flex-1 overflow-hidden">
+          <BillingPanel />
+        </div>
       </div>
     </div>
   );
@@ -188,7 +247,7 @@ function BillingContent() {
 
 export default function BillingPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-full">Loading POS...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-full bg-background text-primary font-bold animate-pulse">Initializing Flux POS...</div>}>
       <BillingContent />
     </Suspense>
   );

@@ -1,17 +1,43 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Search, Grid, LayoutGrid, Clock, Edit2, Trash2, CreditCard, RefreshCw, Printer, Split, ArrowRightLeft, X, TrendingUp, CheckCircle2 } from "lucide-react";
+import {
+    Search,
+    Grid,
+    LayoutGrid,
+    Clock,
+    Edit2,
+    Trash2,
+    CreditCard,
+    RefreshCw,
+    Printer,
+    Split,
+    ArrowRightLeft,
+    X,
+    TrendingUp,
+    CheckCircle2,
+    CheckCircle,
+    Utensils,
+    Activity,
+    ChefHat,
+    DollarSign,
+    Box,
+    LayoutDashboard,
+    ChevronRight,
+    SearchIcon
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTableStore } from "@/store/useTableStore";
 import { SplitBillModal } from "@/components/pos/SplitBillModal";
 import { Receipt } from "@/components/pos/Receipt";
 import { API_URL } from "@/lib/config";
+import { Suspense } from "react";
 
 interface OrderItem {
     menuItem: { title: string; price: number };
     quantity: number;
+    status: string;
 }
 
 interface ActiveOrder {
@@ -20,7 +46,7 @@ interface ActiveOrder {
     totalAmount: number;
     items: OrderItem[];
     createdAt: string;
-    // Optional properties that might come from backend or calculated
+    status: string;
     remaining?: number;
     payments?: any[];
 }
@@ -32,21 +58,16 @@ interface OrderStats {
     totalRevenue: number;
 }
 
-
-import { Suspense } from "react";
-
 function OrdersContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [orders, setOrders] = useState<ActiveOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState(searchParams.get("search") || "");
-    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [activeOrder, setActiveOrder] = useState<ActiveOrder | null>(null);
     const [processing, setProcessing] = useState(false);
     const [stats, setStats] = useState<OrderStats>({ totalOrders: 0, pendingOrders: 0, completedOrders: 0, totalRevenue: 0 });
 
-    // New Actions State
     const [isSplitOpen, setIsSplitOpen] = useState(false);
     const [isShiftOpen, setIsShiftOpen] = useState(false);
     const [targetTableId, setTargetTableId] = useState<string>("");
@@ -59,53 +80,55 @@ function OrdersContent() {
 
     const fetchOrders = async () => {
         try {
-            // Fetch Orders
             const res = await fetch(`${API_URL}/orders`);
             if (res.ok) {
                 const data = await res.json();
-                // Filter for active orders (PENDING, CONFIRMED, PARTIAL - not COMPLETED)
                 const active = data.filter((o: any) => ['PENDING', 'CONFIRMED', 'PARTIAL'].includes(o.status));
                 setOrders(active);
             }
 
-            // Fetch Stats using the new endpoint
             const statsRes = await fetch(`${API_URL}/orders/stats`);
             if (statsRes.ok) {
                 const statsData = await statsRes.json();
                 setStats(statsData);
-            } else {
-                // Fallback or handle error silently
-                console.error("Failed to fetch stats");
             }
-
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+        } catch (e) {
+            console.error("Fetch error:", e);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
         fetchOrders();
-        const interval = setInterval(fetchOrders, 10000); // Poll every 10s
+        const interval = setInterval(fetchOrders, 10000);
         return () => clearInterval(interval);
     }, []);
 
     const handleDeleteOrder = async (id: number) => {
-        if (!confirm("Are you sure you want to cancel this order? This will free the table.")) return;
         setProcessing(true);
         try {
             const res = await fetch(`${API_URL}/orders/${id}`, { method: 'DELETE' });
             if (res.ok) {
                 fetchOrders();
                 if (activeOrder?.id === id) setActiveOrder(null);
-            } else {
-                alert("Failed to cancel order");
+            }
+        } catch (e) { console.error(e); }
+        finally { setProcessing(false); }
+    };
+
+    const handleMarkServed = async (id: number) => {
+        setProcessing(true);
+        try {
+            const res = await fetch(`${API_URL}/orders/${id}/serve`, { method: 'POST' });
+            if (res.ok) {
+                fetchOrders();
             }
         } catch (e) { console.error(e); }
         finally { setProcessing(false); }
     };
 
     const handleEditOrder = (order: ActiveOrder) => {
-        // Navigate to dashboard/POS to edit order
-        // Pass tableName param to auto-select the table
         router.push(`/billing?tableName=${order.tableName}`);
     };
 
@@ -127,12 +150,8 @@ function OrdersContent() {
 
     const handleShiftTable = async () => {
         if (!activeOrder || !targetTableId || !activeOrder.tableName) return;
-
         const currentTable = tables.find(t => t.label.toLowerCase() === activeOrder.tableName.toLowerCase());
-        if (!currentTable) {
-            alert(`Could not identify table for ${activeOrder.tableName}. Please ensure table exists.`);
-            return;
-        }
+        if (!currentTable) return;
 
         try {
             const res = await fetch(`${API_URL}/tables/shift`, {
@@ -141,14 +160,10 @@ function OrdersContent() {
                 body: JSON.stringify({ fromId: currentTable.id, toId: Number(targetTableId) })
             });
             if (res.ok) {
-                alert("Table Shifted Successfully!");
                 fetchOrders();
                 fetchTables();
                 setIsShiftOpen(false);
                 setActiveOrder(null);
-            } else {
-                const err = await res.json();
-                alert(`Shift Failed: ${err.message}`);
             }
         } catch (e) { console.error(e); }
     };
@@ -160,19 +175,7 @@ function OrdersContent() {
 
         setProcessing(true);
         try {
-            // Assume full settle for quick pay buttons. 
-            // If partial, backend handles via remaining or we pass explicit amount?
-            // The settle endpoint logic: if amount is passed, it logs payment. If remaining <= 0, it closes order.
-            // For now, let's pass a large amount or calculate remaining to ensure closure for "Quick Pay".
-            // Or better, let backend handle omitted amount as "Full Settle"? 
-            // Checking OrdersService: if amount is present, it adds payment. 
-            // We should pass the exact remaining amount.
-
-            // We need to fetch the fresh order details to get exact remaining before paying to avoid overpayment
-            // But for simplicity in this dashboard view, we'll calculate based on what we have or fetch fresh.
-            // Let's rely on backend logic or just passed total if new.
             const amount = activeOrder.remaining !== undefined ? activeOrder.remaining : activeOrder.totalAmount;
-
             const res = await fetch(`${API_URL}/orders/${currentTable.id}/settle`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -183,8 +186,6 @@ function OrdersContent() {
                 setActiveOrder(null);
                 fetchOrders();
                 fetchTables();
-            } else {
-                alert("Payment failed");
             }
         } catch (e) { console.error(e); }
         finally { setProcessing(false); }
@@ -200,101 +201,77 @@ function OrdersContent() {
         : null;
 
     return (
-        <div className="p-8 max-w-full mx-auto h-screen flex flex-col overflow-hidden bg-background text-foreground">
+        <div className="min-h-screen bg-background text-foreground font-sans overflow-hidden relative selection:bg-primary/30 flex flex-col">
+            {/* Background Ambience */}
+            <div className="fixed inset-0 bg-[url('/login-bg.png')] bg-cover bg-center opacity-10 pointer-events-none" />
+            <div className="fixed inset-0 bg-gradient-to-br from-background via-background/95 to-background/80 pointer-events-none" />
+
             {/* Header */}
-            <div className="flex justify-between items-center mb-8 shrink-0">
-                <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
-                <div className="flex items-center gap-4">
-                    <button title="Refresh" onClick={fetchOrders} className="p-2 rounded-xl bg-surface border border-border hover:bg-surface-light transition-colors">
-                        <RefreshCw className={cn("w-5 h-5 text-muted", loading && "animate-spin")} />
+            <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-surface-light px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0 transition-all duration-300">
+                <div className="flex items-center gap-3">
+                    <h1 className="text-3xl font-bold font-serif italic tracking-tighter text-foreground">Orders</h1>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+                        <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Live Feed</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                    <button
+                        onClick={fetchOrders}
+                        className="flex items-center justify-center gap-2 px-4 py-2 bg-surface-light hover:bg-surface border border-surface-light rounded-full text-[10px] font-bold text-foreground transition-all active:scale-95"
+                    >
+                        <RefreshCw className={cn("w-3.5 h-3.5", loading && "animate-spin")} />
+                        <span>Refresh</span>
                     </button>
-                    <div className="flex items-center gap-2 bg-surface p-2 rounded-xl border border-border focus-within:border-primary/50 transition-colors">
-                        <Search className="w-5 h-5 text-muted ml-1" />
+                    <div className="relative group w-full sm:w-64">
+                        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
                         <input
-                            className="bg-transparent focus:outline-none w-64 text-sm placeholder:text-muted/50"
-                            placeholder="Search table or order #..."
+                            className="w-full pl-11 pr-4 py-2.5 bg-surface-light/50 border border-surface-light/50 focus:border-primary/50 rounded-full text-sm text-foreground placeholder:text-muted focus:outline-none transition-all ring-1 ring-transparent focus:ring-primary/20 backdrop-blur-sm"
+                            placeholder="Find Order..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
                     </div>
                 </div>
-            </div>
+            </header>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 shrink-0">
-                <div className="bg-surface rounded-2xl p-6 border border-border flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-blue-500/10 rounded-xl">
-                            <Grid className="w-6 h-6 text-blue-500" />
-                        </div>
-                        <span className="text-xs font-bold text-muted uppercase">Total</span>
+            {/* Content Area */}
+            <main className="flex-1 overflow-y-auto px-6 py-8 relative z-10 custom-scrollbar">
+                <div className="max-w-full mx-auto space-y-8 pb-20">
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                        <SimpleStatCard label="Active Orders" value={stats.pendingOrders} icon={Activity} color="text-amber-400" bg="bg-amber-500/10" />
+                        <SimpleStatCard label="Served Today" value={stats.completedOrders} icon={CheckCircle} color="text-primary" bg="bg-primary/10" />
+                        <SimpleStatCard label="Total Feed" value={stats.totalOrders} icon={ChefHat} color="text-blue-400" bg="bg-blue-500/10" />
+                        <SimpleStatCard label="Daily Revenue" value={`₹${stats.totalRevenue.toFixed(0)}`} icon={DollarSign} color="text-purple-400" bg="bg-purple-500/10" />
                     </div>
-                    <div>
-                        <h3 className="text-3xl font-bold mb-1">{stats.totalOrders}</h3>
-                        <p className="text-xs text-muted font-medium">Lifetime Orders</p>
+
+                    {/* Orders Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                        {filtered.map(order => (
+                            <OrderCard
+                                key={order.id}
+                                order={order}
+                                onPayment={setActiveOrder}
+                                onDelete={handleDeleteOrder}
+                                onEdit={handleEditOrder}
+                                onServe={handleMarkServed}
+                            />
+                        ))}
+                        {filtered.length === 0 && !loading && (
+                            <div className="col-span-full h-96 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
+                                <div className="w-24 h-24 bg-surface/30 rounded-full flex items-center justify-center mb-6">
+                                    <Box className="w-10 h-10 text-muted/50" />
+                                </div>
+                                <h3 className="text-2xl font-bold font-serif italic text-foreground mb-2">No Active Orders</h3>
+                                <p className="text-muted max-w-sm mx-auto">All tables seem clear. New orders will appear here automatically.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
-
-                <div className="bg-surface rounded-2xl p-6 border border-border flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-yellow-500/10 rounded-xl">
-                            <Clock className="w-6 h-6 text-yellow-500" />
-                        </div>
-                        <span className="text-xs font-bold text-muted uppercase">Pending</span>
-                    </div>
-                    <div>
-                        <h3 className="text-3xl font-bold mb-1">{stats.pendingOrders}</h3>
-                        <p className="text-xs text-muted font-medium">Requires Action</p>
-                    </div>
-                </div>
-
-                <div className="bg-surface rounded-2xl p-6 border border-border flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-green-500/10 rounded-xl">
-                            <CheckCircle2 className="w-6 h-6 text-green-500" />
-                        </div>
-                        <span className="text-xs font-bold text-muted uppercase">Completed</span>
-                    </div>
-                    <div>
-                        <h3 className="text-3xl font-bold mb-1">{stats.completedOrders}</h3>
-                        <p className="text-xs text-muted font-medium">Served/Paid</p>
-                    </div>
-                </div>
-
-                <div className="bg-surface rounded-2xl p-6 border border-border flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="p-3 bg-purple-500/10 rounded-xl">
-                            <TrendingUp className="w-6 h-6 text-purple-500" />
-                        </div>
-                        <span className="text-xs font-bold text-muted uppercase">Revenue</span>
-                    </div>
-                    <div>
-                        <h3 className="text-3xl font-bold mb-1">₹{stats.totalRevenue.toFixed(2)}</h3>
-                        <p className="text-xs text-muted font-medium">Completed Sales</p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto pr-2">
-                <div className={cn("grid gap-6 pb-20", viewMode === 'grid' ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" : "grid-cols-1")}>
-                    {filtered.map(order => (
-                        <OrderCard
-                            key={order.id}
-                            order={order}
-                            onPayment={setActiveOrder}
-                            onDelete={handleDeleteOrder}
-                            onEdit={handleEditOrder}
-                        />
-                    ))}
-                    {filtered.length === 0 && !loading && (
-                        <div className="col-span-full h-96 flex flex-col items-center justify-center text-muted">
-                            <Grid className="w-16 h-16 mb-4 opacity-10" />
-                            <p className="text-xl font-medium opacity-50">No active orders found</p>
-                        </div>
-                    )}
-                </div>
-            </div>
+            </main>
 
             {/* Hidden Receipt for Printing */}
             <div className="hidden">
@@ -309,150 +286,123 @@ function OrdersContent() {
                     tableId={currentTableId}
                     onSuccess={() => {
                         fetchOrders();
-                        // Update active order details if needed
-                        // For now, closing sidebar on success to force refresh
                         if (activeOrder.remaining && activeOrder.remaining <= 0) setActiveOrder(null);
                     }}
                 />
             )}
 
-            {/* Payment Modal */}
+            {/* Global Modals: Payment Panel */}
             {activeOrder && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex justify-end transition-opacity duration-300">
-                    <div className="w-full max-w-md bg-[#1a1b1e] border-l border-white/10 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
-                        {/* Header */}
-                        <div className="p-8 pb-4 flex justify-between items-start">
-                            <div>
-                                <h2 className="text-2xl font-bold mb-1 text-white">{activeOrder.tableName}</h2>
-                                <p className="text-muted text-sm">Active Order #{activeOrder.id}</p>
+                <div className="fixed inset-0 z-[100] flex justify-end">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setActiveOrder(null)} />
+                    <div className="relative w-full max-w-md bg-surface/90 backdrop-blur-xl border-l border-surface-light h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+                        {/* Panel Header */}
+                        <div className="p-8 pb-6 border-b border-surface-light">
+                            <div className="flex justify-between items-start mb-2">
+                                <div>
+                                    <h2 className="text-3xl font-bold font-serif italic text-foreground tracking-tight">{activeOrder.tableName}</h2>
+                                    <p className="text-xs font-bold text-muted uppercase tracking-widest mt-1">Order Settlement Payload</p>
+                                </div>
+                                <button onClick={() => setActiveOrder(null)} className="w-10 h-10 rounded-full bg-surface-light flex items-center justify-center text-muted hover:text-foreground transition-all">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <button onClick={() => setActiveOrder(null)} className="p-2 rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white">
-                                <Edit2 className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono text-muted">REF_ID: #ORD_{String(activeOrder.id).padStart(5, '0')}</span>
+                                <span className="text-[10px] font-mono text-primary font-bold">{activeOrder.status}</span>
+                            </div>
                         </div>
 
-                        {/* Order Details */}
-                        <div className="px-8 py-4 flex-1 flex flex-col">
-                            <div className="space-y-4 mb-auto">
-                                <div className="flex justify-between text-muted-foreground text-sm font-bold">
-                                    <span>Subtotal</span>
-                                    <span>₹{Number(activeOrder.totalAmount).toFixed(2)}</span>
+                        {/* Financials */}
+                        <div className="flex-1 overflow-y-auto p-8 space-y-6">
+                            <div className="bg-background/40 rounded-[24px] p-6 border border-surface-light space-y-4">
+                                <div className="flex justify-between items-center group">
+                                    <span className="text-sm font-bold text-muted uppercase tracking-wider">Subtotal</span>
+                                    <span className="text-lg font-bold text-foreground">₹{Number(activeOrder.totalAmount).toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between text-muted-foreground text-sm font-bold">
-                                    <span>Tax 10%</span>
-                                    <span>₹{(Number(activeOrder.totalAmount) * 0.1).toFixed(2)}</span>
+                                <div className="flex justify-between items-center group">
+                                    <span className="text-sm font-bold text-muted uppercase tracking-wider">Taxation (10%)</span>
+                                    <span className="text-lg font-bold text-foreground">₹{(Number(activeOrder.totalAmount) * 0.1).toFixed(2)}</span>
                                 </div>
                                 {activeOrder.payments && activeOrder.payments.length > 0 && (
-                                    <div className="flex justify-between text-green-500 text-sm font-bold">
-                                        <span>Paid</span>
-                                        <span>-₹{activeOrder.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0).toFixed(2)}</span>
+                                    <div className="flex justify-between items-center border-t border-surface-light pt-4">
+                                        <span className="text-sm font-bold text-primary uppercase tracking-wider">Credits Applied</span>
+                                        <span className="text-lg font-bold text-primary">-₹{activeOrder.payments.reduce((acc: number, p: any) => acc + Number(p.amount), 0).toFixed(2)}</span>
                                     </div>
                                 )}
                             </div>
 
-                            <div className="flex justify-between items-end border-t border-white/10 pt-6 mb-8 mt-6">
-                                <span className="text-2xl font-bold text-white">Total Due</span>
-                                <span className="text-4xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
-                                    ₹{(activeOrder.remaining !== undefined ? Number(activeOrder.remaining) : (Number(activeOrder.totalAmount) * 1.1)).toFixed(2)}
-                                </span>
+                            <div className="flex items-end justify-between py-6">
+                                <div>
+                                    <p className="text-xs font-bold text-muted uppercase tracking-widest mb-1">Total Outstanding</p>
+                                    <h3 className="text-5xl font-bold font-serif italic text-foreground tracking-tighter">
+                                        ₹{(activeOrder.remaining !== undefined ? Number(activeOrder.remaining) : (Number(activeOrder.totalAmount) * 1.1)).toFixed(2)}
+                                    </h3>
+                                </div>
+                                <button onClick={handlePrintBill} className="w-14 h-14 rounded-2xl bg-surface-light hover:bg-surface border border-surface-light flex items-center justify-center text-muted hover:text-foreground transition-all">
+                                    <Printer className="w-6 h-6" />
+                                </button>
                             </div>
 
-                            {/* Shift Table Logic */}
-                            {isShiftOpen && (
-                                <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10 animate-in slide-in-from-bottom duration-200">
-                                    <h4 className="text-white font-bold mb-3 text-sm">Shift to Table:</h4>
-                                    <div className="flex gap-2">
+                            {/* Shifting Area */}
+                            <div className="pt-6 border-t border-surface-light">
+                                <button
+                                    onClick={() => setIsShiftOpen(!isShiftOpen)}
+                                    className="w-full py-4 bg-background/40 hover:bg-background/80 border border-surface-light rounded-2xl flex items-center justify-between px-6 transition-all group"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <ArrowRightLeft className="w-4 h-4 text-muted group-hover:text-primary" />
+                                        <span className="text-sm font-bold text-foreground">Shift Table Payload</span>
+                                    </div>
+                                    <ChevronRight className={cn("w-4 h-4 text-muted group-hover:text-primary transition-transform", isShiftOpen && "rotate-90")} />
+                                </button>
+
+                                {isShiftOpen && (
+                                    <div className="mt-3 p-4 bg-primary/5 border border-primary/20 rounded-2xl space-y-4 animate-in slide-in-from-top duration-300">
                                         <select
-                                            className="flex-1 bg-black/50 border border-white/20 rounded-lg text-white px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                                            className="w-full bg-background/80 border border-primary/30 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-1 focus:ring-primary appearance-none"
                                             value={targetTableId}
                                             onChange={e => setTargetTableId(e.target.value)}
                                         >
-                                            <option value="">Select Table</option>
+                                            <option value="">Select Destination</option>
                                             {tables.filter(t => t.id !== currentTableId && t.status === 'FREE').map(t => (
                                                 <option key={t.id} value={t.id}>{t.label}</option>
                                             ))}
                                         </select>
-                                        <button
-                                            onClick={handleShiftTable}
-                                            className="px-4 py-2 bg-primary text-black font-bold rounded-lg text-sm"
-                                        >
-                                            Confirm
-                                        </button>
-                                        <button
-                                            onClick={() => setIsShiftOpen(false)}
-                                            className="px-3 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20"
-                                        >
-                                            <X className="w-4 h-4" />
-                                        </button>
+                                        <div className="flex gap-2">
+                                            <button onClick={handleShiftTable} className="flex-1 py-3 bg-primary text-primary-fg rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">Confirm Shift</button>
+                                            <button onClick={() => setIsSplitOpen(true)} className="flex-1 py-3 bg-surface border border-surface-light text-foreground rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-surface-light">Split Bill</button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-
-                            {/* Action Buttons Row */}
-                            <div className="grid grid-cols-3 gap-3 mb-6">
-                                <button
-                                    onClick={handlePrintBill}
-                                    className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
-                                >
-                                    <Printer className="w-5 h-5 text-muted group-hover:text-white mb-1" />
-                                    <span className="text-[10px] font-bold text-muted group-hover:text-white">Print</span>
-                                </button>
-                                <button
-                                    onClick={() => setIsSplitOpen(true)}
-                                    className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
-                                >
-                                    <Split className="w-5 h-5 text-muted group-hover:text-white mb-1" />
-                                    <span className="text-[10px] font-bold text-muted group-hover:text-white">Split</span>
-                                </button>
-                                <button
-                                    onClick={() => setIsShiftOpen(!isShiftOpen)}
-                                    className="flex flex-col items-center justify-center p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all group"
-                                >
-                                    <ArrowRightLeft className="w-5 h-5 text-muted group-hover:text-white mb-1" />
-                                    <span className="text-[10px] font-bold text-muted group-hover:text-white">Shift</span>
-                                </button>
+                                )}
                             </div>
                         </div>
 
-                        {/* Payment Area */}
-                        <div className="p-8 bg-[#141517]">
-                            <div className="bg-[#2C2D31] rounded-3xl h-64 mb-8 flex flex-col items-center justify-center relative overflow-hidden group border border-white/5 cursor-pointer hover:border-white/10 transition-colors">
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="w-24 h-24 rounded-full border-2 border-white/20 flex items-center justify-center mb-6 relative">
-                                    <div className="absolute inset-0 border-2 border-white/40 rounded-full animate-ping opacity-20" />
-                                    <CreditCard className="w-10 h-10 text-white" />
-                                </div>
-                                <p className="text-muted font-bold tracking-wide group-hover:text-white transition-colors">Tap to Pay via Terminal</p>
+                        {/* Payment Footer */}
+                        <div className="p-8 bg-surface-light/30 border-t border-surface-light">
+                            <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-6">Execution Interface</p>
+                            <div className="grid grid-cols-3 gap-3">
+                                {['CASH', 'CARD', 'WALLET'].map(m => (
+                                    <button
+                                        key={m}
+                                        onClick={() => handleProcessPayment(m)}
+                                        disabled={processing}
+                                        className={cn(
+                                            "flex flex-col items-center justify-center py-5 rounded-2xl border transition-all active:scale-95 disabled:opacity-50",
+                                            m === 'CARD'
+                                                ? "bg-primary text-primary-fg border-primary shadow-lg shadow-primary/20"
+                                                : "bg-surface border-surface-light text-muted hover:text-foreground hover:bg-surface/50"
+                                        )}
+                                    >
+                                        <div className="mb-2">
+                                            {m === 'CASH' && <DollarSign className="w-5 h-5" />}
+                                            {m === 'CARD' && <CreditCard className="w-5 h-5" />}
+                                            {m === 'WALLET' && <Activity className="w-5 h-5" />}
+                                        </div>
+                                        <span className="text-[10px] font-bold tracking-widest uppercase">{m}</span>
+                                    </button>
+                                ))}
                             </div>
-
-                            <div className="mb-6">
-                                <p className="text-xs font-bold text-muted uppercase mb-4">Quick Pay</p>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {['CASH', 'CARD', 'WALLET'].map(m => (
-                                        <button
-                                            key={m}
-                                            onClick={() => handleProcessPayment(m)}
-                                            disabled={processing}
-                                            className={cn(
-                                                "flex flex-col items-center justify-center py-4 rounded-2xl border transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
-                                                m === 'CARD'
-                                                    ? "bg-white text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.3)]"
-                                                    : "bg-[#1f2024] border-transparent text-muted hover:bg-[#2C2D31] hover:text-white"
-                                            )}
-                                        >
-                                            <div className="mb-1 text-lg">{m === 'CASH' ? '₹' : m === 'CARD' ? '💳' : '📱'}</div>
-                                            <span className="text-[10px] font-bold">{m}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => setActiveOrder(null)}
-                                className="w-full py-4 text-sm font-bold text-muted hover:text-white transition-colors"
-                            >
-                                Cancel
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -463,74 +413,106 @@ function OrdersContent() {
 
 export default function OrdersPage() {
     return (
-        <Suspense fallback={<div className="flex items-center justify-center h-full">Loading Orders...</div>}>
+        <Suspense fallback={<div className="flex items-center justify-center h-screen bg-background text-primary animate-pulse">Establishing Order Link...</div>}>
             <OrdersContent />
         </Suspense>
     );
 }
 
-function OrderCard({
-    order,
-    onPayment,
-    onDelete,
-    onEdit
-}: {
-    order: ActiveOrder,
-    onPayment: (o: ActiveOrder) => void,
-    onDelete: (id: number) => void,
-    onEdit: (o: ActiveOrder) => void
-}) {
+function SimpleStatCard({ label, value, icon: Icon, color, bg }: any) {
     return (
-        <div className="bg-[#1f2024] border border-white/5 rounded-[2rem] p-6 flex flex-col h-[400px] hover:border-white/10 transition-colors group relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-[10px] uppercase font-bold text-muted bg-white/5 px-2 py-1 rounded-lg">Active</span>
+        <div className="bg-surface/30 backdrop-blur-md border border-surface-light rounded-[32px] p-6 flex flex-col justify-between hover:border-primary/20 transition-all group">
+            <div className="flex items-center justify-between mb-4">
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center", bg, color)}>
+                    <Icon className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-bold text-muted uppercase tracking-widest opacity-60">{label}</span>
             </div>
+            <h3 className="text-2xl font-bold font-serif italic text-foreground">{value}</h3>
+        </div>
+    );
+}
 
+function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
+    const isPending = order.items.some((i: any) => i.status === 'PENDING');
+
+    return (
+        <div className="group relative bg-surface/30 hover:bg-surface/50 backdrop-blur-md border border-surface-light hover:border-primary/30 rounded-[32px] p-6 transition-all duration-300 hover:shadow-2xl flex flex-col h-[480px]">
+            {/* Card Header */}
             <div className="flex justify-between items-start mb-6">
                 <div>
-                    <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">{order.tableName}</h3>
-                    <span className="text-xs text-muted font-bold opacity-60">#{order.id}</span>
+                    <h3 className="text-2xl font-bold font-serif italic text-foreground group-hover:text-primary transition-colors tracking-tight">{order.tableName}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] font-mono text-muted">ID#{String(order.id).slice(-4)}</span>
+                        <span className={cn(
+                            "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border",
+                            isPending ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : "bg-primary/10 text-primary border-primary/20"
+                        )}>
+                            {isPending ? 'Action Required' : 'Ready'}
+                        </span>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-4 pr-2 mb-6 scrollbar-hide mask-fade-bottom">
-                {order.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-sm">
-                        <div className="flex gap-4 items-center">
-                            <span className="font-bold text-white/30 w-5 h-5 flex items-center justify-center border border-white/10 rounded-md text-xs">{item.quantity}</span>
-                            <span className="font-medium text-gray-300 truncate max-w-[120px]">{item.menuItem.title}</span>
+            {/* Items List */}
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2 mb-6 custom-scrollbar text-sm">
+                {order.items.map((item: any, idx: number) => (
+                    <div key={idx} className="flex justify-between items-center group/item p-2 rounded-xl hover:bg-background/40 transition-all">
+                        <div className="flex items-center gap-3">
+                            <span className="w-6 h-6 rounded-lg bg-surface-light flex items-center justify-center text-[10px] font-bold text-muted border border-surface-light/50">
+                                {item.quantity}
+                            </span>
+                            <span className="font-medium text-foreground/80 group-hover/item:text-foreground">{item.menuItem.title}</span>
                         </div>
-                        <span className="font-bold text-white/50">
-                            ₹{(Number(item.menuItem.price) * item.quantity).toFixed(2)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            {item.status === 'SERVED' && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                            <span className="text-xs font-bold text-muted">₹{(item.menuItem.price * item.quantity).toFixed(0)}</span>
+                        </div>
                     </div>
                 ))}
             </div>
 
-            <div className="py-4 border-t border-white/5 mb-4 flex justify-between items-center bg-[#1f2024]/50 backdrop-blur-sm">
-                <span className="text-sm font-medium text-muted">Subtotal</span>
-                <span className="text-2xl font-bold text-white tracking-tight">₹{Number(order.totalAmount).toFixed(2)}</span>
+            {/* Price Footer */}
+            <div className="py-4 border-t border-surface-light/50 flex justify-between items-center mb-6">
+                <span className="text-[10px] font-bold text-muted uppercase tracking-widest">Calculated Total</span>
+                <span className="text-2xl font-bold text-foreground font-serif italic">₹{Number(order.totalAmount).toFixed(2)}</span>
             </div>
 
-            <div className="grid grid-cols-4 gap-3 h-14 shrink-0">
+            {/* Action Grid */}
+            <div className="grid grid-cols-4 gap-3">
                 <button
                     onClick={() => onDelete(order.id)}
-                    className="col-span-1 border border-white/10 rounded-2xl flex items-center justify-center text-muted hover:bg-red-500/20 hover:border-red-500/50 hover:text-red-500 transition-all hover:scale-105 active:scale-95"
+                    className="col-span-1 h-12 rounded-2xl bg-surface-light hover:bg-red-500/10 border border-surface-light hover:border-red-500/30 flex items-center justify-center text-muted hover:text-red-400 transition-all active:scale-95"
+                    title="Cancel Order"
                 >
                     <Trash2 className="w-5 h-5" />
                 </button>
-                <button
-                    onClick={() => onEdit(order)}
-                    className="col-span-1 border border-white/10 rounded-2xl flex items-center justify-center text-muted hover:bg-white/10 hover:text-white transition-all hover:scale-105 active:scale-95"
-                >
-                    <Edit2 className="w-5 h-5" />
-                </button>
+                <div className="col-span-1 flex flex-col gap-2">
+                    <button
+                        onClick={() => onEdit(order)}
+                        className="h-full rounded-2xl bg-surface-light hover:bg-surface border border-surface-light flex items-center justify-center text-muted hover:text-primary transition-all active:scale-95"
+                        title="Edit Order"
+                    >
+                        <Edit2 className="w-5 h-5" />
+                    </button>
+                </div>
                 <button
                     onClick={() => onPayment(order)}
-                    className="col-span-2 bg-white text-black font-bold rounded-2xl flex items-center justify-center transition-all hover:scale-[1.02] active:scale-95 hover:shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+                    className="col-span-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-fg font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
-                    Payment
+                    <CreditCard className="w-4 h-4" />
+                    <span>Pay</span>
                 </button>
+
+                {isPending && (
+                    <button
+                        onClick={() => onServe(order.id)}
+                        className="col-span-full mt-1 bg-surface-light hover:bg-primary/10 border border-surface-light hover:border-primary/30 py-3 rounded-2xl text-[10px] font-bold text-muted hover:text-primary uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                    >
+                        <ChefHat className="w-4 h-4" />
+                        Mark All Served
+                    </button>
+                )}
             </div>
         </div>
     );

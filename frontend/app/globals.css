@@ -1,39 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  /* Base Colors - Dark Theme Default */
-  --background: #111315;
-  /* Deep Obsidian */
-  --surface: #1a1d1f;
-  /* Soft Charcoal */
-  --surface-light: #272b30;
+  /* Base Colors - Zoox Inspired */
+  --background: #0D1212; /* Zoox Deep Charcoal */
+  --surface: #1A1E21; /* Slightly lighter charcoal */
+  --surface-light: #2C3236; /* Lighter surface for cards */
 
   --foreground: #ffffff;
   --foreground-muted: #9a9cae;
 
-  /* Pastel Category Colors */
-  --pastel-mint: #d4f2e7;
-  --pastel-mint-fg: #1f4d3d;
+  /* Pastel Category Colors - Adjusted for Dark Mode coherence */
+  --pastel-mint: #1F4D3D; /* Darker background for mint category */
+  --pastel-mint-fg: #69D7BD; /* Zoox Mint text */
 
-  --pastel-pink: #f2d4e7;
-  --pastel-pink-fg: #4d1f3d;
+  --pastel-pink: #4D1F3D;
+  --pastel-pink-fg: #F2D4E7;
 
-  --pastel-lavender: #e7d4f2;
-  --pastel-lavender-fg: #3d1f4d;
+  --pastel-lavender: #3D1F4D;
+  --pastel-lavender-fg: #E7D4F2;
 
-  --pastel-blue: #d4e7f2;
-  --pastel-blue-fg: #1f3d4d;
+  --pastel-blue: #1F3D4D;
+  --pastel-blue-fg: #D4E7F2;
 
-  --pastel-cream: #f2e7d4;
-  --pastel-cream-fg: #4d3d1f;
+  --pastel-cream: #4D3D1F;
+  --pastel-cream-fg: #F2E7D4;
 
   /* Functional */
-  --primary: #ffffff;
-  --primary-fg: #000000;
+  --primary: #69D7BD; /* Zoox Mint */
+  --primary-fg: #0D1212; /* Dark text on mint */
 
-  --success: #4ade80;
-  --destructive: #f87171;
-  --border: #2e3238;
+  --success: #69D7BD; /* Use Mint for success too */
+  --destructive: #FF4C4C; /* Vibrant Red */
+  --border: #2C3236;
+
+  /* Radius */
+  --radius-card: 32px;
+  --radius-btn: 9999px;
 }
 
 @theme inline {
@@ -65,6 +67,9 @@
   --color-destructive: var(--destructive);
   --color-border: var(--border);
 
+  --radius-card: var(--radius-card);
+  --radius-btn: var(--radius-btn);
+
   --font-sans: var(--font-inter);
 }
 
@@ -73,6 +78,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
   -webkit-font-smoothing: antialiased;
+  height: 100%;
+}
+
+html {
+  height: 100%;
 }
 
 @layer utilities {

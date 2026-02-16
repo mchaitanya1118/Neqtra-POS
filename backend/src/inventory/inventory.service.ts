@@ -4,13 +4,16 @@ import { Repository } from 'typeorm';
 import { CreateInventoryDto } from './dto/create-inventory.dto';
 import { UpdateInventoryDto } from './dto/update-inventory.dto';
 import { InventoryItem } from './entities/inventory.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class InventoryService {
   constructor(
     @InjectRepository(InventoryItem)
     private repo: Repository<InventoryItem>,
-  ) {}
+    private readonly notificationsService: NotificationsService,
+  ) { }
 
   create(createDto: CreateInventoryDto) {
     const item = this.repo.create(createDto);
@@ -25,11 +28,26 @@ export class InventoryService {
     return this.repo.findOneBy({ id });
   }
 
-  update(id: number, updateDto: UpdateInventoryDto) {
-    return this.repo.update(id, updateDto);
+  async update(id: number, updateDto: UpdateInventoryDto) {
+    await this.repo.update(id, updateDto);
+    const updated = await this.repo.findOneBy({ id });
+
+    if (updated && updated.quantity <= updated.threshold) {
+      this.notificationsService.create({
+        title: 'Low Stock Alert',
+        message: `${updated.name} is running low (${updated.quantity} ${updated.unit} left).`,
+        type: NotificationType.WARNING,
+      });
+    }
+
+    return updated;
   }
 
-  remove(id: number) {
-    return this.repo.delete(id);
+  async remove(id: number) {
+    const result = await this.repo.delete(id);
+    if (result.affected === 0) {
+      throw new Error(`Inventory item with ID ${id} not found`);
+    }
+    return result;
   }
 }

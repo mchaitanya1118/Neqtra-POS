@@ -3,5 +3,6 @@ export class CreateInventoryDto {
   quantity: number;
   unit: string;
   threshold: number;
+  price: number;
   supplier?: string;
 }

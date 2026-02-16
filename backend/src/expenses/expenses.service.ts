@@ -10,15 +10,25 @@ export class ExpensesService {
   constructor(
     @InjectRepository(Expense)
     private repo: Repository<Expense>,
-  ) {}
+  ) { }
 
   create(createDto: CreateExpenseDto) {
     const expense = this.repo.create(createDto);
     return this.repo.save(expense);
   }
 
-  findAll() {
-    return this.repo.find({ order: { date: 'DESC' } });
+  findAll(startDate?: string, endDate?: string) {
+    const query = this.repo.createQueryBuilder('expense');
+
+    if (startDate && endDate) {
+      query.where('expense.date BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      });
+    }
+
+    query.orderBy('expense.date', 'DESC');
+    return query.getMany();
   }
 
   findOne(id: number) {

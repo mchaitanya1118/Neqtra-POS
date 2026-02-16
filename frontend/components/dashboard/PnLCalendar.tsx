@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, TrendingUp } from "lucide-react";
 import { API_URL } from "@/lib/config";
 import { cn } from "@/lib/utils";
 
@@ -61,19 +61,27 @@ export function PnLCalendar() {
     }
 
     return (
-        <div className="bg-surface border border-border rounded-3xl p-6">
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-bold">Daily Profit & Loss</h2>
+        <div className="bg-surface/30 backdrop-blur-md border border-surface-light rounded-[32px] p-8 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
-                    <span className="text-sm font-bold text-muted w-32 text-center">
-                        {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
+                        <TrendingUp className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold font-serif italic tracking-tight text-foreground text-left">Daily Profit & Loss</h2>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-widest">Financial Performance Stream</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    <span className="text-xs font-bold text-muted w-32 text-center uppercase tracking-widest bg-surface-light/50 py-2 rounded-full border border-surface-light/50">
+                        {currentDate.toLocaleString('default', { month: 'short', year: 'numeric' })}
                     </span>
-                    <div className="flex gap-1">
-                        <button onClick={handlePrev} className="p-2 hover:bg-white/5 rounded-full text-muted hover:text-white">
-                            <ChevronLeft className="w-5 h-5" />
+                    <div className="flex gap-2">
+                        <button onClick={handlePrev} className="p-2.5 bg-surface-light hover:bg-surface rounded-full text-muted hover:text-foreground transition-all border border-surface-light/50 transform active:scale-95">
+                            <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <button onClick={handleNext} className="p-2 hover:bg-white/5 rounded-full text-muted hover:text-white">
-                            <ChevronRight className="w-5 h-5" />
+                        <button onClick={handleNext} className="p-2.5 bg-surface-light hover:bg-surface rounded-full text-muted hover:text-foreground transition-all border border-surface-light/50 transform active:scale-95">
+                            <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
@@ -107,7 +115,7 @@ export function PnLCalendar() {
 
                                 {hasData && (
                                     <div className="flex flex-col items-end">
-                                        <span className={cn("text-sm font-bold", profit >= 0 ? "text-green-500" : "text-red-500")}>
+                                        <span className={cn("text-sm font-bold", profit >= 0 ? "text-primary" : "text-destructive")}>
                                             {profit >= 0 ? '+' : ''}{profit.toFixed(0)}
                                         </span>
                                         <div className="flex flex-col items-end gap-0.5 mt-1">
@@ -118,7 +126,7 @@ export function PnLCalendar() {
                                             )}
                                             {dayData.expense > 0 && (
                                                 <span className="text-[10px] text-muted flex items-center gap-1">
-                                                    EXP: <span className="text-red-400">{dayData.expense.toFixed(0)}</span>
+                                                    EXP: <span className="text-destructive">{dayData.expense.toFixed(0)}</span>
                                                 </span>
                                             )}
                                         </div>

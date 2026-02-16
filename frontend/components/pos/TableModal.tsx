@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Users, Tag } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TableModalProps {
     isOpen: boolean;
@@ -39,58 +40,86 @@ export function TableModal({ isOpen, onClose, onSubmit, initialData, title }: Ta
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-xl border border-white/10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex justify-between items-center p-6 border-b border-gray-100 dark:border-zinc-800">
-                    <h2 className="text-xl font-bold dark:text-white">{title}</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-300"
+                onClick={onClose}
+            />
+
+            <div className="relative w-full max-w-md bg-surface/90 backdrop-blur-xl border border-surface-light rounded-[32px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                <div className="flex justify-between items-center p-8 border-b border-surface-light">
+                    <div>
+                        <h2 className="text-2xl font-bold font-serif italic text-foreground tracking-tight">{title}</h2>
+                        <p className="text-[10px] font-bold text-muted uppercase tracking-widest mt-1">Registry Update Interface</p>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-surface-light flex items-center justify-center text-muted hover:text-foreground transition-all">
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Table Name / Label
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-[10px] font-bold text-muted uppercase tracking-widest">
+                            <Tag className="w-3 h-3" />
+                            Table Label
                         </label>
                         <input
                             required
+                            autoFocus
                             type="text"
                             value={label}
                             onChange={(e) => setLabel(e.target.value)}
-                            placeholder="e.g. Table 1, Garden 5, AC-2"
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            placeholder="e.g. AC-01"
+                            className="w-full px-5 py-3.5 bg-background/50 border border-surface-light focus:border-primary/50 rounded-[20px] text-foreground placeholder:text-muted focus:outline-none transition-all ring-1 ring-transparent focus:ring-primary/20"
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Capacity (Pax)
+                    <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-[10px] font-bold text-muted uppercase tracking-widest">
+                            <Users className="w-3 h-3" />
+                            Seating Capacity
                         </label>
+                        <div className="grid grid-cols-4 gap-3">
+                            {[2, 4, 6, 8].map(num => (
+                                <button
+                                    key={num}
+                                    type="button"
+                                    onClick={() => setCapacity(num)}
+                                    className={cn(
+                                        "py-3 rounded-2xl border text-sm font-bold transition-all",
+                                        capacity === num
+                                            ? "bg-primary text-primary-fg border-primary shadow-lg shadow-primary/20"
+                                            : "bg-surface-light border-surface-light text-muted hover:text-foreground"
+                                    )}
+                                >
+                                    {num}
+                                </button>
+                            ))}
+                        </div>
                         <input
                             required
                             type="number"
                             min="1"
                             value={capacity}
                             onChange={(e) => setCapacity(Number(e.target.value))}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            className="w-full px-5 py-3.5 bg-background/50 border border-surface-light focus:border-primary/50 rounded-[20px] text-foreground focus:outline-none transition-all mt-2"
                         />
                     </div>
 
-                    <div className="pt-4 flex gap-3">
+                    <div className="pt-6 flex gap-3">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-zinc-700 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
+                            className="flex-1 py-4 rounded-[20px] border border-surface-light text-foreground font-bold text-xs uppercase tracking-widest hover:bg-surface-light transition-all"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading || !label}
-                            className="flex-1 px-4 py-2 rounded-lg bg-primary text-black font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="flex-1 py-4 rounded-[20px] bg-primary text-primary-fg font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/40 disabled:opacity-50 transition-all hover:scale-[1.02]"
                         >
-                            {loading ? "Saving..." : "Save Table"}
+                            {loading ? "Processing..." : "Save Table"}
                         </button>
                     </div>
                 </form>

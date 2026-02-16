@@ -11,11 +11,14 @@ import { MenuItem } from '../entities/menu-item.entity';
 import { Table } from '../entities/table.entity';
 import { Payment } from './entities/payment.entity';
 import { Customer } from '../customers/entities/customer.entity';
+import { Delivery } from '../delivery/entities/delivery.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
 
 import { KitchenGateway } from './kitchen.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class OrdersService {
@@ -35,7 +38,10 @@ export class OrdersService {
     private paymentRepo: Repository<Payment>,
     @InjectRepository(Customer)
     private customerRepo: Repository<Customer>,
+    @InjectRepository(Delivery)
+    private deliveryRepo: Repository<Delivery>,
     private kitchenGateway: KitchenGateway,
+    private readonly notificationsService: NotificationsService,
   ) {
     this.razorpay = new Razorpay({
       key_id: 'rzp_test_S8BPowIgENgSYn',
@@ -50,22 +56,32 @@ export class OrdersService {
         JSON.stringify(createOrderDto),
       );
 
-      // Check for existing active order for this table
-      let order = await this.orderRepo.findOne({
-        where: [
-          { tableName: createOrderDto.tableName, status: 'PENDING' },
-          { tableName: createOrderDto.tableName, status: 'CONFIRMED' },
-          { tableName: createOrderDto.tableName, status: 'PARTIAL' },
-        ],
-        relations: ['items'],
-        order: { createdAt: 'DESC' },
-      });
+      // Validation: Table Name required unless Delivery
+      if (createOrderDto.type !== 'DELIVERY' && !createOrderDto.tableName) {
+        throw new BadRequestException('Table Name is required for non-delivery orders');
+      }
 
+      let order: Order | null = null;
       let isNewOrder = false;
+
+      // Check for existing active order for this table (only if table is provided)
+      if (createOrderDto.tableName) {
+        order = await this.orderRepo.findOne({
+          where: [
+            { tableName: createOrderDto.tableName, status: 'PENDING' },
+            { tableName: createOrderDto.tableName, status: 'CONFIRMED' },
+            { tableName: createOrderDto.tableName, status: 'PARTIAL' },
+          ],
+          relations: ['items'],
+          order: { createdAt: 'DESC' },
+        });
+      }
 
       if (!order) {
         order = new Order();
-        order.tableName = createOrderDto.tableName;
+        if (createOrderDto.tableName) {
+          order.tableName = createOrderDto.tableName;
+        }
         order.items = [];
         if (createOrderDto.customerId) {
           order.customerId = createOrderDto.customerId;
@@ -81,6 +97,10 @@ export class OrdersService {
       if (createOrderDto.type) {
         order.type = createOrderDto.type;
       }
+
+      // If delivery, ensure we have delivery details (though logic might be handled in specific delivery creation, 
+      // but here we just create the order. The Delivery entity creation might happen via DeliveryService or here if DTO supports it. 
+      // For now, we'll assume the frontend calls this to create the base order.)
 
       // Update discount info if provided (always updateable in PENDING state)
       if (createOrderDto.discount !== undefined) {
@@ -138,8 +158,18 @@ export class OrdersService {
       const savedOrder = await this.orderRepo.save(order);
       console.log(`[OrdersService.create] Order Saved ID:`, savedOrder.id);
 
-      if (isNewOrder) {
-        // Update Table to OCCUPIED only if new
+      // Handle Delivery Creation
+      if (createOrderDto.type === 'DELIVERY' && createOrderDto.deliveryDetails) {
+        const delivery = this.deliveryRepo.create({
+          ...createOrderDto.deliveryDetails,
+          orderId: savedOrder.id,
+          status: 'PENDING'
+        });
+        await this.deliveryRepo.save(delivery);
+      }
+
+      if (isNewOrder && createOrderDto.tableName) {
+        // Update Table to OCCUPIED only if new and table exists
         const table = await this.tableRepo.findOneBy({
           label: order.tableName,
         });
@@ -158,6 +188,13 @@ export class OrdersService {
       // Broadcast to Kitchen
       if (finalOrder) {
         this.kitchenGateway.broadcastNewOrder(finalOrder);
+
+        // Create a system notification
+        this.notificationsService.create({
+          title: 'New Order Created',
+          message: `Order #${finalOrder.id} for Table ${finalOrder.tableName || 'Delivery'} has been placed.`,
+          type: NotificationType.INFO,
+        });
       }
 
       return finalOrder;

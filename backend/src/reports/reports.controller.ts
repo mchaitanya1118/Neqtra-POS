@@ -3,11 +3,16 @@ import { ReportsService } from './reports.service';
 
 @Controller('reports')
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(private readonly reportsService: ReportsService) { }
 
   @Get('sales')
   getSales(@Query() query: { start?: string; end?: string }) {
     return this.reportsService.getSales(query);
+  }
+
+  @Get('chart-data')
+  getChartData(@Query() query: { start?: string; end?: string }) {
+    return this.reportsService.getChartData(query);
   }
 
   @Get('pnl')

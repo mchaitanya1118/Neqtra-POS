@@ -5,6 +5,11 @@ type User = {
     id: number;
     name: string;
     role: string;
+    roleRel?: {
+        id: number;
+        name: string;
+        permissions: string[];
+    };
 };
 
 type AuthState = {

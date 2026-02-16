@@ -14,7 +14,32 @@ export class ReportsService {
     private paymentRepo: Repository<Payment>,
     @InjectRepository(Expense)
     private expenseRepo: Repository<Expense>,
-  ) {}
+  ) { }
+
+  async getChartData(query: { start?: string; end?: string }) {
+    // Group by day for the chart
+    // Using simple JS post-processing to avoid DB-specific constraints for now, 
+    // but ideally use DB grouping. Given Order entity has createdAt...
+
+    const qb = this.orderRepo.createQueryBuilder('o')
+      .select("TO_CHAR(o.createdAt, 'YYYY-MM-DD')", 'date')
+      .addSelect('SUM(o.totalAmount)', 'revenue')
+      .addSelect('COUNT(o.id)', 'orders')
+      .groupBy("TO_CHAR(o.createdAt, 'YYYY-MM-DD')")
+      .orderBy('date', 'ASC');
+
+    if (query.start) qb.andWhere('o.createdAt >= :start', { start: query.start });
+    if (query.end) qb.andWhere('o.createdAt <= :end', { end: query.end });
+
+    const result = await qb.getRawMany();
+
+    // Fill gaps? For now, let frontend handle or just show what we have.
+    return result.map(r => ({
+      date: r.date,
+      revenue: parseFloat(r.revenue),
+      orders: parseInt(r.orders, 10)
+    }));
+  }
 
   async getSales(query: { start?: string; end?: string }) {
     try {

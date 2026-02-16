@@ -13,6 +13,10 @@ import { InventoryModule } from './inventory/inventory.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { CustomersModule } from './customers/customers.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
+import { DeliveryModule } from './delivery/delivery.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -43,6 +47,10 @@ import { AuthModule } from './auth/auth.module';
     DashboardModule,
     CustomersModule,
     AuthModule,
+    UsersModule,
+    RolesModule,
+    DeliveryModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

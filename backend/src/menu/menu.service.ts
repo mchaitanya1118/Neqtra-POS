@@ -11,11 +11,23 @@ export class MenuService {
     private categoryRepo: Repository<Category>,
     @InjectRepository(MenuItem)
     private menuItemRepo: Repository<MenuItem>,
-  ) {}
+  ) { }
 
   async findAllCategories() {
     return this.categoryRepo.find({
       relations: ['items', 'items.upsellItems'],
+    });
+  }
+
+  async findAllItems(categoryId?: number) {
+    if (categoryId) {
+      return this.menuItemRepo.find({
+        where: { category: { id: categoryId } },
+        relations: ['category', 'upsellItems'],
+      });
+    }
+    return this.menuItemRepo.find({
+      relations: ['category', 'upsellItems'],
     });
   }
 

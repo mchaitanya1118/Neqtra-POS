@@ -98,104 +98,115 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex h-screen bg-white text-black font-sans overflow-hidden">
-            {/* Left Side - Login Form */}
-            <div className="w-full lg:w-[45%] flex flex-col p-4 md:p-12 relative h-full justify-center">
+        <div className="flex h-screen w-full bg-background text-foreground font-sans overflow-hidden relative selection:bg-primary/30">
+            {/* Background Ambience */}
+            <div className="absolute inset-0 bg-[url('/login-bg.png')] bg-cover bg-center opacity-20" />
+            <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/80" />
 
-                <div className="max-w-[360px] w-full mx-auto flex flex-col justify-center flex-1 py-4">
-                    {/* Logo Mark */}
-                    <div className="mb-4 flex justify-center lg:justify-start">
-                        <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
-                                <span className="font-serif italic font-bold text-lg">N</span>
-                            </div>
-                            <span className="text-2xl font-bold font-serif italic tracking-tight">Neqtra</span>
+            {/* Animated Orbs/Glows */}
+            <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[120px] animate-pulse" />
+
+            <div className="relative z-10 w-full h-full flex items-center justify-center p-4">
+                <div className="w-full max-w-[420px] bg-surface/30 backdrop-blur-xl border border-surface-light rounded-[32px] p-8 md:p-10 shadow-2xl flex flex-col gap-6 animate-in zoom-in-95 duration-500">
+
+                    {/* Header */}
+                    <div className="flex flex-col items-center gap-2 mb-2">
+                        <div className="text-3xl font-bold font-serif italic tracking-tighter text-foreground mb-1">
+                            Neqtra
                         </div>
+                        <p className="text-muted text-sm text-center">
+                            Welcome back. Please sign in to continue.
+                        </p>
                     </div>
 
-                    <h1 className="text-2xl md:text-3xl font-bold mb-2 tracking-tight text-gray-900 text-center lg:text-left">Sign in to your account</h1>
-                    <p className="text-gray-500 mb-6 text-sm leading-relaxed text-center lg:text-left">Please continue to sign in to your business account to access the dashboard.</p>
-
-                    {/* Toggle Switch */}
-                    <div className="flex p-1 bg-gray-100 rounded-xl mb-6 border border-gray-200">
+                    {/* Toggle */}
+                    <div className="flex p-1 bg-background/50 rounded-[16px] border border-surface-light">
                         <button
                             onClick={() => setActiveTab('passcode')}
-                            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === 'passcode'
-                                ? 'bg-white text-black shadow-sm ring-1 ring-black/5'
-                                : 'text-gray-500 hover:text-black'
+                            className={`flex-1 py-2.5 text-sm font-semibold rounded-[12px] transition-all duration-300 ${activeTab === 'passcode'
+                                ? 'bg-surface text-foreground shadow-sm'
+                                : 'text-muted hover:text-foreground hover:bg-surface/50'
                                 }`}
                         >
                             Passcode
                         </button>
                         <button
                             onClick={() => setActiveTab('login')}
-                            className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-200 ${activeTab === 'login'
-                                ? 'bg-white text-black shadow-sm ring-1 ring-black/5'
-                                : 'text-gray-500 hover:text-black'
+                            className={`flex-1 py-2.5 text-sm font-semibold rounded-[12px] transition-all duration-300 ${activeTab === 'login'
+                                ? 'bg-surface text-foreground shadow-sm'
+                                : 'text-muted hover:text-foreground hover:bg-surface/50'
                                 }`}
                         >
                             Credentials
                         </button>
                     </div>
 
-                    {/* Error Message */}
+                    {/* Error */}
                     {error && (
-                        <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-6 text-center font-medium border border-red-100">
+                        <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-xl text-center font-medium animate-in slide-in-from-top-2">
                             {error}
                         </div>
                     )}
 
+                    {/* Content */}
                     {activeTab === 'login' ? (
-                        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Username or Email</label>
-                                <input
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all text-sm font-medium placeholder:text-gray-400"
-                                    placeholder="Enter your username"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                />
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted ml-1">Username</label>
+                                <div className="relative group">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
+                                    <input
+                                        className="w-full pl-10 pr-4 py-3.5 bg-background/50 border border-surface-light rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm font-medium placeholder:text-muted/50 text-foreground"
+                                        placeholder="Enter username"
+                                        value={username}
+                                        onChange={(e) => setUsername(e.target.value)}
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="block text-xs font-bold uppercase tracking-wider text-gray-500">Password</label>
-                                <input
-                                    type="password"
-                                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all text-sm font-medium placeholder:text-gray-400"
-                                    placeholder="Enter your password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                />
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted ml-1">Password</label>
+                                <div className="relative group">
+                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
+                                    <input
+                                        type="password"
+                                        className="w-full pl-10 pr-4 py-3.5 bg-background/50 border border-surface-light rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm font-medium placeholder:text-muted/50 text-foreground"
+                                        placeholder="Enter password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                    />
+                                </div>
                             </div>
                             <button
                                 onClick={handleLoginSubmit}
                                 disabled={isLoggingIn}
-                                className="w-full bg-black text-white py-3.5 rounded-xl font-bold hover:bg-gray-800 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-black/20"
+                                className="mt-2 w-full bg-primary hover:bg-primary/90 text-primary-fg py-3.5 rounded-xl font-bold transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(105,215,189,0.2)] hover:shadow-[0_0_30px_rgba(105,215,189,0.4)]"
                             >
-                                {isLoggingIn ? 'Signing in...' : 'Continue'}
+                                {isLoggingIn ? 'Signing in...' : 'Sign In'}
                             </button>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-4 duration-300 w-full">
+                        <div className="flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300 w-full">
                             {/* Passcode Visualizer */}
-                            <div className="flex gap-4 mb-6 justify-center w-full">
+                            <div className="flex gap-4 mb-2 justify-center w-full">
                                 {[...Array(4)].map((_, i) => (
                                     <div
                                         key={i}
                                         className={`w-4 h-4 rounded-full transition-all duration-300 border-2 ${i < passcode.length
-                                            ? 'bg-black border-black scale-110 shadow-md'
-                                            : 'bg-transparent border-gray-300'
+                                            ? 'bg-primary border-primary scale-110 shadow-[0_0_10px_rgba(105,215,189,0.5)]'
+                                            : 'bg-transparent border-surface-light'
                                             }`}
                                     />
                                 ))}
                             </div>
 
                             {/* Keypad */}
-                            <div className="grid grid-cols-3 gap-4 w-full max-w-[280px] mx-auto">
+                            <div className="grid grid-cols-3 gap-3 w-full max-w-[280px]">
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
                                     <button
                                         key={n}
                                         onClick={() => handleNumClick(n.toString())}
-                                        className="w-full aspect-square rounded-2xl bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 flex items-center justify-center text-2xl font-medium transition-all duration-200 active:scale-95 text-gray-900"
+                                        className="w-full aspect-square rounded-[20px] bg-background/50 hover:bg-surface border border-surface-light hover:border-primary/30 flex items-center justify-center text-2xl font-medium transition-all duration-200 active:scale-90 text-foreground"
                                     >
                                         {n}
                                     </button>
@@ -203,30 +214,20 @@ export default function LoginPage() {
                                 <div />
                                 <button
                                     onClick={() => handleNumClick('0')}
-                                    className="w-full aspect-square rounded-2xl bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 flex items-center justify-center text-2xl font-medium transition-all duration-200 active:scale-95 text-gray-900"
+                                    className="w-full aspect-square rounded-[20px] bg-background/50 hover:bg-surface border border-surface-light hover:border-primary/30 flex items-center justify-center text-2xl font-medium transition-all duration-200 active:scale-90 text-foreground"
                                 >
                                     0
                                 </button>
                                 <button
                                     onClick={handleBackspace}
-                                    className="w-full aspect-square rounded-2xl hover:bg-red-50 text-gray-400 hover:text-red-500 border border-transparent hover:border-red-100 flex items-center justify-center transition-all duration-200 active:scale-95"
+                                    className="w-full aspect-square rounded-[20px] hover:bg-destructive/10 text-muted hover:text-destructive border border-transparent hover:border-destructive/30 flex items-center justify-center transition-all duration-200 active:scale-90"
                                 >
                                     <Delete className="w-6 h-6" />
                                 </button>
                             </div>
                         </div>
                     )}
-
-
                 </div>
-            </div>
-
-            {/* Right Side - Image/Pattern */}
-            <div className="hidden lg:block flex-1 bg-black relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('/login-bg.png')] bg-cover bg-center opacity-90 contrast-125"></div>
-
-                {/* Overlay Gradient for subtle fade */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
             </div>
         </div>
     );

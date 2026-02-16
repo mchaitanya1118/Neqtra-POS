@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { API_URL } from "@/lib/config";
 import { X, CreditCard, Banknote, Wallet } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SplitBillModalProps {
     isOpen: boolean;
@@ -72,11 +73,11 @@ export function SplitBillModal({ isOpen, onClose, tableId, onSuccess }: SplitBil
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className="bg-surface border border-border rounded-2xl w-[400px] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                <div className="p-6 border-b border-border flex items-center justify-between">
-                    <h2 className="text-xl font-bold">Split Payment</h2>
-                    <button onClick={onClose}><X className="w-5 h-5" /></button>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-md animate-in fade-in duration-200">
+            <div className="bg-surface border border-surface-light rounded-[32px] w-[450px] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+                <div className="p-6 border-b border-surface-light flex items-center justify-between">
+                    <h2 className="text-xl font-bold text-foreground">Split Payment</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-surface-light rounded-full text-muted hover:text-foreground transition-colors"><X className="w-5 h-5" /></button>
                 </div>
 
                 {order ? (
@@ -90,30 +91,35 @@ export function SplitBillModal({ isOpen, onClose, tableId, onSuccess }: SplitBil
                                 <span>Paid So Far:</span>
                                 <span className="font-bold">${order.totalPaid.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between text-lg font-bold border-t border-dashed border-border pt-2">
+                            <div className="flex justify-between text-lg font-bold border-t border-dashed border-surface-light pt-4 text-foreground">
                                 <span>Remaining:</span>
                                 <span>${order.remaining.toFixed(2)}</span>
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Payment Amount</label>
+                        <div className="space-y-3">
+                            <label className="text-sm font-bold text-muted uppercase tracking-wider">Payment Amount</label>
                             <input
                                 type="number"
                                 value={amount}
                                 onChange={e => setAmount(e.target.value)}
-                                className="w-full bg-surface-light border border-border rounded-xl px-4 py-3 text-xl font-bold focus:outline-none focus:border-primary"
+                                className="w-full bg-surface-light border border-transparent rounded-[20px] px-6 py-4 text-2xl font-bold text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all placeholder:text-muted/30"
                                 placeholder="0.00"
                                 max={order.remaining}
                             />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-3 gap-3">
                             {['CASH', 'CARD', 'UPI'].map(m => (
                                 <button
                                     key={m}
                                     onClick={() => setMethod(m)}
-                                    className={`p-2 rounded-lg border text-xs font-bold transition-all ${method === m ? 'bg-primary text-primary-fg border-primary' : 'bg-surface-light border-border hover:border-primary/50'}`}
+                                    className={cn(
+                                        "p-3 rounded-[16px] border text-xs font-bold transition-all uppercase tracking-wider",
+                                        method === m
+                                            ? "bg-primary text-primary-fg border-primary shadow-[0_0_15px_rgba(105,215,189,0.3)]"
+                                            : "bg-surface-light border-transparent text-muted hover:text-foreground hover:bg-surface-light/80"
+                                    )}
                                 >
                                     {m}
                                 </button>
@@ -123,7 +129,7 @@ export function SplitBillModal({ isOpen, onClose, tableId, onSuccess }: SplitBil
                         <button
                             onClick={handlePayment}
                             disabled={loading || !amount}
-                            className="w-full bg-green-500 text-white h-12 rounded-xl font-bold text-lg hover:bg-green-600 transition-all disabled:opacity-50"
+                            className="w-full bg-primary text-primary-fg h-14 rounded-[99px] font-bold text-lg hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98]"
                         >
                             {loading ? 'Processing...' : `Pay $${Number(amount || 0).toFixed(2)}`}
                         </button>

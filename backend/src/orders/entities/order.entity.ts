@@ -5,14 +5,19 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 import { Payment } from './payment.entity';
+import { Delivery } from '../../delivery/entities/delivery.entity';
 
 @Entity('orders')
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @OneToOne(() => Delivery, (delivery) => delivery.order)
+  delivery: Delivery;
 
   @Column({ nullable: true })
   tableName: string;

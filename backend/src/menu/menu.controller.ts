@@ -6,16 +6,22 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { MenuService } from './menu.service';
 
 @Controller('menu')
 export class MenuController {
-  constructor(private readonly menuService: MenuService) {}
+  constructor(private readonly menuService: MenuService) { }
 
   @Get('categories')
   findAll() {
     return this.menuService.findAllCategories();
+  }
+
+  @Get('items')
+  findAllItems(@Query('categoryId') categoryId?: string) {
+    return this.menuService.findAllItems(categoryId ? +categoryId : undefined);
   }
 
   @Post('seed')

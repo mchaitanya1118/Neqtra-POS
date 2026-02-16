@@ -3,4 +3,8 @@ export class CreateMenuItemDto {
   price: number;
   categoryId: number;
   imageUrl?: string;
+  description?: string;
+  isAvailable?: boolean;
+  isVegetarian?: boolean;
+  isSpicy?: boolean;
 }

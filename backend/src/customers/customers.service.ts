@@ -6,6 +6,8 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { Customer } from './entities/customer.entity';
 import { DuesPayment } from './entities/dues-payment.entity';
 import { Order } from '../orders/entities/order.entity';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../notifications/entities/notification.entity';
 
 @Injectable()
 export class CustomersService {
@@ -16,7 +18,8 @@ export class CustomersService {
     private paymentRepo: Repository<DuesPayment>,
     @InjectRepository(Order)
     private orderRepo: Repository<Order>,
-  ) {}
+    private readonly notificationsService: NotificationsService,
+  ) { }
 
   // ... (create, findAll, findOne, update, remove - keep identical)
 
@@ -54,8 +57,25 @@ export class CustomersService {
     });
     await this.paymentRepo.save(payment);
 
-    customer.totalDue = Math.max(0, customer.totalDue - amount);
-    return this.repo.save(customer);
+    // Logic: Deduct from totalDue. If amount > totalDue, put remainder in credit.
+    if (amount > customer.totalDue) {
+      const remainder = amount - customer.totalDue;
+      customer.totalDue = 0;
+      customer.credit = (customer.credit || 0) + remainder;
+    } else {
+      customer.totalDue -= amount;
+    }
+
+    const saved = await this.repo.save(customer);
+
+    // Trigger notification
+    this.notificationsService.create({
+      title: 'Payment Received',
+      message: `Payment of ₹${amount} received from ${customer.name}. New Due: ₹${customer.totalDue}`,
+      type: NotificationType.SUCCESS,
+    });
+
+    return saved;
   }
 
   async addDue(id: number, amount: number) {
@@ -70,8 +90,30 @@ export class CustomersService {
     });
     await this.paymentRepo.save(payment);
 
-    customer.totalDue += amount;
-    return this.repo.save(customer);
+    // Logic: Use credit first if available
+    let remainingAmountToAdd = amount;
+    if (customer.credit > 0) {
+      if (customer.credit >= remainingAmountToAdd) {
+        customer.credit -= remainingAmountToAdd;
+        remainingAmountToAdd = 0;
+      } else {
+        remainingAmountToAdd -= customer.credit;
+        customer.credit = 0;
+      }
+    }
+
+    customer.totalDue += remainingAmountToAdd;
+    const saved = await this.repo.save(customer);
+
+    if (remainingAmountToAdd > 0) {
+      this.notificationsService.create({
+        title: 'New Debt Recorded',
+        message: `₹${remainingAmountToAdd} added to ${customer.name}'s account. Total Due: ₹${customer.totalDue}`,
+        type: NotificationType.WARNING,
+      });
+    }
+
+    return saved;
   }
 
   async getHistory(id: number) {

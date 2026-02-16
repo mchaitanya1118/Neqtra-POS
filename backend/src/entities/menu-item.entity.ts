@@ -23,6 +23,18 @@ export class MenuItem {
   @Column({ nullable: true })
   imageUrl: string;
 
+  @Column({ nullable: true })
+  description: string;
+
+  @Column({ default: true })
+  isAvailable: boolean;
+
+  @Column({ default: true })
+  isVegetarian: boolean;
+
+  @Column({ default: false })
+  isSpicy: boolean;
+
   @Column({ default: 0 })
   stock: number;
 

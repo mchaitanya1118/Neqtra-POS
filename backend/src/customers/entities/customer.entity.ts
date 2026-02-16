@@ -22,6 +22,9 @@ export class Customer {
   @Column('float', { default: 0 })
   totalDue: number;
 
+  @Column('float', { default: 0 })
+  credit: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

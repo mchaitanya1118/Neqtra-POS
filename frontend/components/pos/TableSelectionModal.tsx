@@ -28,24 +28,24 @@ export function TableSelectionModal({ isOpen, onClose, onSelect, title = "Select
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div
-                className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+                className="bg-surface rounded-[32px] shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-surface-light"
             >
                 {/* Header */}
-                <div className="p-4 border-b border-gray-100 dark:border-zinc-800 flex justify-between items-center bg-gray-50/50 dark:bg-zinc-800/50">
-                    <h2 className="text-lg font-bold text-gray-800 dark:text-white">{title}</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-zinc-700 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+                <div className="p-6 border-b border-surface-light flex justify-between items-center bg-surface">
+                    <h2 className="text-xl font-bold text-foreground tracking-tight">{title}</h2>
+                    <button onClick={onClose} className="p-2 hover:bg-surface-light rounded-full transition-colors text-muted hover:text-foreground">
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Search */}
-                <div className="p-4 border-b border-gray-100 dark:border-zinc-800">
+                <div className="p-6 border-b border-surface-light">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
                         <input
-                            className="w-full pl-9 pr-4 py-2 bg-gray-100 dark:bg-zinc-800 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                            className="w-full pl-12 pr-4 py-3 bg-surface-light border border-transparent rounded-[20px] text-sm focus:border-primary focus:bg-surface focus:ring-0 outline-none transition-all placeholder:text-muted/60 font-medium"
                             placeholder="Search tables..."
                             value={search}
                             onChange={e => setSearch(e.target.value)}
@@ -55,33 +55,33 @@ export function TableSelectionModal({ isOpen, onClose, onSelect, title = "Select
                 </div>
 
                 {/* Grid */}
-                <div className="flex-1 overflow-y-auto p-4 grid grid-cols-3 sm:grid-cols-4 gap-3 bg-gray-50/30 dark:bg-black/20">
+                <div className="flex-1 overflow-y-auto p-6 grid grid-cols-3 sm:grid-cols-4 gap-4 bg-background/50 custom-scrollbar">
                     {filteredTables.map(table => (
                         <button
                             key={table.id}
                             onClick={() => onSelect(table.id)}
                             className={cn(
-                                "p-4 rounded-xl border flex flex-col items-center gap-2 transition-all hover:scale-[1.02]",
+                                "p-6 rounded-[24px] border flex flex-col items-center gap-3 transition-all hover:scale-[1.05] active:scale-[0.98]",
                                 table.status === 'OCCUPIED'
-                                    ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300"
-                                    : "bg-white border-gray-200 text-gray-700 hover:border-green-400 hover:shadow-md dark:bg-zinc-800 dark:border-zinc-700 dark:text-gray-200"
+                                    ? "bg-surface-light border-primary/30 text-primary shadow-[0_0_15px_rgba(105,215,189,0.15)]"
+                                    : "bg-surface-light border-surface-light text-muted hover:border-primary/50 hover:text-foreground hover:shadow-lg hover:shadow-primary/10"
                             )}
                         >
-                            <span className="text-lg font-bold">{table.label}</span>
-                            <div className="flex items-center gap-1 text-xs opacity-70">
+                            <span className="text-2xl font-bold tracking-tight">{table.label}</span>
+                            <div className="flex items-center gap-1.5 text-xs font-medium opacity-80">
                                 <Users className="w-3 h-3" />
                                 <span>{table.capacity}</span>
                             </div>
                             <span className={cn(
-                                "text-[10px] font-bold px-2 py-0.5 rounded-full",
-                                table.status === 'OCCUPIED' ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
+                                "text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider",
+                                table.status === 'OCCUPIED' ? "bg-primary text-primary-fg" : "bg-surface text-muted"
                             )}>
                                 {table.status}
                             </span>
                         </button>
                     ))}
                     {filteredTables.length === 0 && (
-                        <div className="col-span-full py-8 text-center text-gray-400 text-sm">
+                        <div className="col-span-full py-12 text-center text-muted text-sm font-medium">
                             No matching tables found.
                         </div>
                     )}
