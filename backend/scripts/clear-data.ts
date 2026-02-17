@@ -12,7 +12,7 @@ async function clearData() {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432'),
         username: process.env.DB_USERNAME || 'postgres',
-        password: process.env.DB_PASSWORD || 'postgres',
+        password: process.env.DB_PASSWORD || 'JAYAsree#8979',
         database: process.env.DB_DATABASE || 'neqtra_pos',
         logging: true,
     });
