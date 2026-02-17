@@ -49,15 +49,7 @@ export function Header({ onMenuClick }: HeaderProps) {
         { icon: BookOpen, label: "Billing", path: "/billing" },
         { icon: Store, label: "Orders", path: "/orders" },
         { icon: LayoutGrid, label: "Tables", path: "/tables" },
-        { icon: Clock, label: "Reservations", path: "/reservations" },
-        { icon: Truck, label: "Delivery", path: "/delivery" },
         { icon: Monitor, label: "KDS", path: "/kitchen" },
-        { icon: Package, label: "Inventory", path: "/inventory" },
-        { icon: Utensils, label: "Menu", path: "/menu" },
-        { icon: Wallet, label: "Dues", path: "/dues" },
-        { icon: PieChart, label: "Accounting", path: "/accounting" },
-        { icon: ClipboardList, label: "Reports", path: "/reports" },
-        { icon: Users, label: "Users", path: "/users" },
     ];
 
     return (
@@ -114,7 +106,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             {/* Right Section */}
             <div className="flex items-center gap-2 md:gap-6">
                 {/* Nav Icons */}
-                <div className="hidden md:flex items-center gap-1 md:gap-2 border-r border-surface-light pr-6 mr-2 overflow-x-auto max-w-2xl no-scrollbar">
+                <div className="hidden xl:flex items-center gap-2 border-r border-surface-light pr-4 mr-2 flex-shrink-0">
                     {navItems.map((item) => {
                         const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
 
