@@ -71,13 +71,8 @@ export default function TablesPage() {
         };
 
         fetchOrders();
-        const interval = setInterval(() => {
-            fetchTables();
-            fetchOrders();
-            setNow(Date.now());
-        }, 10000);
 
-        return () => clearInterval(interval);
+        return () => { };
     }, [fetchTables]);
 
 
