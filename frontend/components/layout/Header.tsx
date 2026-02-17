@@ -37,7 +37,8 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
     const pathname = usePathname();
     const router = useRouter();
-    const { logout } = useAuthStore();
+    const { logout, hasPermission } = useAuthStore();
+    const cartItems = useCartStore((state) => state.items);
 
     const handleLogout = () => {
         logout();
@@ -45,12 +46,14 @@ export function Header({ onMenuClick }: HeaderProps) {
     };
 
     const navItems = [
-        { icon: Home, label: "Dashboard", path: "/dashboard" },
-        { icon: BookOpen, label: "Billing", path: "/billing" },
-        { icon: Store, label: "Orders", path: "/orders" },
-        { icon: LayoutGrid, label: "Tables", path: "/tables" },
-        { icon: Monitor, label: "KDS", path: "/kitchen" },
+        { icon: Home, label: "Dashboard", path: "/dashboard", permission: "Dashboard" },
+        { icon: BookOpen, label: "Billing", path: "/billing", permission: "Billing" },
+        { icon: Store, label: "Orders", path: "/orders", permission: "Orders" },
+        { icon: LayoutGrid, label: "Tables", path: "/tables", permission: "Table Services" },
+        { icon: Monitor, label: "KDS", path: "/kitchen", permission: "KDS" },
     ];
+
+    const filteredNavItems = navItems.filter(item => !item.permission || hasPermission(item.permission));
 
     return (
         <header className="h-20 bg-background/80 backdrop-blur-md border-b border-surface-light flex items-center px-6 justify-between shrink-0 sticky top-0 z-40">
@@ -107,7 +110,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <div className="flex items-center gap-2 md:gap-6">
                 {/* Nav Icons */}
                 <div className="hidden xl:flex items-center gap-2 border-r border-surface-light pr-4 mr-2 flex-shrink-0">
-                    {navItems.map((item) => {
+                    {filteredNavItems.map((item) => {
                         const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path));
 
                         return (
