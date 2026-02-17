@@ -21,7 +21,7 @@ const PERMISSION_GROUPS = [
     {
         name: "Sales & Orders",
         icon: ShoppingCart,
-        permissions: ["Orders", "Billing", "Delivery"]
+        permissions: ["Orders", "Billing", "Delivery", "KDS"]
     },
     {
         name: "Front Desktop",

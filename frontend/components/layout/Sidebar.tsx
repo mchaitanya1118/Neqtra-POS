@@ -32,29 +32,29 @@ const menuGroups = [
     {
         title: "Main Navigation",
         items: [
-            { p: "/dashboard", label: "Dashboard", icon: Home },
-            { p: "/billing", label: "Billing", icon: BookOpen },
-            { p: "/orders", label: "Orders", icon: Store },
-            { p: "/tables", label: "Table Services", icon: LayoutGrid },
-            { p: "/kitchen", label: "KDS", icon: Monitor },
+            { p: "/dashboard", label: "Dashboard", icon: Home, permission: "Dashboard" },
+            { p: "/billing", label: "Billing", icon: BookOpen, permission: "Billing" },
+            { p: "/orders", label: "Orders", icon: Store, permission: "Orders" },
+            { p: "/tables", label: "Table Services", icon: LayoutGrid, permission: "Table Services" },
+            { p: "/kitchen", label: "KDS", icon: Monitor, permission: "KDS" },
         ]
     },
     {
         title: "Management",
         items: [
-            { p: "/reservations", label: "Reservations", icon: Clock },
-            { p: "/delivery", label: "Delivery", icon: Truck },
-            { p: "/inventory", label: "Inventory", icon: Package },
-            { p: "/menu", label: "Menu Catalog", icon: Utensils },
-            { p: "/dues", label: "Customer Dues", icon: Wallet },
+            { p: "/reservations", label: "Reservations", icon: Clock, permission: "Reservations" },
+            { p: "/delivery", label: "Delivery", icon: Truck, permission: "Delivery" },
+            { p: "/inventory", label: "Inventory", icon: Package, permission: "Inventory" },
+            { p: "/menu", label: "Menu Catalog", icon: Utensils, permission: "Menu" },
+            { p: "/dues", label: "Customer Dues", icon: Wallet, permission: "Dues" },
         ]
     },
     {
         title: "Administration",
         items: [
-            { p: "/reports", label: "Analytics & Reports", icon: ClipboardList },
-            { p: "/accounting", label: "Accounting", icon: PieChart },
-            { p: "/users", label: "Team Management", icon: Users },
+            { p: "/reports", label: "Analytics & Reports", icon: ClipboardList, permission: "Reports" },
+            { p: "/accounting", label: "Accounting", icon: PieChart, permission: "Accounting" },
+            { p: "/users", label: "Team Management", icon: Users, permission: "Users" },
         ]
     }
 ];
@@ -62,8 +62,13 @@ const menuGroups = [
 export function Sidebar() {
     const pathname = usePathname();
     const router = useRouter();
-    const { user, logout } = useAuthStore();
+    const { user, logout, hasPermission } = useAuthStore();
     const { isSidebarOpen, setSidebarOpen } = useUIStore();
+
+    const filteredMenuGroups = menuGroups.map(group => ({
+        ...group,
+        items: group.items.filter(item => !item.permission || hasPermission(item.permission))
+    })).filter(group => group.items.length > 0);
 
     const closeMenu = () => setSidebarOpen(false);
 
@@ -143,7 +148,7 @@ export function Sidebar() {
                                 exit="exit"
                                 className="px-4 space-y-8"
                             >
-                                {menuGroups.map((group) => (
+                                {filteredMenuGroups.map((group) => (
                                     <div key={group.title} className="space-y-2">
                                         <h3 className="px-4 text-[11px] font-bold uppercase tracking-[2px] text-muted mb-4">{group.title}</h3>
                                         <div className="space-y-1">

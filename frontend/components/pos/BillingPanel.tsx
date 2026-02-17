@@ -66,7 +66,7 @@ export function BillingPanel() {
         selectTable: state.selectTable,
         fetchTables: state.fetchTables
     })));
-    const { user } = useAuthStore();
+    const { user, hasPermission } = useAuthStore();
     const router = useRouter();
 
     const [isTableModalOpen, setIsTableModalOpen] = useState(false);
@@ -540,7 +540,11 @@ export function BillingPanel() {
                             <button
                                 key={id}
                                 onClick={() => {
-                                    if (id === 'Due' && !customer) return alert("Select customer first.");
+                                    if (id === 'Due' && (!customer || !hasPermission('Dues'))) {
+                                        if (!customer) alert("Select customer first.");
+                                        else alert("Insufficient permissions for Dues.");
+                                        return;
+                                    }
                                     setPaymentMode(id as any);
                                 }}
                                 className={cn(
@@ -561,7 +565,7 @@ export function BillingPanel() {
                 <div className="grid grid-cols-12 gap-3 pt-2">
                     <button
                         onClick={() => handleAction('SAVE')}
-                        disabled={isProcessing || items.length === 0}
+                        disabled={isProcessing || items.length === 0 || !hasPermission('Orders')}
                         className="col-span-8 py-5 bg-primary hover:bg-primary/90 disabled:opacity-30 text-primary-fg rounded-[32px] font-bold text-sm shadow-[0_10px_30px_rgba(105,215,189,0.3)] transition-all uppercase tracking-[0.3em] hover:scale-[1.02] active:scale-[0.98]"
                     >
                         {existingOrder ? 'Sync Registry' : 'Place Pattern'}
@@ -569,7 +573,7 @@ export function BillingPanel() {
 
                     <button
                         onClick={() => handleAction('PRINT')}
-                        disabled={isProcessing || !existingOrder}
+                        disabled={isProcessing || !existingOrder || !hasPermission('Billing')}
                         className="col-span-4 py-3 bg-surface-light hover:bg-surface text-foreground rounded-[32px] flex items-center justify-center border border-surface-light transition-all hover:scale-[1.05] active:scale-95"
                     >
                         <Printer className="w-5 h-5" />
@@ -577,7 +581,7 @@ export function BillingPanel() {
 
                     <button
                         onClick={() => handleAction('SETTLE')}
-                        disabled={isProcessing || !existingOrder}
+                        disabled={isProcessing || !existingOrder || !hasPermission('Billing')}
                         className="col-span-full py-5 bg-foreground text-background hover:bg-foreground/90 disabled:opacity-30 rounded-[32px] font-bold text-sm transition-all uppercase tracking-[0.4em] transform hover:scale-[1.01] active:scale-[0.99] shadow-2xl"
                     >
                         {paymentTxnId ? 'Verify System Status' : 'Settle Registry Ledger'}

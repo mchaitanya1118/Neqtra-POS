@@ -39,11 +39,17 @@ export default function DashboardPage() {
     const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const { token } = useAuthStore();
+    const { token, hasPermission } = useAuthStore();
     const router = useRouter();
 
+    useEffect(() => {
+        if (!hasPermission('Dashboard')) {
+            router.push('/billing');
+        }
+    }, [hasPermission, router]);
+
     const fetchMetrics = async () => {
-        if (!token) return;
+        if (!token || !hasPermission('Dashboard')) return;
         setLoading(true);
         setError(null);
         try {
@@ -69,8 +75,12 @@ export default function DashboardPage() {
     };
 
     useEffect(() => {
-        fetchMetrics();
-    }, [token]);
+        if (hasPermission('Dashboard')) {
+            fetchMetrics();
+        }
+    }, [token, hasPermission]);
+
+    if (!hasPermission('Dashboard')) return null;
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans overflow-hidden relative selection:bg-primary/30 flex flex-col">
@@ -125,89 +135,99 @@ export default function DashboardPage() {
                         <>
                             {/* Metrics Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <MetricCard
-                                    title="Daily Revenue"
-                                    value={`₹${metrics.dailyRevenue.toFixed(2)}`}
-                                    icon={DollarSign}
-                                    trend="+12% today"
-                                    color="text-primary"
-                                    bg="bg-primary/10"
-                                    onClick={() => router.push('/reports')}
-                                />
-                                <MetricCard
-                                    title="Orders Today"
-                                    value={metrics.orderCount.toString()}
-                                    icon={ShoppingBag}
-                                    trend="Live updates"
-                                    color="text-blue-400"
-                                    bg="bg-blue-500/10"
-                                    onClick={() => router.push('/orders')}
-                                />
-                                <MetricCard
-                                    title="Occupied Tables"
-                                    value={metrics.occupiedTables.toString()}
-                                    icon={UtensilsCrossed}
-                                    trend="Instant occupancy"
-                                    color="text-amber-400"
-                                    bg="bg-amber-500/10"
-                                    onClick={() => router.push('/tables')}
-                                />
-                                <MetricCard
-                                    title="Total Dues"
-                                    value={`₹${metrics.totalDues ? metrics.totalDues.toFixed(2) : '0.00'}`}
-                                    icon={Wallet}
-                                    trend="Awaiting settlement"
-                                    color="text-red-400"
-                                    bg="bg-red-500/10"
-                                    onClick={() => router.push('/dues')}
-                                />
+                                {hasPermission('Reports') && (
+                                    <MetricCard
+                                        title="Daily Revenue"
+                                        value={`₹${metrics.dailyRevenue.toFixed(2)}`}
+                                        icon={DollarSign}
+                                        trend="+12% today"
+                                        color="text-primary"
+                                        bg="bg-primary/10"
+                                        onClick={() => router.push('/reports')}
+                                    />
+                                )}
+                                {hasPermission('Orders') && (
+                                    <MetricCard
+                                        title="Orders Today"
+                                        value={metrics.orderCount.toString()}
+                                        icon={ShoppingBag}
+                                        trend="Live updates"
+                                        color="text-blue-400"
+                                        bg="bg-blue-500/10"
+                                        onClick={() => router.push('/orders')}
+                                    />
+                                )}
+                                {hasPermission('Table Services') && (
+                                    <MetricCard
+                                        title="Occupied Tables"
+                                        value={metrics.occupiedTables.toString()}
+                                        icon={UtensilsCrossed}
+                                        trend="Instant occupancy"
+                                        color="text-amber-400"
+                                        bg="bg-amber-500/10"
+                                        onClick={() => router.push('/tables')}
+                                    />
+                                )}
+                                {hasPermission('Dues') && (
+                                    <MetricCard
+                                        title="Total Dues"
+                                        value={`₹${metrics.totalDues ? metrics.totalDues.toFixed(2) : '0.00'}`}
+                                        icon={Wallet}
+                                        trend="Awaiting settlement"
+                                        color="text-red-400"
+                                        bg="bg-red-500/10"
+                                        onClick={() => router.push('/dues')}
+                                    />
+                                )}
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                                 {/* System Feed & Stock Alert */}
                                 <div className="lg:col-span-3 space-y-6">
-                                    <div className="bg-surface/30 backdrop-blur-md border border-surface-light rounded-[32px] p-6 md:p-8 shadow-sm hover:border-primary/20 transition-all">
-                                        <div className="flex items-center justify-between mb-8">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20">
-                                                    <AlertTriangle className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <h2 className="text-xl font-bold font-serif italic text-foreground tracking-tight">Critical Inventory</h2>
-                                                    <p className="text-[10px] text-muted font-bold uppercase tracking-widest">{metrics.lowStockCount} Items Below Threshold</p>
-                                                </div>
-                                            </div>
-                                            <button
-                                                onClick={() => router.push('/inventory')}
-                                                className="px-4 py-2 border border-surface-light bg-surface-light/50 hover:bg-surface-light rounded-full text-[10px] font-bold text-muted hover:text-foreground uppercase tracking-widest transition-all"
-                                            >
-                                                Manage Stock
-                                            </button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {metrics.lowStockItems.length === 0 ? (
-                                                <div className="col-span-full border border-dashed border-surface-light/30 rounded-2xl p-8 text-center bg-surface/10">
-                                                    <p className="text-muted text-xs font-bold uppercase tracking-widest">Inventory Status Healthy</p>
-                                                </div>
-                                            ) : (
-                                                metrics.lowStockItems.map(item => (
-                                                    <div key={item.id} className="group flex items-center justify-between p-4 bg-background/40 hover:bg-background/60 rounded-2xl border border-surface-light transition-all cursor-pointer">
-                                                        <div>
-                                                            <span className="block font-bold text-foreground text-sm">{item.name}</span>
-                                                            <span className="text-[10px] font-bold text-muted uppercase tracking-tighter">ID: #{item.id}</span>
-                                                        </div>
-                                                        <span className="text-red-400 font-bold bg-red-500/10 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-tighter border border-red-500/20 group-hover:bg-red-500 group-hover:text-white transition-all">
-                                                            {item.quantity} units
-                                                        </span>
+                                    {hasPermission('Inventory') && (
+                                        <div className="bg-surface/30 backdrop-blur-md border border-surface-light rounded-[32px] p-6 md:p-8 shadow-sm hover:border-primary/20 transition-all">
+                                            <div className="flex items-center justify-between mb-8">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 text-red-400 flex items-center justify-center border border-red-500/20">
+                                                        <AlertTriangle className="w-6 h-6" />
                                                     </div>
-                                                ))
-                                            )}
+                                                    <div>
+                                                        <h2 className="text-xl font-bold font-serif italic text-foreground tracking-tight">Critical Inventory</h2>
+                                                        <p className="text-[10px] text-muted font-bold uppercase tracking-widest">{metrics.lowStockCount} Items Below Threshold</p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    onClick={() => router.push('/inventory')}
+                                                    className="px-4 py-2 border border-surface-light bg-surface-light/50 hover:bg-surface-light rounded-full text-[10px] font-bold text-muted hover:text-foreground uppercase tracking-widest transition-all"
+                                                >
+                                                    Manage Stock
+                                                </button>
+                                            </div>
+
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                {metrics.lowStockItems.length === 0 ? (
+                                                    <div className="col-span-full border border-dashed border-surface-light/30 rounded-2xl p-8 text-center bg-surface/10">
+                                                        <p className="text-muted text-xs font-bold uppercase tracking-widest">Inventory Status Healthy</p>
+                                                    </div>
+                                                ) : (
+                                                    metrics.lowStockItems.map(item => (
+                                                        <div key={item.id} className="group flex items-center justify-between p-4 bg-background/40 hover:bg-background/60 rounded-2xl border border-surface-light transition-all cursor-pointer">
+                                                            <div>
+                                                                <span className="block font-bold text-foreground text-sm">{item.name}</span>
+                                                                <span className="text-[10px] font-bold text-muted uppercase tracking-tighter">ID: #{item.id}</span>
+                                                            </div>
+                                                            <span className="text-red-400 font-bold bg-red-500/10 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-tighter border border-red-500/20 group-hover:bg-red-500 group-hover:text-white transition-all">
+                                                                {item.quantity} units
+                                                            </span>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     {/* PnL Calendar integration */}
-                                    <PnLCalendar />
+                                    {hasPermission('Reports') && <PnLCalendar />}
                                 </div>
 
                                 {/* Sidebar Column: Quick Actions & Status */}
@@ -219,64 +239,74 @@ export default function DashboardPage() {
                                     <div className="bg-surface/30 backdrop-blur-md border border-surface-light rounded-[32px] p-6 md:p-8 shadow-sm">
                                         <h2 className="text-lg font-bold font-serif italic text-foreground tracking-tight mb-6">Execution Gateways</h2>
                                         <div className="space-y-3">
-                                            <QuickActionBtn
-                                                icon={Plus}
-                                                label="New Reservation"
-                                                onClick={() => router.push('/reservations')}
-                                            />
-                                            <QuickActionBtn
-                                                icon={Users}
-                                                label="Manage Staff"
-                                                onClick={() => router.push('/users')}
-                                            />
-                                            <QuickActionBtn
-                                                icon={Activity}
-                                                label="Daily Audit"
-                                                onClick={() => router.push('/accounting')}
-                                            />
-                                            <QuickActionBtn
-                                                icon={UtensilsCrossed}
-                                                label="Update Menu"
-                                                onClick={() => router.push('/menu')}
-                                            />
+                                            {hasPermission('Reservations') && (
+                                                <QuickActionBtn
+                                                    icon={Plus}
+                                                    label="New Reservation"
+                                                    onClick={() => router.push('/reservations')}
+                                                />
+                                            )}
+                                            {hasPermission('Users') && (
+                                                <QuickActionBtn
+                                                    icon={Users}
+                                                    label="Manage Staff"
+                                                    onClick={() => router.push('/users')}
+                                                />
+                                            )}
+                                            {hasPermission('Accounting') && (
+                                                <QuickActionBtn
+                                                    icon={Activity}
+                                                    label="Daily Audit"
+                                                    onClick={() => router.push('/accounting')}
+                                                />
+                                            )}
+                                            {hasPermission('Menu') && (
+                                                <QuickActionBtn
+                                                    icon={UtensilsCrossed}
+                                                    label="Update Menu"
+                                                    onClick={() => router.push('/menu')}
+                                                />
+                                            )}
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Payment Analytics Row */}
-                            <div className="bg-surface/30 backdrop-blur-md border border-surface-light rounded-[32px] p-6 md:p-8 shadow-sm">
-                                <div className="flex items-center justify-between mb-8">
-                                    <h2 className="text-xl font-bold font-serif italic text-foreground tracking-tight flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
-                                            <Wallet className="w-5 h-5" />
-                                        </div>
-                                        Settlement Breakdown
-                                    </h2>
-                                </div>
-
-                                {(!metrics.paymentStats || metrics.paymentStats.length === 0) ? (
-                                    <div className="border border-dashed border-surface-light/30 rounded-[24px] p-12 text-center bg-surface/10 flex flex-col items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-surface-light/30 flex items-center justify-center mb-2">
-                                            <DollarSign className="w-6 h-6 text-muted/50" />
-                                        </div>
-                                        <p className="text-muted text-xs font-bold uppercase tracking-[0.2em]">Live Settlements Unavailable</p>
-                                        <p className="text-muted/60 text-[10px] font-medium max-w-xs">No transactions have been recorded in the current session feed.</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                                        {metrics.paymentStats.map((stat) => (
-                                            <div key={stat.method} className="bg-background/40 p-6 rounded-[24px] flex flex-col gap-2 border border-surface-light group hover:border-primary/30 transition-all hover:scale-[1.02] cursor-default">
-                                                <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{stat.method.replace('_', ' ')}</span>
-                                                <span className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">₹{stat.total.toFixed(2)}</span>
-                                                <div className="w-full h-1 bg-surface-light rounded-full mt-2 overflow-hidden">
-                                                    <div className="h-full bg-primary/30 w-full transform -translate-x-full group-hover:translate-x-0 transition-transform duration-700" />
-                                                </div>
+                            {(hasPermission('Accounting') || hasPermission('Reports')) && (
+                                <div className="bg-surface/30 backdrop-blur-md border border-surface-light rounded-[32px] p-6 md:p-8 shadow-sm">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <h2 className="text-xl font-bold font-serif italic text-foreground tracking-tight flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                                                <Wallet className="w-5 h-5" />
                                             </div>
-                                        ))}
+                                            Settlement Breakdown
+                                        </h2>
                                     </div>
-                                )}
-                            </div>
+
+                                    {(!metrics.paymentStats || metrics.paymentStats.length === 0) ? (
+                                        <div className="border border-dashed border-surface-light/30 rounded-[24px] p-12 text-center bg-surface/10 flex flex-col items-center gap-3">
+                                            <div className="w-12 h-12 rounded-full bg-surface-light/30 flex items-center justify-center mb-2">
+                                                <DollarSign className="w-6 h-6 text-muted/50" />
+                                            </div>
+                                            <p className="text-muted text-xs font-bold uppercase tracking-[0.2em]">Live Settlements Unavailable</p>
+                                            <p className="text-muted/60 text-[10px] font-medium max-w-xs">No transactions have been recorded in the current session feed.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                            {metrics.paymentStats.map((stat) => (
+                                                <div key={stat.method} className="bg-background/40 p-6 rounded-[24px] flex flex-col gap-2 border border-surface-light group hover:border-primary/30 transition-all hover:scale-[1.02] cursor-default">
+                                                    <span className="text-[10px] font-bold text-muted uppercase tracking-widest">{stat.method.replace('_', ' ')}</span>
+                                                    <span className="text-2xl font-bold text-foreground group-hover:text-primary transition-colors">₹{stat.total.toFixed(2)}</span>
+                                                    <div className="w-full h-1 bg-surface-light rounded-full mt-2 overflow-hidden">
+                                                        <div className="h-full bg-primary/30 w-full transform -translate-x-full group-hover:translate-x-0 transition-transform duration-700" />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-24 text-center">

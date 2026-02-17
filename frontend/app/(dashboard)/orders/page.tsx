@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useAuthStore } from "@/store/useAuthStore";
 import {
     Search,
     Grid,
@@ -61,6 +62,7 @@ interface OrderStats {
 function OrdersContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { hasPermission } = useAuthStore();
     const [orders, setOrders] = useState<ActiveOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState(searchParams.get("search") || "");
@@ -370,8 +372,20 @@ function OrdersContent() {
                                             ))}
                                         </select>
                                         <div className="flex gap-2">
-                                            <button onClick={handleShiftTable} className="flex-1 py-3 bg-primary text-primary-fg rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]">Confirm Shift</button>
-                                            <button onClick={() => setIsSplitOpen(true)} className="flex-1 py-3 bg-surface border border-surface-light text-foreground rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-surface-light">Split Bill</button>
+                                            <button
+                                                onClick={handleShiftTable}
+                                                disabled={!hasPermission('Table Services')}
+                                                className="flex-1 py-3 bg-primary disabled:opacity-50 text-primary-fg rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                                            >
+                                                Confirm Shift
+                                            </button>
+                                            <button
+                                                onClick={() => setIsSplitOpen(true)}
+                                                disabled={!hasPermission('Billing')}
+                                                className="flex-1 py-3 bg-surface disabled:opacity-50 border border-surface-light text-foreground rounded-xl text-xs font-bold uppercase tracking-widest transition-all hover:bg-surface-light"
+                                            >
+                                                Split Bill
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -386,7 +400,7 @@ function OrdersContent() {
                                     <button
                                         key={m}
                                         onClick={() => handleProcessPayment(m)}
-                                        disabled={processing}
+                                        disabled={processing || !hasPermission('Billing')}
                                         className={cn(
                                             "flex flex-col items-center justify-center py-5 rounded-2xl border transition-all active:scale-95 disabled:opacity-50",
                                             m === 'CARD'
@@ -434,6 +448,7 @@ function SimpleStatCard({ label, value, icon: Icon, color, bg }: any) {
 }
 
 function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
+    const { hasPermission } = useAuthStore();
     const isPending = order.items.some((i: any) => i.status === 'PENDING');
 
     return (
@@ -482,7 +497,8 @@ function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
             <div className="grid grid-cols-4 gap-3">
                 <button
                     onClick={() => onDelete(order.id)}
-                    className="col-span-1 h-12 rounded-2xl bg-surface-light hover:bg-red-500/10 border border-surface-light hover:border-red-500/30 flex items-center justify-center text-muted hover:text-red-400 transition-all active:scale-95"
+                    disabled={!hasPermission('Orders')}
+                    className="col-span-1 h-12 rounded-2xl bg-surface-light hover:bg-red-500/10 border border-surface-light hover:border-red-500/30 flex items-center justify-center text-muted hover:text-red-400 transition-all active:scale-95 disabled:opacity-30"
                     title="Cancel Order"
                 >
                     <Trash2 className="w-5 h-5" />
@@ -490,7 +506,8 @@ function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
                 <div className="col-span-1 flex flex-col gap-2">
                     <button
                         onClick={() => onEdit(order)}
-                        className="h-full rounded-2xl bg-surface-light hover:bg-surface border border-surface-light flex items-center justify-center text-muted hover:text-primary transition-all active:scale-95"
+                        disabled={!hasPermission('Orders')}
+                        className="h-full rounded-2xl bg-surface-light hover:bg-surface border border-surface-light flex items-center justify-center text-muted hover:text-primary transition-all active:scale-95 disabled:opacity-30"
                         title="Edit Order"
                     >
                         <Edit2 className="w-5 h-5" />
@@ -498,7 +515,8 @@ function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
                 </div>
                 <button
                     onClick={() => onPayment(order)}
-                    className="col-span-2 rounded-2xl bg-primary hover:bg-primary/90 text-primary-fg font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                    disabled={!hasPermission('Billing')}
+                    className="col-span-2 rounded-2xl bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                     <CreditCard className="w-4 h-4" />
                     <span>Pay</span>
@@ -507,7 +525,8 @@ function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
                 {isPending && (
                     <button
                         onClick={() => onServe(order.id)}
-                        className="col-span-full mt-1 bg-surface-light hover:bg-primary/10 border border-surface-light hover:border-primary/30 py-3 rounded-2xl text-[10px] font-bold text-muted hover:text-primary uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                        disabled={!hasPermission('Orders')}
+                        className="col-span-full mt-1 bg-surface-light hover:bg-primary/10 border border-surface-light hover:border-primary/30 py-3 rounded-2xl text-[10px] font-bold text-muted hover:text-primary uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-30"
                     >
                         <ChefHat className="w-4 h-4" />
                         Mark All Served

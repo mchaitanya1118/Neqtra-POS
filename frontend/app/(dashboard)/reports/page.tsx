@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { DollarSign, ShoppingBag, Calendar, Download, TrendingUp, CreditCard, PieChart } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
 import {
@@ -36,6 +37,7 @@ interface ChartData {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export default function ReportsPage() {
+    const { hasPermission } = useAuthStore();
     const [data, setData] = useState<ReportData | null>(null);
     const [chartData, setChartData] = useState<ChartData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -137,7 +139,8 @@ export default function ReportsPage() {
                         />
                         <button
                             onClick={fetchReports}
-                            className="bg-primary text-white p-2 rounded-lg hover:brightness-90 transition-all shadow-sm"
+                            disabled={!hasPermission('Reports')}
+                            className="bg-primary text-white p-2 rounded-lg hover:brightness-90 disabled:opacity-50 transition-all shadow-sm"
                         >
                             <Calendar className="w-4 h-4" />
                         </button>
@@ -145,7 +148,8 @@ export default function ReportsPage() {
 
                     <button
                         onClick={handleDownload}
-                        className="bg-surface hover:bg-surface-light border border-surface-light text-foreground px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
+                        disabled={!hasPermission('Reports')}
+                        className="bg-surface hover:bg-surface-light border border-surface-light disabled:opacity-30 text-foreground px-4 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-sm"
                     >
                         <Download className="w-4 h-4" /> Export CSV
                     </button>

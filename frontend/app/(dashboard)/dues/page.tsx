@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Search, Wallet, DollarSign, HandCoins, MoreVertical, Edit, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
 
@@ -14,6 +15,7 @@ interface Customer {
 }
 
 export default function DuesPage() {
+    const { hasPermission } = useAuthStore();
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -170,7 +172,8 @@ export default function DuesPage() {
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); setIsAddModalOpen(true); }}
-                    className="bg-primary hover:bg-primary/90 text-primary-fg px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
+                    disabled={!hasPermission('Dues')}
+                    className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
                 >
                     <Plus className="w-5 h-5" /> Add Customer
                 </button>
@@ -232,10 +235,18 @@ export default function DuesPage() {
                                     {/* Dropdown Menu */}
                                     {activeMenu === c.id && (
                                         <div className="absolute right-0 top-full mt-2 w-48 bg-background border border-border rounded-xl shadow-xl z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                            <button onClick={() => openEditModal(c)} className="w-full text-left px-4 py-3 text-sm hover:bg-surface-light flex items-center gap-2">
+                                            <button
+                                                onClick={() => openEditModal(c)}
+                                                disabled={!hasPermission('Dues')}
+                                                className="w-full text-left px-4 py-3 text-sm hover:bg-surface-light disabled:opacity-30 flex items-center gap-2"
+                                            >
                                                 <Edit className="w-4 h-4" /> Edit Details
                                             </button>
-                                            <button onClick={() => openDeleteModal(c)} className="w-full text-left px-4 py-3 text-sm hover:bg-red-500/10 text-red-500 flex items-center gap-2">
+                                            <button
+                                                onClick={() => openDeleteModal(c)}
+                                                disabled={!hasPermission('Dues')}
+                                                className="w-full text-left px-4 py-3 text-sm hover:bg-red-500/10 disabled:opacity-30 text-red-500 flex items-center gap-2"
+                                            >
                                                 <Trash2 className="w-4 h-4" /> Delete
                                             </button>
                                         </div>
@@ -265,19 +276,22 @@ export default function DuesPage() {
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setSelectedCustomer(c); setActionType("ADD_DUE"); }}
-                                    className="flex items-center justify-center gap-2 bg-surface-light hover:bg-surface-light/80 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95"
+                                    disabled={!hasPermission('Dues')}
+                                    className="flex items-center justify-center gap-2 bg-surface-light hover:bg-surface-light/80 disabled:opacity-30 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95"
                                 >
                                     <Plus className="w-4 h-4" /> Add Due
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setSelectedCustomer(c); setActionType("SETTLE"); }}
-                                    className="flex items-center justify-center gap-2 bg-primary/10 text-primary hover:bg-primary hover:text-primary-fg py-3 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95"
+                                    disabled={!hasPermission('Dues')}
+                                    className="flex items-center justify-center gap-2 bg-primary/10 text-primary hover:bg-primary hover:text-primary-fg disabled:opacity-30 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95"
                                 >
                                     <HandCoins className="w-4 h-4" /> Settle
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleViewHistory(c); }}
-                                    className="col-span-2 flex items-center justify-center gap-2 border border-surface-light hover:bg-surface-light py-2 rounded-xl text-xs font-bold text-muted hover:text-foreground transition-all"
+                                    disabled={!hasPermission('Dues')}
+                                    className="col-span-2 flex items-center justify-center gap-2 border border-surface-light hover:bg-surface-light disabled:opacity-30 py-2 rounded-xl text-xs font-bold text-muted hover:text-foreground transition-all"
                                 >
                                     View History
                                 </button>
@@ -320,7 +334,13 @@ export default function DuesPage() {
                             )}
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} className="flex-1 bg-surface-light hover:bg-surface-light/80 py-3 rounded-xl text-sm font-bold transition-colors">Cancel</button>
-                                <button type="submit" className="flex-1 bg-primary text-primary-fg py-3 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all">{isEditModalOpen ? "Save Changes" : "Create Customer"}</button>
+                                <button
+                                    type="submit"
+                                    disabled={!hasPermission('Dues')}
+                                    className="flex-1 bg-primary disabled:opacity-50 text-primary-fg py-3 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+                                >
+                                    {isEditModalOpen ? "Save Changes" : "Create Customer"}
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -340,7 +360,13 @@ export default function DuesPage() {
                         </p>
                         <div className="flex gap-4">
                             <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 bg-surface-light hover:bg-surface-light/80 py-3 rounded-xl text-sm font-bold transition-colors">Cancel</button>
-                            <button onClick={handleDelete} className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 transition-all">Delete</button>
+                            <button
+                                onClick={handleDelete}
+                                disabled={!hasPermission('Dues')}
+                                className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 transition-all"
+                            >
+                                Delete
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -406,7 +432,11 @@ export default function DuesPage() {
 
                             <div className="flex gap-4 pt-2">
                                 <button type="button" onClick={() => { setSelectedCustomer(null); setActionType(null); }} className="flex-1 bg-surface-light hover:bg-surface-light/80 py-3 rounded-xl text-sm font-bold transition-colors">Cancel</button>
-                                <button type="submit" className={cn("flex-1 py-3 rounded-xl text-sm font-bold shadow-lg transition-all hover:scale-105 active:scale-95 text-white", actionType === "SETTLE" ? "bg-green-500 hover:bg-green-600 shadow-green-500/20" : "bg-red-500 hover:bg-red-600 shadow-red-500/20")}>
+                                <button
+                                    type="submit"
+                                    disabled={!hasPermission('Dues')}
+                                    className={cn("flex-1 py-3 rounded-xl text-sm font-bold shadow-lg transition-all hover:scale-105 active:scale-95 text-white disabled:opacity-50", actionType === "SETTLE" ? "bg-green-500 hover:bg-green-600 shadow-green-500/20" : "bg-red-500 hover:bg-red-600 shadow-red-500/20")}
+                                >
                                     {actionType === "SETTLE" ? "Confirm Payment" : "Add Due"}
                                 </button>
                             </div>

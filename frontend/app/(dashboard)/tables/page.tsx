@@ -42,7 +42,7 @@ interface ActiveOrder {
 export default function TablesPage() {
     const { tables, fetchTables, isLoading } = useTableStore();
     const router = useRouter();
-    const { user } = useAuthStore();
+    const { user, hasPermission } = useAuthStore();
     const [search, setSearch] = useState("");
     const [filterStatus, setFilterStatus] = useState<'all' | 'free' | 'occupied'>('all');
     const [orders, setOrders] = useState<ActiveOrder[]>([]);
@@ -234,13 +234,15 @@ export default function TablesPage() {
                         <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
                     </button>
 
-                    <button
-                        onClick={openCreateModal}
-                        className="flex items-center justify-center gap-2 px-6 py-2 bg-primary hover:bg-primary/90 text-primary-fg rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all transform hover:scale-[1.02] active:scale-95 whitespace-nowrap"
-                    >
-                        <Plus className="w-4 h-4" />
-                        Add Table
-                    </button>
+                    {hasPermission('Table Services') && (
+                        <button
+                            onClick={openCreateModal}
+                            className="flex items-center justify-center gap-2 px-6 py-2 bg-primary hover:bg-primary/90 text-primary-fg rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all transform hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Table
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -290,7 +292,7 @@ export default function TablesPage() {
                                                     )}
 
                                                     {/* Admin Overlay */}
-                                                    {(user?.role === 'Admin' || user?.role === 'Manager') && (
+                                                    {(user?.role === 'Admin' || user?.role === 'Manager' || hasPermission('Table Services')) && (
                                                         <div className="absolute top-4 right-4 flex gap-2 z-50 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
                                                             <button
                                                                 onClick={(e) => openEditModal(table, e)}

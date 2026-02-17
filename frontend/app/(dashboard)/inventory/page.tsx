@@ -1,25 +1,15 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import {
-    Plus,
-    Search,
-    Box,
-    DollarSign,
-    Package,
-    Download,
-    Filter,
-    X,
-    TrendingUp,
-    AlertTriangle,
-    Layers
-} from "lucide-react";
+import { Plus, Search, Box, DollarSign, Package, Download, Filter, X, TrendingUp, AlertTriangle, Layers } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInventoryStore, InventoryItem } from "@/store/useInventoryStore";
 import { InventoryCard } from "@/components/inventory/InventoryCard";
 
 export default function InventoryPage() {
+    const { hasPermission } = useAuthStore();
     const { items, isLoading, fetchInventory, addItem, updateItem, deleteItem } = useInventoryStore();
 
     const [search, setSearch] = useState("");
@@ -165,14 +155,16 @@ export default function InventoryPage() {
                     <div className="flex gap-3">
                         <button
                             onClick={exportToCSV}
-                            className="p-3.5 bg-surface-light hover:bg-surface border border-surface-light rounded-2xl transition-all hover:shadow-lg text-muted hover:text-primary active:scale-95"
+                            disabled={!hasPermission('Inventory')}
+                            className="p-3.5 bg-surface-light hover:bg-surface disabled:opacity-30 border border-surface-light rounded-2xl transition-all hover:shadow-lg text-muted hover:text-primary active:scale-95"
                             title="Export Report"
                         >
                             <Download className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="bg-primary hover:bg-primary/90 text-black px-6 py-3.5 rounded-2xl text-sm font-black shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                            disabled={!hasPermission('Inventory')}
+                            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-6 py-3.5 rounded-2xl text-sm font-black shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                         >
                             <Plus className="w-5 h-5" />
                             Add Stock
@@ -379,7 +371,8 @@ export default function InventoryPage() {
                                         </button>
                                         <button
                                             type="submit"
-                                            className="flex-1 bg-primary hover:brightness-110 text-black py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95"
+                                            disabled={!hasPermission('Inventory')}
+                                            className="flex-1 bg-primary hover:brightness-110 disabled:opacity-50 text-black py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95"
                                         >
                                             {editingItem ? 'Confirm Changes' : 'Initialize Stock'}
                                         </button>

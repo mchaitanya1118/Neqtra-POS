@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Users, Calendar, Phone, CheckCircle, XCircle, Search } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
 
@@ -16,6 +17,7 @@ interface Reservation {
 }
 
 export default function ReservationsPage() {
+    const { hasPermission } = useAuthStore();
     const [data, setData] = useState<Reservation[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,7 +107,8 @@ export default function ReservationsPage() {
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 text-primary-fg rounded-full text-sm font-bold shadow-[0_0_20px_rgba(105,215,189,0.3)] hover:shadow-[0_0_30px_rgba(105,215,189,0.5)] transition-all transform hover:scale-105 active:scale-95 group"
+                        disabled={!hasPermission('Reservations')}
+                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg rounded-full text-sm font-bold shadow-[0_0_20px_rgba(105,215,189,0.3)] hover:shadow-[0_0_30px_rgba(105,215,189,0.5)] transition-all transform hover:scale-105 active:scale-95 group"
                     >
                         <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
                         <span>New Reservation</span>
@@ -206,7 +209,8 @@ export default function ReservationsPage() {
                                     {/* Actions */}
                                     <button
                                         onClick={() => setCancelId(res.id)}
-                                        className="w-full py-2 rounded-xl bg-surface-light/50 hover:bg-red-500/10 text-muted hover:text-red-500 border border-transparent hover:border-red-500/30 text-xs font-bold uppercase tracking-wider transition-all"
+                                        disabled={!hasPermission('Reservations')}
+                                        className="w-full py-2 rounded-xl bg-surface-light/50 hover:bg-red-500/10 disabled:opacity-30 text-muted hover:text-red-500 border border-transparent hover:border-red-500/30 text-xs font-bold uppercase tracking-wider transition-all"
                                     >
                                         Cancel Reservation
                                     </button>
@@ -331,7 +335,8 @@ export default function ReservationsPage() {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 py-3.5 rounded-full bg-primary hover:bg-primary/90 text-primary-fg text-sm font-bold shadow-[0_4px_20px_rgba(105,215,189,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                    disabled={!hasPermission('Reservations')}
+                                    className="flex-1 py-3.5 rounded-full bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg text-sm font-bold shadow-[0_4px_20px_rgba(105,215,189,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98]"
                                 >
                                     Confirm Reservation
                                 </button>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
+import { useAuthStore } from "@/store/useAuthStore";
 import { Clock, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
@@ -24,6 +25,7 @@ interface Order {
 }
 
 export default function KitchenPage() {
+    const { hasPermission } = useAuthStore();
     const [orders, setOrders] = useState<Order[]>([]);
     const [isConnected, setIsConnected] = useState(false);
 
@@ -144,7 +146,8 @@ export default function KitchenPage() {
                         <div className="p-4 bg-gray-700/30 border-t border-gray-700 mt-auto">
                             <button
                                 onClick={() => handleMarkComplete(order.id)}
-                                className="w-full py-3 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                                disabled={!hasPermission('KDS')}
+                                className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
                             >
                                 <CheckCircle className="w-5 h-5" />
                                 Mark Complete

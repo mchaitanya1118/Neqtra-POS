@@ -19,11 +19,12 @@ type AuthState = {
     login: (credentials: { passcode?: string; username?: string; password?: string }) => Promise<{ success: boolean; error?: string; user?: User }>;
     logout: () => void;
     setHasHydrated: (state: boolean) => void;
+    hasPermission: (permission: string) => boolean;
 };
 
 export const useAuthStore = create<AuthState>()(
     persist(
-        (set) => ({
+        (set, get) => ({
             user: null,
             token: null,
             hasHydrated: false,
@@ -58,6 +59,29 @@ export const useAuthStore = create<AuthState>()(
             },
             logout: () => set({ user: null, token: null }),
             setHasHydrated: (state) => set({ hasHydrated: state }),
+            hasPermission: (perm) => {
+                const user = get().user;
+                if (!user) return false;
+
+                // Case-insensitive Admin check
+                const roleLower = user.role?.toLowerCase();
+                if (roleLower === 'admin' || roleLower === 'superadmin') return true;
+
+                // Explicit permission check from roleRel
+                if (user.roleRel?.permissions.includes(perm)) return true;
+
+                // Fallback for legacy users where roleRel might not be hydrated in localStorage yet
+                if (roleLower === 'staff') {
+                    const staffPerms = ['Orders', 'Table Services', 'Billing'];
+                    if (staffPerms.includes(perm)) return true;
+                }
+                if (roleLower === 'cashier') {
+                    const cashierPerms = ['Orders', 'Table Services', 'Billing', 'Dues'];
+                    if (cashierPerms.includes(perm)) return true;
+                }
+
+                return false;
+            },
         }),
         {
             name: 'auth-storage',
