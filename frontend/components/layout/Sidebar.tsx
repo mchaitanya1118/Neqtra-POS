@@ -19,6 +19,7 @@ const menuItems = [
     { p: "/tables", label: "Table Services" },
     { p: "/billing", label: "Billing" },
     { p: "/delivery", label: "Delivery" },
+    { p: "/kitchen", label: "KDS" },
     { p: "/inventory", label: "Inventory" },
     { p: "/dues", label: "Dues" },
     { p: "/reports", label: "Reports" },
