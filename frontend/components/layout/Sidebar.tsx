@@ -104,8 +104,8 @@ export function Sidebar() {
                             </button>
 
                             {/* Logo */}
-                            <div className="text-2xl font-bold tracking-tighter font-serif italic text-foreground">
-                                NEQTRA
+                            <div className="text-3xl font-bold tracking-tighter font-serif italic text-primary">
+                                N
                             </div>
 
                             {/* Spacer */}

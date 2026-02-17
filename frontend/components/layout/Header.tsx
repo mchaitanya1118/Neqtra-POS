@@ -75,10 +75,9 @@ export function Header({ onMenuClick }: HeaderProps) {
 
                 {/* Logo - Pushed left if menu is gone, or kept for branding */}
 
-                {/* Logo */}
                 <div className="hidden md:flex items-center">
-                    <span className="text-2xl font-bold text-primary italic font-serif tracking-tighter">
-                        Neqtra
+                    <span className="text-3xl font-bold text-primary italic font-serif tracking-tighter">
+                        N
                     </span>
                 </div>
 
