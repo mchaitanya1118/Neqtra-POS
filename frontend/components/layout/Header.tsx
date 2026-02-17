@@ -157,11 +157,6 @@ export function Header({ onMenuClick }: HeaderProps) {
                     <Power className="w-5 h-5" />
                 </button>
 
-                {/* Support Info (Pink Area) */}
-                <div className="hidden lg:flex flex-col items-end bg-surface-light px-4 py-1.5 rounded-full border border-surface">
-                    <span className="text-[10px] text-muted font-bold tracking-wider uppercase">Support</span>
-                    <span className="text-sm font-bold text-primary tracking-wide">9000072227</span>
-                </div>
             </div>
         </header>
     );
