@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, EntityManager } from 'typeorm';
+import { Repository, EntityManager, In } from 'typeorm';
 import { Table } from '../entities/table.entity';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
@@ -12,7 +12,7 @@ export class TablesService {
     @InjectRepository(Table)
     private tableRepo: Repository<Table>,
     private entityManager: EntityManager,
-  ) {}
+  ) { }
 
   async seed() {
     const count = await this.tableRepo.count();
@@ -63,10 +63,13 @@ export class TablesService {
       await manager.save([fromTable, toTable]);
 
       // Move active orders
-      // Assuming 'PENDING' or 'CONFIRMED' orders need moving. 'COMPLETED' stays.
+      // In from typeorm is needed but we can also use individual updates or a single update with In if imported
       await manager.update(
         Order,
-        { tableName: fromTable.label, status: 'PENDING' },
+        {
+          tableName: fromTable.label,
+          status: In(['PENDING', 'CONFIRMED', 'PARTIAL', 'SERVED']),
+        },
         { tableName: toTable.label },
       );
 

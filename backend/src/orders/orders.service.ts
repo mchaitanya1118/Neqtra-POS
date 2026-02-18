@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Order } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { MenuItem } from '../entities/menu-item.entity';
@@ -467,9 +467,14 @@ export class OrdersService {
     const oldTableName = order.tableName;
     const oldTable = await this.tableRepo.findOneBy({ label: oldTableName });
 
-    // Update Order
-    order.tableName = targetTable.label;
-    await this.orderRepo.save(order);
+    // Update ALL Orders on the old table to the new table (PENDING, CONFIRMED, PARTIAL, SERVED)
+    await this.orderRepo.update(
+      {
+        tableName: oldTableName,
+        status: In(['PENDING', 'CONFIRMED', 'PARTIAL', 'SERVED']),
+      },
+      { tableName: targetTable.label },
+    );
 
     // Update Tables
     if (oldTable) {
@@ -481,7 +486,7 @@ export class OrdersService {
     await this.tableRepo.save(targetTable);
 
     return {
-      message: `Order moved from ${oldTableName} to ${targetTable.label} `,
+      message: `All active orders moved from ${oldTableName} to ${targetTable.label}`,
       order,
     };
   }

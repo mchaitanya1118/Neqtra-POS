@@ -194,21 +194,21 @@ export function BillingPanel() {
     };
 
     const handleShiftTable = async (targetTableId: number) => {
-        if (!existingOrder) {
-            alert("No active transaction to move.");
+        if (!selectedTable) {
+            alert("No station selected to move from.");
             return;
         }
 
         setIsProcessing(true);
         try {
-            const res = await fetch(`${API_URL}/orders/${existingOrder.id}/move`, {
+            const res = await fetch(`${API_URL}/tables/shift`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ targetTableId })
+                body: JSON.stringify({ fromId: selectedTable.id, toId: targetTableId })
             });
 
             if (res.ok) {
-                alert("Transaction successfully shifted.");
+                alert("Station successfully shifted.");
                 selectTable(targetTableId);
                 fetchActiveOrder();
                 fetchTables();
