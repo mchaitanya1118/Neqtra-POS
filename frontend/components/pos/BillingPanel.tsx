@@ -24,7 +24,8 @@ import {
     History,
     Receipt as ReceiptIcon,
     RotateCw,
-    Truck
+    Truck,
+    ArrowRightLeft
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -377,6 +378,20 @@ export function BillingPanel() {
                             <div className="flex items-center gap-2">
                                 <span className="text-3xl font-bold font-serif italic tracking-tighter text-foreground group-hover:translate-x-1 transition-transform">{selectedTable?.label || '--'}</span>
                                 <ChevronDown className="w-5 h-5 text-muted opacity-0 group-hover:opacity-100 transition-all" />
+                                {selectedTable && existingOrder && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setTableModalMode('SHIFT');
+                                            setIsTableModalOpen(true);
+                                        }}
+                                        className="ml-2 p-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 rounded-lg transition-colors flex items-center gap-1.5"
+                                        title="Shift Table"
+                                    >
+                                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider">Shift</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     )}
