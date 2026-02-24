@@ -46,6 +46,10 @@ export class TenantsService {
         return this.tenantsRepository.findOne({ where: { id } });
     }
 
+    async findBySubdomain(subdomain: string): Promise<Tenant | null> {
+        return this.tenantsRepository.findOne({ where: { subdomain } });
+    }
+
     async updateProfile(id: string, updateData: Partial<Tenant>): Promise<Tenant> {
         const tenant = await this.findOne(id);
         if (!tenant) {

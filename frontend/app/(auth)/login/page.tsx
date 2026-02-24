@@ -13,6 +13,7 @@ export default function LoginPage() {
     const { login, user, hasHydrated } = useAuthStore();
     const [error, setError] = useState('');
     const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [tenantName, setTenantName] = useState<string | null>(null);
 
     useEffect(() => {
         if (hasHydrated && user) {
@@ -22,6 +23,36 @@ export default function LoginPage() {
             router.replace(target);
         }
     }, [user, hasHydrated, router]);
+
+    useEffect(() => {
+        const fetchTenantContext = async () => {
+            if (typeof window === 'undefined') return;
+
+            const hostname = window.location.hostname;
+            const parts = hostname.split('.');
+
+            // Basic subdomain check (e.g. tenant.neqtra.com -> parts = ['tenant', 'neqtra', 'com'])
+            // If hostname is localhost (parts.length === 1) or www.neqtra.com, skip
+            if (parts.length > 2 || (parts.length === 2 && parts[0] !== 'localhost' && parts[1].includes('localhost'))) {
+                const subdomain = parts[0];
+                if (subdomain !== 'www') {
+                    try {
+                        // We use the full API_URL base URL logic in apiClient
+                        const { default: apiClient } = await import('@/lib/api');
+                        const response = await apiClient.get(`/tenants/lookup/${subdomain}`);
+                        if (response.data && response.data.name) {
+                            setTenantName(response.data.name);
+                        }
+                    } catch (error) {
+                        console.error('Failed to resolve tenant subdomain:', error);
+                        // Optionally set an error state here if strict routing is desired
+                    }
+                }
+            }
+        };
+
+        fetchTenantContext();
+    }, []);
 
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -113,10 +144,10 @@ export default function LoginPage() {
                     {/* Header */}
                     <div className="flex flex-col items-center gap-2 mb-2">
                         <div className="text-3xl font-bold font-serif italic tracking-tighter text-foreground mb-1">
-                            Neqtra
+                            {tenantName ? tenantName : 'Neqtra'}
                         </div>
                         <p className="text-muted text-sm text-center">
-                            Welcome back. Please sign in to continue.
+                            {tenantName ? `Welcome to ${tenantName}. Please sign in to continue.` : 'Welcome back. Please sign in to continue.'}
                         </p>
                     </div>
 
