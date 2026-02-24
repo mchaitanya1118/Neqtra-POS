@@ -19,6 +19,11 @@ export class RolesService implements OnModuleInit {
     async seedRoles() {
         const defaultRoles = [
             {
+                name: 'SuperAdmin',
+                permissions: ['Dashboard', 'Orders', 'Tables', 'Billing', 'Delivery', 'Inventory', 'Dues', 'Reports', 'Menu', 'Accounting', 'Users', 'Tenant'],
+                isSystem: true,
+            },
+            {
                 name: 'Admin',
                 permissions: ['Dashboard', 'Orders', 'Tables', 'Billing', 'Delivery', 'Inventory', 'Dues', 'Reports', 'Menu', 'Accounting', 'Users'],
                 isSystem: true,
@@ -55,33 +60,50 @@ export class RolesService implements OnModuleInit {
         }
     }
 
-    create(createRoleDto: CreateRoleDto) {
-        const role = this.rolesRepository.create(createRoleDto);
+    create(tenantId: string, createRoleDto: CreateRoleDto) {
+        const role = this.rolesRepository.create({
+            ...createRoleDto,
+            tenant: { id: tenantId } as any // associate role with the tenant
+        });
         return this.rolesRepository.save(role);
     }
 
-    findAll() {
-        return this.rolesRepository.find();
+    findAll(tenantId: string) {
+        return this.rolesRepository.find({
+            where: [
+                { isSystem: true }, // Global default roles
+                { tenant: { id: tenantId } } // Tenant-specific custom roles
+            ]
+        });
     }
 
-    async findOne(id: number) {
-        return this.rolesRepository.findOne({ where: { id } });
+    async findOne(tenantId: string, id: number) {
+        return this.rolesRepository.findOne({
+            where: [
+                { id, isSystem: true },
+                { id, tenant: { id: tenantId } }
+            ]
+        });
     }
 
     async findByName(name: string) {
         return this.rolesRepository.findOne({ where: { name } });
     }
 
-    async update(id: number, updateRoleDto: UpdateRoleDto) {
-        await this.rolesRepository.update(id, updateRoleDto);
-        return this.findOne(id);
+    async update(tenantId: string, id: number, updateRoleDto: UpdateRoleDto) {
+        const role = await this.findOne(tenantId, id);
+        if (!role) throw new Error('Role not found');
+        if (role.isSystem) throw new Error('Cannot edit a system role');
+
+        await this.rolesRepository.update({ id, tenant: { id: tenantId } }, updateRoleDto);
+        return this.findOne(tenantId, id);
     }
 
-    async remove(id: number) {
-        const role = await this.findOne(id);
-        if (role && role.isSystem) {
-            throw new Error('Cannot delete system role');
-        }
-        return this.rolesRepository.delete(id);
+    async remove(tenantId: string, id: number) {
+        const role = await this.findOne(tenantId, id);
+        if (!role) throw new Error('Role not found');
+        if (role.isSystem) throw new Error('Cannot delete a system role');
+
+        return this.rolesRepository.delete({ id, tenant: { id: tenantId } });
     }
 }

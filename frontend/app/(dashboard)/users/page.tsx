@@ -106,7 +106,7 @@ export default function UsersPage() {
 
                     <button
                         onClick={handleExport}
-                        disabled={!hasPermission('Users')}
+                        disabled={!hasPermission('Admin')}
                         className="bg-surface border border-surface-light text-foreground p-3 rounded-full hover:bg-surface-light disabled:opacity-30 transition-all shadow-sm group"
                         title="Export CSV"
                     >
@@ -115,7 +115,7 @@ export default function UsersPage() {
 
                     <button
                         onClick={activeTab === 'users' ? handleCreateUser : handleCreateRole}
-                        disabled={!hasPermission('Users')}
+                        disabled={!hasPermission('Admin')}
                         className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                     >
                         <Plus className="w-5 h-5" /> {activeTab === 'users' ? "Add Member" : "Add Role"}

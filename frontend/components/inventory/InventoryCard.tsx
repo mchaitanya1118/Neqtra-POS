@@ -65,14 +65,14 @@ export function InventoryCard({ item, onEdit, onDelete }: InventoryCardProps) {
                 <div className="flex gap-2 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
                     <button
                         onClick={() => onEdit(item)}
-                        disabled={!hasPermission('Inventory')}
+                        disabled={!hasPermission('Admin')}
                         className="p-2.5 bg-surface-light text-muted hover:text-primary hover:bg-primary/10 rounded-xl transition-all disabled:opacity-30"
                     >
                         <Edit className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => onDelete(item.id)}
-                        disabled={!hasPermission('Inventory')}
+                        disabled={!hasPermission('Admin')}
                         className="p-2.5 bg-surface-light text-muted hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all disabled:opacity-30"
                     >
                         <Trash2 className="w-4 h-4" />
@@ -117,14 +117,14 @@ export function InventoryCard({ item, onEdit, onDelete }: InventoryCardProps) {
                             <button
                                 onClick={() => quickAdjust(item.id, -1)}
                                 className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-muted hover:text-red-500 disabled:opacity-50"
-                                disabled={item.quantity <= 0 || !hasPermission('Inventory')}
+                                disabled={item.quantity <= 0 || !hasPermission('Admin')}
                             >
                                 <Minus className="w-4 h-4" />
                             </button>
                             <button
                                 onClick={() => quickAdjust(item.id, 1)}
                                 className="w-8 h-8 flex items-center justify-center rounded-md hover:bg-white hover:shadow-sm transition-all text-muted hover:text-green-500 disabled:opacity-50"
-                                disabled={!hasPermission('Inventory')}
+                                disabled={!hasPermission('Admin')}
                             >
                                 <Plus className="w-4 h-4" />
                             </button>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Search, Wallet, DollarSign, HandCoins, MoreVertical, Edit, Trash2, CheckCircle2, AlertCircle } from "lucide-react";
+import { Plus, Search, Wallet, DollarSign, HandCoins, MoreVertical, Edit, Trash2, CheckCircle2, AlertCircle, Lock } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
-import { API_URL } from "@/lib/config";
+import apiClient from "@/lib/api";
+import { useRouter } from 'next/navigation';
 
 interface Customer {
     id: number;
@@ -15,7 +16,10 @@ interface Customer {
 }
 
 export default function DuesPage() {
-    const { hasPermission } = useAuthStore();
+    const { hasPermission, user } = useAuthStore();
+    const router = useRouter();
+    const isProOrStarter = user?.subscriptionPlan !== 'FREE' && user?.subscriptionPlan !== undefined;
+
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
@@ -42,9 +46,8 @@ export default function DuesPage() {
     const fetchCustomers = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/customers`);
-            const data = await res.json();
-            setCustomers(data);
+            const res = await apiClient.get('/customers');
+            setCustomers(res.data);
         } catch (e) {
             console.error(e);
         } finally {
@@ -59,19 +62,13 @@ export default function DuesPage() {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const res = await fetch(`${API_URL}/customers`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...formData,
-                    totalDue: Number(formData.totalDue)
-                })
+            await apiClient.post('/customers', {
+                ...formData,
+                totalDue: Number(formData.totalDue)
             });
-            if (res.ok) {
-                fetchCustomers();
-                setIsAddModalOpen(false);
-                setFormData({ name: "", phone: "", totalDue: "0" });
-            }
+            fetchCustomers();
+            setIsAddModalOpen(false);
+            setFormData({ name: "", phone: "", totalDue: "0" });
         } catch (e) { console.error(e); }
     };
 
@@ -79,33 +76,23 @@ export default function DuesPage() {
         e.preventDefault();
         if (!selectedCustomer) return;
         try {
-            const res = await fetch(`${API_URL}/customers/${selectedCustomer.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: formData.name,
-                    phone: formData.phone
-                })
+            await apiClient.patch(`/customers/${selectedCustomer.id}`, {
+                name: formData.name,
+                phone: formData.phone
             });
-            if (res.ok) {
-                fetchCustomers();
-                setIsEditModalOpen(false);
-                setSelectedCustomer(null);
-            }
+            fetchCustomers();
+            setIsEditModalOpen(false);
+            setSelectedCustomer(null);
         } catch (e) { console.error(e); }
     };
 
     const handleDelete = async () => {
         if (!selectedCustomer) return;
         try {
-            const res = await fetch(`${API_URL}/customers/${selectedCustomer.id}`, {
-                method: 'DELETE'
-            });
-            if (res.ok) {
-                fetchCustomers();
-                setIsDeleteModalOpen(false);
-                setSelectedCustomer(null);
-            }
+            await apiClient.delete(`/customers/${selectedCustomer.id}`);
+            fetchCustomers();
+            setIsDeleteModalOpen(false);
+            setSelectedCustomer(null);
         } catch (e) { console.error(e); }
     };
 
@@ -115,17 +102,11 @@ export default function DuesPage() {
 
         const endpoint = actionType === "SETTLE" ? "settle" : "add-due";
         try {
-            const res = await fetch(`${API_URL}/customers/${selectedCustomer.id}/${endpoint}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount: Number(amount) })
-            });
-            if (res.ok) {
-                fetchCustomers();
-                setSelectedCustomer(null);
-                setActionType(null);
-                setAmount("");
-            }
+            await apiClient.patch(`/customers/${selectedCustomer.id}/${endpoint}`, { amount: Number(amount) });
+            fetchCustomers();
+            setSelectedCustomer(null);
+            setActionType(null);
+            setAmount("");
         } catch (e) { console.error(e); }
     };
 
@@ -134,10 +115,8 @@ export default function DuesPage() {
         setIsHistoryModalOpen(true);
         setActiveMenu(null);
         try {
-            const res = await fetch(`${API_URL}/customers/${customer.id}/history`);
-            if (res.ok) {
-                setHistory(await res.json());
-            }
+            const res = await apiClient.get(`/customers/${customer.id}/history`);
+            setHistory(res.data);
         } catch (e) { console.error(e); }
     };
 
@@ -172,7 +151,7 @@ export default function DuesPage() {
                 </div>
                 <button
                     onClick={(e) => { e.stopPropagation(); setIsAddModalOpen(true); }}
-                    disabled={!hasPermission('Dues')}
+                    disabled={!hasPermission('Admin')}
                     className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
                 >
                     <Plus className="w-5 h-5" /> Add Customer
@@ -192,113 +171,132 @@ export default function DuesPage() {
             </div>
 
             {/* List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {loading ? (
-                    [1, 2, 3].map(i => <div key={i} className="h-48 bg-surface/20 animate-pulse rounded-[32px]" />)
-                ) : filteredCustomers.length === 0 ? (
-                    <div className="col-span-full py-20 text-center">
-                        <div className="w-20 h-20 bg-surface-light/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Search className="w-8 h-8 text-muted" />
+            <div className="relative mt-8">
+                {!isProOrStarter && (
+                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm rounded-[32px] border border-surface-light p-8 text-center min-h-[400px]">
+                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <Lock className="w-8 h-8 text-primary" />
                         </div>
-                        <p className="text-muted font-medium">No customers found.</p>
-                    </div>
-                ) : (
-                    filteredCustomers.map(c => (
-                        <div key={c.id}
-                            className={cn(
-                                "group relative bg-surface border rounded-[32px] p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
-                                c.totalDue > 0 ? "border-red-500/20" : c.credit > 0 ? "border-green-500/20" : "border-surface-light"
-                            )}
+                        <h2 className="text-2xl font-bold text-foreground mb-2 font-serif italic">Unlock Customer Dues</h2>
+                        <p className="text-muted mb-6 max-w-md mx-auto">
+                            Manage customer debts, track credits, and handle partial payments with our Starter plan or higher.
+                        </p>
+                        <button
+                            onClick={() => router.push('/subscription')}
+                            className="bg-primary text-primary-fg px-6 py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
                         >
-                            {/* Card Header & Menu */}
-                            <div className="flex justify-between items-start mb-6">
-                                <div className="flex items-center gap-4">
-                                    <div className={cn(
-                                        "w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl",
-                                        c.totalDue > 0 ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
-                                    )}>
-                                        {c.name.charAt(0)}
+                            Upgrade to Starter
+                        </button>
+                    </div>
+                )}
+
+                <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6", !isProOrStarter && "opacity-20 pointer-events-none select-none filter blur-[2px]")}>
+                    {loading ? (
+                        [1, 2, 3].map(i => <div key={i} className="h-48 bg-surface/20 animate-pulse rounded-[32px]" />)
+                    ) : filteredCustomers.length === 0 ? (
+                        <div className="col-span-full py-20 text-center">
+                            <div className="w-20 h-20 bg-surface-light/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Search className="w-8 h-8 text-muted" />
+                            </div>
+                            <p className="text-muted font-medium">No customers found.</p>
+                        </div>
+                    ) : (
+                        filteredCustomers.map(c => (
+                            <div key={c.id}
+                                className={cn(
+                                    "group relative bg-surface border rounded-[32px] p-6 transition-all duration-300 hover:shadow-xl hover:-translate-y-1",
+                                    c.totalDue > 0 ? "border-red-500/20" : c.credit > 0 ? "border-green-500/20" : "border-surface-light"
+                                )}
+                            >
+                                {/* Card Header & Menu */}
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn(
+                                            "w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-xl",
+                                            c.totalDue > 0 ? "bg-red-500/10 text-red-500" : "bg-green-500/10 text-green-500"
+                                        )}>
+                                            {c.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-lg leading-tight">{c.name}</h3>
+                                            <p className="text-sm text-muted font-mono mt-0.5">{c.phone}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h3 className="font-bold text-lg leading-tight">{c.name}</h3>
-                                        <p className="text-sm text-muted font-mono mt-0.5">{c.phone}</p>
+                                    <div className="relative">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === c.id ? null : c.id); }}
+                                            className="p-2 hover:bg-surface-light rounded-full text-muted hover:text-foreground transition-colors"
+                                        >
+                                            <MoreVertical className="w-5 h-5" />
+                                        </button>
+
+                                        {/* Dropdown Menu */}
+                                        {activeMenu === c.id && (
+                                            <div className="absolute right-0 top-full mt-2 w-48 bg-background border border-border rounded-xl shadow-xl z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                                <button
+                                                    onClick={() => openEditModal(c)}
+                                                    disabled={!hasPermission('Admin')}
+                                                    className="w-full text-left px-4 py-3 text-sm hover:bg-surface-light disabled:opacity-30 flex items-center gap-2"
+                                                >
+                                                    <span className="shrink-0"><Edit className="w-4 h-4" /></span> Edit Details
+                                                </button>
+                                                <button
+                                                    onClick={() => openDeleteModal(c)}
+                                                    disabled={!hasPermission('Admin')}
+                                                    className="w-full text-left px-4 py-3 text-sm hover:bg-red-500/10 disabled:opacity-30 text-red-500 flex items-center gap-2"
+                                                >
+                                                    <span className="shrink-0"><Trash2 className="w-4 h-4" /></span> Delete
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="relative">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setActiveMenu(activeMenu === c.id ? null : c.id); }}
-                                        className="p-2 hover:bg-surface-light rounded-full text-muted hover:text-foreground transition-colors"
-                                    >
-                                        <MoreVertical className="w-5 h-5" />
-                                    </button>
 
-                                    {/* Dropdown Menu */}
-                                    {activeMenu === c.id && (
-                                        <div className="absolute right-0 top-full mt-2 w-48 bg-background border border-border rounded-xl shadow-xl z-10 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                            <button
-                                                onClick={() => openEditModal(c)}
-                                                disabled={!hasPermission('Dues')}
-                                                className="w-full text-left px-4 py-3 text-sm hover:bg-surface-light disabled:opacity-30 flex items-center gap-2"
-                                            >
-                                                <Edit className="w-4 h-4" /> Edit Details
-                                            </button>
-                                            <button
-                                                onClick={() => openDeleteModal(c)}
-                                                disabled={!hasPermission('Dues')}
-                                                className="w-full text-left px-4 py-3 text-sm hover:bg-red-500/10 disabled:opacity-30 text-red-500 flex items-center gap-2"
-                                            >
-                                                <Trash2 className="w-4 h-4" /> Delete
-                                            </button>
+                                {/* Stats */}
+                                <div className="bg-background/50 rounded-2xl p-4 mb-6 flex justify-between items-center border border-surface-light/50">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Due</p>
+                                        <p className={cn("text-2xl font-bold tracking-tight", c.totalDue > 0 ? "text-red-500" : "text-muted")}>
+                                            ${c.totalDue.toFixed(2)}
+                                        </p>
+                                    </div>
+                                    {c.credit > 0 && (
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Credit</p>
+                                            <p className="text-xl font-bold text-green-500 tracking-tight">
+                                                ${c.credit.toFixed(2)}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
-                            </div>
 
-                            {/* Stats */}
-                            <div className="bg-background/50 rounded-2xl p-4 mb-6 flex justify-between items-center border border-surface-light/50">
-                                <div>
-                                    <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Total Due</p>
-                                    <p className={cn("text-2xl font-bold tracking-tight", c.totalDue > 0 ? "text-red-500" : "text-muted")}>
-                                        ${c.totalDue.toFixed(2)}
-                                    </p>
+                                {/* Actions */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setSelectedCustomer(c); setActionType("ADD_DUE"); }}
+                                        disabled={!hasPermission('Admin')}
+                                        className="flex items-center justify-center gap-2 bg-surface-light hover:bg-surface-light/80 disabled:opacity-30 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95"
+                                    >
+                                        <Plus className="w-4 h-4" /> Add Due
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setSelectedCustomer(c); setActionType("SETTLE"); }}
+                                        disabled={!hasPermission('Admin')}
+                                        className="flex items-center justify-center gap-2 bg-primary/10 text-primary hover:bg-primary hover:text-primary-fg disabled:opacity-30 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95"
+                                    >
+                                        <HandCoins className="w-4 h-4" /> Settle
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleViewHistory(c); }}
+                                        className="col-span-2 flex items-center justify-center gap-2 border border-surface-light hover:bg-surface-light py-2 rounded-xl text-xs font-bold text-muted hover:text-foreground transition-all"
+                                    >
+                                        View History
+                                    </button>
                                 </div>
-                                {c.credit > 0 && (
-                                    <div className="text-right">
-                                        <p className="text-[10px] font-bold text-muted uppercase tracking-widest mb-1">Credit</p>
-                                        <p className="text-xl font-bold text-green-500 tracking-tight">
-                                            ${c.credit.toFixed(2)}
-                                        </p>
-                                    </div>
-                                )}
                             </div>
-
-                            {/* Actions */}
-                            <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); setSelectedCustomer(c); setActionType("ADD_DUE"); }}
-                                    disabled={!hasPermission('Dues')}
-                                    className="flex items-center justify-center gap-2 bg-surface-light hover:bg-surface-light/80 disabled:opacity-30 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95"
-                                >
-                                    <Plus className="w-4 h-4" /> Add Due
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); setSelectedCustomer(c); setActionType("SETTLE"); }}
-                                    disabled={!hasPermission('Dues')}
-                                    className="flex items-center justify-center gap-2 bg-primary/10 text-primary hover:bg-primary hover:text-primary-fg disabled:opacity-30 py-3 rounded-xl text-xs font-bold transition-all hover:scale-105 active:scale-95"
-                                >
-                                    <HandCoins className="w-4 h-4" /> Settle
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleViewHistory(c); }}
-                                    disabled={!hasPermission('Dues')}
-                                    className="col-span-2 flex items-center justify-center gap-2 border border-surface-light hover:bg-surface-light disabled:opacity-30 py-2 rounded-xl text-xs font-bold text-muted hover:text-foreground transition-all"
-                                >
-                                    View History
-                                </button>
-                            </div>
-                        </div>
-                    ))
-                )}
+                        ))
+                    )}
+                </div>
             </div>
 
             {/* Modals */}
@@ -336,7 +334,7 @@ export default function DuesPage() {
                                 <button type="button" onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }} className="flex-1 bg-surface-light hover:bg-surface-light/80 py-3 rounded-xl text-sm font-bold transition-colors">Cancel</button>
                                 <button
                                     type="submit"
-                                    disabled={!hasPermission('Dues')}
+                                    disabled={!hasPermission('Admin')}
                                     className="flex-1 bg-primary disabled:opacity-50 text-primary-fg py-3 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
                                 >
                                     {isEditModalOpen ? "Save Changes" : "Create Customer"}
@@ -362,7 +360,7 @@ export default function DuesPage() {
                             <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 bg-surface-light hover:bg-surface-light/80 py-3 rounded-xl text-sm font-bold transition-colors">Cancel</button>
                             <button
                                 onClick={handleDelete}
-                                disabled={!hasPermission('Dues')}
+                                disabled={!hasPermission('Admin')}
                                 className="flex-1 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white py-3 rounded-xl text-sm font-bold shadow-lg shadow-red-500/20 transition-all"
                             >
                                 Delete
@@ -434,7 +432,7 @@ export default function DuesPage() {
                                 <button type="button" onClick={() => { setSelectedCustomer(null); setActionType(null); }} className="flex-1 bg-surface-light hover:bg-surface-light/80 py-3 rounded-xl text-sm font-bold transition-colors">Cancel</button>
                                 <button
                                     type="submit"
-                                    disabled={!hasPermission('Dues')}
+                                    disabled={!hasPermission('Admin')}
                                     className={cn("flex-1 py-3 rounded-xl text-sm font-bold shadow-lg transition-all hover:scale-105 active:scale-95 text-white disabled:opacity-50", actionType === "SETTLE" ? "bg-green-500 hover:bg-green-600 shadow-green-500/20" : "bg-red-500 hover:bg-red-600 shadow-red-500/20")}
                                 >
                                     {actionType === "SETTLE" ? "Confirm Payment" : "Add Due"}

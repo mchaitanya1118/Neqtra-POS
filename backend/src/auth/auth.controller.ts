@@ -8,6 +8,20 @@ export class AuthController {
 
   constructor(private readonly authService: AuthService) { }
 
+  @Post('signup')
+  async signup(@Body() signupDto: any) {
+    try {
+      return await this.authService.signup(signupDto);
+    } catch (error: any) {
+      this.logger.error(`Signup failed explicitly: ${error.message}`, error.stack);
+      if (error instanceof BadRequestException || error instanceof UnauthorizedException) {
+        throw error;
+      }
+      // Pass the explicit error message down to the frontend so it isn't an opaque 500
+      throw new InternalServerErrorException(`Signup Error: ${error.message}`);
+    }
+  }
+
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {

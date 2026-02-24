@@ -28,6 +28,8 @@ export const viewport = {
   themeColor: "#111315",
 };
 
+import { TenantThemeProvider } from "@/components/shared/TenantThemeProvider";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -36,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} bg-background text-foreground antialiased`} suppressHydrationWarning>
+        <TenantThemeProvider />
         {children}
       </body>
     </html>

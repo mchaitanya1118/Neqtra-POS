@@ -1,10 +1,23 @@
-import { Injectable, UnauthorizedException, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, UnauthorizedException, OnModuleInit, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { User } from '../entities/user.entity';
 import { RolesService } from '../roles/roles.service';
+import { Tenant } from '../tenants/entities/tenant.entity';
+import { Branch } from '../branches/entities/branch.entity';
+import { TenantsService } from '../tenants/tenants.service';
+import { BranchesService } from '../branches/branches.service';
+
+export interface SignupDto {
+  name: string;
+  email: string; // Treated as username
+  password: string;
+  businessName: string;
+  businessType: string;
+}
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -13,11 +26,49 @@ export class AuthService implements OnModuleInit {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Tenant)
+    private tenantsRepository: Repository<Tenant>,
+    @InjectRepository(Branch)
+    private branchesRepository: Repository<Branch>,
     private rolesService: RolesService,
+    private jwtService: JwtService,
+    private tenantsService: TenantsService,
+    private branchesService: BranchesService,
   ) { }
 
   async onModuleInit() {
+    // Only seed if no tenants exist
     try {
+      // Check for default tenant
+      const existingTenant = await this.tenantsRepository.findOne({ where: { name: 'Default Tenant' } });
+      let tenant = existingTenant;
+
+      if (!tenant) {
+        this.logger.log('No default tenant found. Seeding...');
+        tenant = await this.tenantsService.create({
+          name: 'Default Tenant',
+          status: 'ACTIVE',
+          subscriptionPlan: 'ENTERPRISE',
+        });
+        this.logger.log('Default Tenant Database provisioned successfully.');
+        this.logger.log('Default Tenant seeded.');
+      }
+
+      // Check for default branch
+      const existingBranch = await this.branchesRepository.findOne({ where: { name: 'Main Branch', tenant: { id: tenant.id } } });
+      let branch = existingBranch;
+
+      if (!branch) {
+        this.logger.log('No default branch found. Seeding...');
+        branch = this.branchesRepository.create({
+          name: 'Main Branch',
+          address: 'Default Address',
+          tenant: tenant,
+        });
+        await this.branchesRepository.save(branch);
+        this.logger.log('Default Branch seeded.');
+      }
+
       const count = await this.usersRepository.count();
       if (count === 0) {
         this.logger.log('No users found. Seeding default admin user...');
@@ -31,46 +82,160 @@ export class AuthService implements OnModuleInit {
           username: 'admin',
           password: hashedPassword,
           passcode: '1234',
-          role: 'Admin', // Keep legacy string for now
+          // role: 'Admin', // Deprecated
           roleRel: adminRole || undefined,
+          tenant: tenant,
+          branch: branch,
         });
         await this.usersRepository.save(admin);
         this.logger.log('Default admin user seeded. Username: admin, Passcode: 1234');
+      }
+
+      const superAdminRole = await this.rolesService.findByName('SuperAdmin');
+      const existingSuperAdmin = await this.usersRepository.findOne({ where: { username: 'superadmin' } });
+
+      if (!existingSuperAdmin && superAdminRole) {
+        this.logger.log('No superadmin found. Seeding...');
+        const salt = await bcrypt.genSalt();
+        const pased = await bcrypt.hash('superadmin', salt);
+
+        const sAdmin = this.usersRepository.create({
+          name: 'System Admin',
+          username: 'superadmin',
+          password: pased,
+          passcode: '0000',
+          roleRel: superAdminRole,
+          tenant: tenant,
+          branch: branch,
+        });
+        await this.usersRepository.save(sAdmin);
+        this.logger.log('Superadmin seeded. Username: superadmin, Passcode: 0000');
       }
     } catch (error) {
       this.logger.error(`Failed to seed database: ${error.message}`, error.stack);
     }
   }
 
-  async login(loginDto: LoginDto) {
-    if (loginDto?.passcode) {
-      const user = await this.usersRepository.findOne({ where: { passcode: loginDto.passcode } });
-      console.log('Login by passcode:', loginDto.passcode, 'User found:', user);
-      if (user) return this.success(user);
+  async signup(signupDto: SignupDto) {
+    const { name, email, password, businessName, businessType } = signupDto;
+
+    // 1. Check if user already exists
+    const existingUser = await this.usersRepository.findOne({ where: { username: email } });
+    if (existingUser) {
+      throw new BadRequestException('User with this email already exists');
     }
 
-    if (loginDto?.username && loginDto?.password) {
-      const user = await this.usersRepository.findOne({ where: { username: loginDto.username } });
-      console.log('Login by username:', loginDto.username, 'User found:', user);
+    // 2. Create Tenant
+    const tenant = await this.tenantsService.create({
+      name: businessName,
+      status: 'ACTIVE',
+      subscriptionPlan: 'TRIAL',
+      // industry: businessType // Add industry if needed in entity
+    });
+
+    // 3. Create Default Branch
+    const branch = await this.branchesService.create(tenant.id, {
+      name: 'Main Branch',
+      address: 'Headquarters',
+      tenant: tenant,
+    });
+
+    // 4. Create Admin User
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const adminRole = await this.rolesService.findByName('Admin');
+
+    const user = this.usersRepository.create({
+      name,
+      username: email,
+      password: hashedPassword,
+      roleRel: adminRole || undefined,
+      tenant,
+      branch,
+    });
+
+    await this.usersRepository.save(user);
+
+    // 5. Generate Token
+    const payload = {
+      username: user.username,
+      sub: user.id,
+      role: user.roleRel?.name || 'Admin',
+      tenantId: tenant.id,
+      branchId: branch.id
+    };
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.roleRel?.name,
+        tenantId: tenant.id,
+        branchId: branch.id,
+        subscriptionPlan: tenant.subscriptionPlan
+      }
+    };
+  }
+
+  async login(loginDto: LoginDto) {
+    let user: User | null = null;
+
+    if (loginDto?.passcode) {
+      user = await this.usersRepository.findOne({
+        where: { passcode: loginDto.passcode },
+        relations: ['roleRel', 'tenant', 'branch']
+      });
+    } else if (loginDto?.username && loginDto?.password) {
+      user = await this.usersRepository.findOne({
+        where: { username: loginDto.username },
+        relations: ['roleRel', 'tenant', 'branch']
+      });
 
       if (user) {
-        // Check if password is valid (handled encryption)
         const isMatch = await bcrypt.compare(loginDto.password, user.password);
-        if (isMatch) {
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          const { password, ...safeUser } = user;
-          return this.success(safeUser);
-        }
+        if (!isMatch) user = null;
       }
     }
 
-    throw new UnauthorizedException('Invalid credentials');
-  }
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-  private success(user: any) {
+    // Self-heal default admin account if local postgres wiped relations
+    if (user.username === 'admin' && !user.tenant) {
+      const defaultTenant = await this.tenantsRepository.findOne({ where: { name: 'Default Tenant' } });
+      const defaultBranch = await this.branchesRepository.findOne({ where: { name: 'Main Branch' } });
+      if (defaultTenant) {
+        user.tenant = defaultTenant;
+        if (defaultBranch) {
+          user.branch = defaultBranch;
+        }
+        await this.usersRepository.save(user);
+      }
+    }
+
+    const payload = {
+      username: user.username,
+      sub: user.id,
+      role: user.roleRel?.name || 'Staff',
+      tenantId: user.tenant?.id,
+      branchId: user.branch?.id
+    };
+
     return {
-      access_token: 'mock-jwt-token-' + Date.now(),
-      user: user,
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        role: user.roleRel?.name,
+        tenantId: user.tenant?.id,
+        branchId: user.branch?.id,
+        subscriptionPlan: user.tenant?.subscriptionPlan
+      },
+      // Return refresh token if needed in future, currently just access token
     };
   }
 }

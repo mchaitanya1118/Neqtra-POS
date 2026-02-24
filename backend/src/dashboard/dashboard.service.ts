@@ -7,7 +7,7 @@ import { Reservation } from '../reservations/entities/reservation.entity';
 import { Table } from '../entities/table.entity';
 import { Customer } from '../customers/entities/customer.entity';
 
-import { Payment } from '../orders/entities/payment.entity';
+import { Payment } from '../payments/entities/payment.entity';
 
 @Injectable()
 export class DashboardService {

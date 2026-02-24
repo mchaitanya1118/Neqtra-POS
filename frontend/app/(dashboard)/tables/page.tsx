@@ -21,8 +21,8 @@ import {
     Filter
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_URL } from "@/lib/config";
-import { TableModal } from "@/components/pos/TableModal";
+import apiClient from "@/lib/api";
+import { TableModal } from "@/features/pos/components/TableModal";
 
 // --- Types for Orders ---
 interface OrderItem {
@@ -59,12 +59,10 @@ export default function TablesPage() {
         fetchTables();
         const fetchOrders = async () => {
             try {
-                const res = await fetch(`${API_URL}/orders`);
-                if (res.ok) {
-                    const data = await res.json();
-                    const active = data.filter((o: any) => ['PENDING', 'CONFIRMED', 'PARTIAL'].includes(o.status));
-                    setOrders(active);
-                }
+                const res = await apiClient.get('/orders');
+                const data = res.data;
+                const active = data.filter((o: any) => ['PENDING', 'CONFIRMED', 'PARTIAL'].includes(o.status));
+                setOrders(active);
             } catch (e) {
                 console.error("Failed to fetch orders", e);
             }
@@ -91,42 +89,26 @@ export default function TablesPage() {
 
     const handleCreateTable = async (label: string, capacity: number) => {
         try {
-            const res = await fetch(`${API_URL}/tables`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ label, capacity, status: 'FREE' })
-            });
-            if (res.ok) {
-                fetchTables();
-            }
+            await apiClient.post('/tables', { label, capacity, status: 'FREE' });
+            fetchTables();
         } catch (e) { console.error(e); }
     };
 
     const handleUpdateTable = async (label: string, capacity: number) => {
         if (!editingTable) return;
         try {
-            const res = await fetch(`${API_URL}/tables/${editingTable.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ label, capacity })
-            });
-            if (res.ok) {
-                fetchTables();
-                setEditingTable(null);
-            }
+            await apiClient.patch(`/tables/${editingTable.id}`, { label, capacity });
+            fetchTables();
+            setEditingTable(null);
         } catch (e) { console.error(e); }
     };
 
     const handleDeleteTable = async (id: number, label: string) => {
         if (!confirm(`Are you sure you want to delete ${label}?`)) return;
         try {
-            const res = await fetch(`${API_URL}/tables/${id}`, {
-                method: 'DELETE'
-            });
-            if (res.ok) {
-                fetchTables();
-                if (selectedTableId === id) setSelectedTableId(null);
-            }
+            await apiClient.delete(`/tables/${id}`);
+            fetchTables();
+            if (selectedTableId === id) setSelectedTableId(null);
         } catch (e) { console.error(e); }
     };
 
@@ -234,15 +216,26 @@ export default function TablesPage() {
                         <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
                     </button>
 
-                    {hasPermission('Table Services') && (
+                    <div className="flex flex-wrap items-center gap-4">
+                        <div className="bg-surface border border-surface-light px-5 py-2.5 rounded-2xl flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                {tables.length}
+                            </div>
+                            <div>
+                                <p className="text-[10px] uppercase font-black text-muted tracking-widest leading-none mb-1">Total Stations</p>
+                                <p className="text-sm font-black dark:text-zinc-400">Layout Registry</p>
+                            </div>
+                        </div>
+
                         <button
-                            onClick={openCreateModal}
-                            className="flex items-center justify-center gap-2 px-6 py-2 bg-primary hover:bg-primary/90 text-primary-fg rounded-full text-sm font-bold shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all transform hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                            onClick={() => { setEditingTable(null); setIsModalOpen(true); }}
+                            disabled={!hasPermission('Admin')}
+                            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-6 py-3.5 rounded-2xl text-sm font-black shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                         >
-                            <Plus className="w-4 h-4" />
-                            Add Table
+                            <Plus className="w-5 h-5 font-black" />
+                            Create Station
                         </button>
-                    )}
+                    </div>
                 </div>
             </header>
 
@@ -292,7 +285,7 @@ export default function TablesPage() {
                                                     )}
 
                                                     {/* Admin Overlay */}
-                                                    {(user?.role === 'Admin' || user?.role === 'Manager' || hasPermission('Table Services')) && (
+                                                    {hasPermission('Admin') && (
                                                         <div className="absolute top-4 right-4 flex gap-2 z-50 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
                                                             <button
                                                                 onClick={(e) => openEditModal(table, e)}

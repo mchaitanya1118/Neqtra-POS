@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { io, Socket } from 'socket.io-client';
+import apiClient from '@/lib/api';
 import { API_URL } from '@/lib/config';
 
 export interface Notification {
@@ -38,12 +39,10 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     fetchNotifications: async () => {
         set({ isLoading: true });
         try {
-            const res = await fetch(`${API_URL}/notifications`);
-            if (res.ok) {
-                const data = await res.json();
-                const unreadCount = data.filter((n: Notification) => !n.read).length;
-                set({ notifications: data, unreadCount, isLoading: false });
-            }
+            const res = await apiClient.get('/notifications');
+            const data = res.data;
+            const unreadCount = data.filter((n: Notification) => !n.read).length;
+            set({ notifications: data, unreadCount, isLoading: false });
         } catch (error) {
             console.error('Failed to fetch notifications', error);
             set({ isLoading: false });
@@ -52,18 +51,16 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     markAsRead: async (id) => {
         try {
-            const res = await fetch(`${API_URL}/notifications/${id}/read`, { method: 'PATCH' });
-            if (res.ok) {
-                set((state) => {
-                    const updated = state.notifications.map((n) =>
-                        n.id === id ? { ...n, read: true } : n
-                    );
-                    return {
-                        notifications: updated,
-                        unreadCount: updated.filter((n) => !n.read).length,
-                    };
-                });
-            }
+            await apiClient.patch(`/notifications/${id}/read`);
+            set((state) => {
+                const updated = state.notifications.map((n) =>
+                    n.id === id ? { ...n, read: true } : n
+                );
+                return {
+                    notifications: updated,
+                    unreadCount: updated.filter((n) => !n.read).length,
+                };
+            });
         } catch (error) {
             console.error('Failed to mark notification as read', error);
         }
@@ -71,13 +68,11 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     markAllAsRead: async () => {
         try {
-            const res = await fetch(`${API_URL}/notifications/read-all`, { method: 'PATCH' });
-            if (res.ok) {
-                set((state) => ({
-                    notifications: state.notifications.map((n) => ({ ...n, read: true })),
-                    unreadCount: 0,
-                }));
-            }
+            await apiClient.patch('/notifications/read-all');
+            set((state) => ({
+                notifications: state.notifications.map((n) => ({ ...n, read: true })),
+                unreadCount: 0,
+            }));
         } catch (error) {
             console.error('Failed to mark all notifications as read', error);
         }
@@ -85,16 +80,14 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     deleteNotification: async (id) => {
         try {
-            const res = await fetch(`${API_URL}/notifications/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                set((state) => {
-                    const updated = state.notifications.filter((n) => n.id !== id);
-                    return {
-                        notifications: updated,
-                        unreadCount: updated.filter((n) => !n.read).length,
-                    };
-                });
-            }
+            await apiClient.delete(`/notifications/${id}`);
+            set((state) => {
+                const updated = state.notifications.filter((n) => n.id !== id);
+                return {
+                    notifications: updated,
+                    unreadCount: updated.filter((n) => !n.read).length,
+                };
+            });
         } catch (error) {
             console.error('Failed to delete notification', error);
         }
@@ -102,10 +95,8 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
 
     clearAll: async () => {
         try {
-            const res = await fetch(`${API_URL}/notifications`, { method: 'DELETE' });
-            if (res.ok) {
-                set({ notifications: [], unreadCount: 0 });
-            }
+            await apiClient.delete('/notifications');
+            set({ notifications: [], unreadCount: 0 });
         } catch (error) {
             console.error('Failed to clear notifications', error);
         }

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { API_URL } from '@/lib/config';
+import apiClient from '@/lib/api';
 
 interface Table {
     id: number;
@@ -31,10 +31,8 @@ export const useTableStore = create<TableState>()(
                 if (get().isLoading) return; // Deduplicate requests
                 set({ isLoading: true });
                 try {
-                    const res = await fetch(`${API_URL}/tables`);
-                    if (!res.ok) throw new Error("Failed to fetch tables");
-
-                    const data = await res.json();
+                    const res = await apiClient.get('/tables');
+                    const data = res.data;
 
                     if (Array.isArray(data)) {
                         set({ tables: data, isLoading: false });
@@ -65,11 +63,7 @@ export const useTableStore = create<TableState>()(
                 }));
 
                 try {
-                    await fetch(`${API_URL}/tables/${id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status })
-                    });
+                    await apiClient.patch(`/tables/${id}`, { status });
                 } catch (e) {
                     console.error("Failed to update status", e);
                     // Revert on failure (could refetch or rollback)

@@ -3,6 +3,7 @@
 import { User } from "@/store/useUserStore";
 import { Edit, Trash2, Shield, User as UserIcon, Mail, Key } from "lucide-react";
 import { motion } from "framer-motion";
+import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 
 interface UserCardProps {
@@ -12,6 +13,7 @@ interface UserCardProps {
 }
 
 export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
+    const { hasPermission } = useAuthStore();
     const roleName = user.roleRel?.name || user.role;
     const isAdmin = roleName === "Admin";
     const isManager = roleName === "Manager";
@@ -59,13 +61,15 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
                     <button
                         onClick={() => onEdit(user)}
-                        className="p-2.5 hover:bg-primary/10 rounded-xl text-muted hover:text-primary transition-all"
+                        disabled={!hasPermission('Admin')}
+                        className="p-2.5 hover:bg-primary/10 rounded-xl text-muted hover:text-primary transition-all disabled:opacity-30"
                     >
                         <Edit className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => onDelete(user.id)}
-                        className="p-2.5 hover:bg-red-500/10 rounded-xl text-muted hover:text-red-500 transition-all"
+                        disabled={!hasPermission('Admin')}
+                        className="p-2.5 hover:bg-red-500/10 rounded-xl text-muted hover:text-red-500 transition-all disabled:opacity-30"
                     >
                         <Trash2 className="w-4 h-4" />
                     </button>

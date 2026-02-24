@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { API_URL } from '@/lib/config';
+import apiClient from '@/lib/api';
 
 export interface InventoryItem {
     id: number;
@@ -32,10 +32,8 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
     fetchInventory: async () => {
         set({ isLoading: true, error: null });
         try {
-            const res = await fetch(`${API_URL}/inventory`);
-            if (!res.ok) throw new Error('Failed to fetch inventory');
-            const data = await res.json();
-            set({ items: data, isLoading: false });
+            const res = await apiClient.get('/inventory');
+            set({ items: res.data, isLoading: false });
         } catch (err: any) {
             set({ error: err.message, isLoading: false });
         }
@@ -43,12 +41,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
     addItem: async (item) => {
         try {
-            const res = await fetch(`${API_URL}/inventory`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(item),
-            });
-            if (!res.ok) throw new Error('Failed to add item');
+            await apiClient.post('/inventory', item);
             await get().fetchInventory();
         } catch (err: any) {
             set({ error: err.message });
@@ -58,12 +51,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
     updateItem: async (id, data) => {
         try {
-            const res = await fetch(`${API_URL}/inventory/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!res.ok) throw new Error('Failed to update item');
+            await apiClient.patch(`/inventory/${id}`, data);
             await get().fetchInventory();
         } catch (err: any) {
             set({ error: err.message });
@@ -73,10 +61,7 @@ export const useInventoryStore = create<InventoryStore>((set, get) => ({
 
     deleteItem: async (id) => {
         try {
-            const res = await fetch(`${API_URL}/inventory/${id}`, {
-                method: 'DELETE',
-            });
-            if (!res.ok) throw new Error('Failed to delete item');
+            await apiClient.delete(`/inventory/${id}`);
             set((state) => ({
                 items: state.items.filter((i) => i.id !== id),
             }));

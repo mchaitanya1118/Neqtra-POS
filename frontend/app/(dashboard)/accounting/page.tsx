@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Plus, TrendingUp, TrendingDown, DollarSign, Calendar, Tag, Search, Filter, Trash2, Edit, Download, Box, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { API_URL } from "@/lib/config";
+import apiClient from "@/lib/api";
 import { format, startOfMonth, endOfMonth, isWithinInterval, parseISO, eachDayOfInterval } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -64,14 +64,14 @@ export default function AccountingPage() {
         try {
             // Fetch with date filters
             const [expRes, revRes, duesRes] = await Promise.all([
-                fetch(`${API_URL}/expenses?startDate=${dateRange.start}&endDate=${dateRange.end}`),
-                fetch(`${API_URL}/reports/sales?start=${dateRange.start}&end=${dateRange.end}`),
-                fetch(`${API_URL}/customers/report`) // Dues report might need range too in future
+                apiClient.get(`/expenses?startDate=${dateRange.start}&endDate=${dateRange.end}`),
+                apiClient.get(`/reports/sales?start=${dateRange.start}&end=${dateRange.end}`),
+                apiClient.get('/customers/report') // Dues report might need range too in future
             ]);
 
-            const expJson = await expRes.json();
-            const revJson = await revRes.json();
-            const duesJson = await duesRes.json();
+            const expJson = expRes.data;
+            const revJson = revRes.data;
+            const duesJson = duesRes.data;
 
             setExpenses(expJson);
             // Total Revenue = Sales Revenue + Dues Collected
@@ -132,23 +132,20 @@ export default function AccountingPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const method = editingExpense ? 'PATCH' : 'POST';
-            const url = editingExpense ? `${API_URL}/expenses/${editingExpense.id}` : `${API_URL}/expenses`;
+            const data = {
+                ...formData,
+                amount: parseFloat(formData.amount),
+                date: new Date(formData.date).toISOString()
+            };
 
-            const res = await fetch(url, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...formData,
-                    amount: parseFloat(formData.amount),
-                    date: new Date(formData.date).toISOString()
-                })
-            });
-
-            if (res.ok) {
-                fetchData();
-                closeModal();
+            if (editingExpense) {
+                await apiClient.patch(`/expenses/${editingExpense.id}`, data);
+            } else {
+                await apiClient.post('/expenses', data);
             }
+
+            fetchData();
+            closeModal();
         } catch (e) {
             console.error("Failed to save expense", e);
         }
@@ -157,8 +154,8 @@ export default function AccountingPage() {
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this expense?")) return;
         try {
-            const res = await fetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' });
-            if (res.ok) fetchData();
+            await apiClient.delete(`/expenses/${id}`);
+            fetchData();
         } catch (e) {
             console.error(e);
         }

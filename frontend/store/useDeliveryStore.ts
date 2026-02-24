@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { API_URL } from '@/lib/config';
+import apiClient from '@/lib/api';
 
 export interface Delivery {
     id: number;
@@ -36,10 +36,8 @@ export const useDeliveryStore = create<DeliveryStore>((set, get) => ({
     fetchDeliveries: async () => {
         set({ isLoading: true, error: null });
         try {
-            const res = await fetch(`${API_URL}/delivery`);
-            if (!res.ok) throw new Error('Failed to fetch deliveries');
-            const data = await res.json();
-            set({ deliveries: data, isLoading: false });
+            const res = await apiClient.get('/delivery');
+            set({ deliveries: res.data, isLoading: false });
         } catch (err: any) {
             set({ error: err.message, isLoading: false });
         }
@@ -47,13 +45,8 @@ export const useDeliveryStore = create<DeliveryStore>((set, get) => ({
 
     updateDelivery: async (id, data) => {
         try {
-            const res = await fetch(`${API_URL}/delivery/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data),
-            });
-            if (!res.ok) throw new Error('Failed to update delivery');
-            const updated = await res.json();
+            const res = await apiClient.patch(`/delivery/${id}`, data);
+            const updated = res.data;
             set((state) => ({
                 deliveries: state.deliveries.map((d) => (d.id === id ? updated : d)),
             }));
@@ -65,10 +58,7 @@ export const useDeliveryStore = create<DeliveryStore>((set, get) => ({
 
     deleteDelivery: async (id) => {
         try {
-            const res = await fetch(`${API_URL}/delivery/${id}`, {
-                method: 'DELETE',
-            });
-            if (!res.ok) throw new Error('Failed to delete delivery');
+            await apiClient.delete(`/delivery/${id}`);
             set((state) => ({
                 deliveries: state.deliveries.filter((d) => d.id !== id),
             }));

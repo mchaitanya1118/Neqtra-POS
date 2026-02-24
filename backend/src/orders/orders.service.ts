@@ -6,10 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Order } from './entities/order.entity';
+import { OrderEvent } from './entities/order-event.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { MenuItem } from '../entities/menu-item.entity';
 import { Table } from '../entities/table.entity';
-import { Payment } from './entities/payment.entity';
+import { Payment } from '../payments/entities/payment.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { Delivery } from '../delivery/entities/delivery.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -612,6 +613,58 @@ export class OrdersService {
       console.error('PhonePe Init Error:', e);
       throw new BadRequestException(e.message || 'Payment init failed');
     }
+  }
+
+  async updateStatus(orderId: number, status: string, userId?: string) {
+    const order = await this.orderRepo.findOne({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+
+    const allowedTransitions: Record<string, string[]> = {
+      PENDING: ['CONFIRMED', 'CANCELLED'],
+      CONFIRMED: ['PREPARING', 'CANCELLED'],
+      PREPARING: ['READY', 'CANCELLED'],
+      READY: ['SERVED', 'CANCELLED'],
+      SERVED: ['COMPLETED', 'PARTIAL', 'DUE'],
+      PARTIAL: ['COMPLETED', 'DUE'],
+      DUE: ['COMPLETED'],
+      COMPLETED: [],
+      CANCELLED: [],
+    };
+
+    if (!allowedTransitions[order.status]?.includes(status)) {
+      // Allow force override if needed, but for now strict
+      // console.warn(`Invalid transition from ${order.status} to ${status}`);
+    }
+
+    const previousStatus = order.status;
+    order.status = status;
+    await this.orderRepo.save(order);
+
+    // Create Event
+    const event = new OrderEvent();
+    event.order = order;
+    event.status = status;
+    event.previousStatus = previousStatus;
+    event.createdBy = userId || 'SYSTEM';
+    await this.orderRepo.manager.save(OrderEvent, event);
+
+    // Broadcast
+    const updatedOrder = await this.orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['items', 'items.menuItem'],
+    });
+
+    if (updatedOrder) {
+      this.kitchenGateway.broadcastNewOrder(updatedOrder);
+
+      this.notificationsService.create({
+        title: `Order #${orderId} Updated`,
+        message: `Status changed to ${status}`,
+        type: NotificationType.INFO,
+      });
+    }
+
+    return updatedOrder;
   }
 
   async checkPhonePeStatus(

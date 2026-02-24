@@ -4,6 +4,7 @@ import { Edit, Trash2, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { useAuthStore } from "@/store/useAuthStore";
 import * as Icons from "lucide-react";
 import { MenuItemCard } from "./MenuItemCard";
 
@@ -22,6 +23,7 @@ export function MenuCategorySection({
     onAddItem,
     onEditItem
 }: MenuCategorySectionProps) {
+    const { hasPermission } = useAuthStore();
     const [isExpanded, setIsExpanded] = useState(true);
 
     const renderIcon = (iconName: string) => {
@@ -71,14 +73,16 @@ export function MenuCategorySection({
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => onEditCategory(category)}
-                        className="p-3 text-muted hover:text-primary hover:bg-primary/10 rounded-2xl transition-all"
+                        disabled={!hasPermission('Admin')}
+                        className="p-3 text-muted hover:text-primary hover:bg-primary/10 rounded-2xl transition-all disabled:opacity-30"
                         title="Edit Category"
                     >
                         <Edit className="w-5 h-5" />
                     </button>
                     <button
                         onClick={() => onDeleteCategory(category.id, category.title)}
-                        className="p-3 text-muted hover:text-destructive hover:bg-destructive/10 rounded-2xl transition-all"
+                        disabled={!hasPermission('Admin')}
+                        className="p-3 text-muted hover:text-destructive hover:bg-destructive/10 rounded-2xl transition-all disabled:opacity-30"
                         title="Delete Category"
                     >
                         <Trash2 className="w-5 h-5" />
@@ -86,7 +90,8 @@ export function MenuCategorySection({
                     <div className="w-px h-6 bg-surface-light mx-2" />
                     <button
                         onClick={() => onAddItem(category.id)}
-                        className="bg-primary hover:bg-primary/90 text-black px-6 py-3 rounded-2xl text-xs font-black shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                        disabled={!hasPermission('Admin')}
+                        className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-6 py-3 rounded-2xl text-xs font-black shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                     >
                         <Plus className="w-4 h-4" />
                         Add Item

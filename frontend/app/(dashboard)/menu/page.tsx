@@ -13,14 +13,16 @@ import {
     ChefHat
 } from "lucide-react";
 import { useMenuStore } from "@/store/useMenuStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { CategoryModal } from "@/components/pos/CategoryModal";
-import { MenuItemModal } from "@/components/pos/MenuItemModal";
+import { CategoryModal } from "@/features/pos/components/CategoryModal";
+import { MenuItemModal } from "@/features/pos/components/MenuItemModal";
 import { MenuCategorySection } from "@/components/menu/MenuCategorySection";
 import { useShallow } from 'zustand/react/shallow';
 
 export default function MenuPage() {
+    const { hasPermission } = useAuthStore();
     const {
         categories,
         fetchMenu,
@@ -152,7 +154,8 @@ export default function MenuPage() {
                         </button>
                         <button
                             onClick={() => { setEditingCategory(null); setIsCatModalOpen(true); }}
-                            className="bg-primary hover:bg-primary/90 text-black px-8 py-4 rounded-2xl text-sm font-black shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+                            disabled={!hasPermission('Admin')}
+                            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-8 py-4 rounded-2xl text-sm font-black shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
                         >
                             <FolderPlus className="w-5 h-5" />
                             New Category

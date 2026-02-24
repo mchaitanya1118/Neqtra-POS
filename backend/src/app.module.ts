@@ -17,6 +17,14 @@ import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { TenantsModule } from './tenants/tenants.module';
+import { BranchesModule } from './branches/branches.module';
+import { PaymentsModule } from './payments/payments.module';
+import { AdminModule } from './admin/admin.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { DevicesModule } from './devices/devices.module';
+import { ClsModule } from 'nestjs-cls';
+import { TenancyModule } from './tenancy/tenancy.module';
 
 @Module({
   imports: [
@@ -37,6 +45,19 @@ import { NotificationsModule } from './notifications/notifications.module';
         synchronize: process.env.DB_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production', // Enable via env var or in dev
       }),
     }),
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+        setup: (cls, req) => {
+          const tenantId = req.headers['x-tenant-id'];
+          if (tenantId) {
+            cls.set('tenantId', tenantId);
+          }
+        },
+      },
+    }),
+    TenancyModule,
     MenuModule,
     OrdersModule,
     TablesModule,
@@ -51,6 +72,13 @@ import { NotificationsModule } from './notifications/notifications.module';
     RolesModule,
     DeliveryModule,
     NotificationsModule,
+    TenantsModule,
+    BranchesModule,
+    PaymentsModule,
+    AdminModule,
+    SubscriptionsModule,
+    DevicesModule,
+    TenancyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

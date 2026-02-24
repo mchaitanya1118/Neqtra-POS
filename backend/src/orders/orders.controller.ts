@@ -1,10 +1,14 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Patch } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { PaymentsService } from '../payments/payments.service';
 
 @Controller('orders')
 export class OrdersController {
-  constructor(private readonly ordersService: OrdersService) {}
+  constructor(
+    private readonly ordersService: OrdersService,
+    private readonly paymentsService: PaymentsService,
+  ) { }
 
   @Post()
   create(@Body() createOrderDto: CreateOrderDto) {
@@ -31,7 +35,7 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() body: { amount?: number; method?: string } = {},
   ) {
-    return this.ordersService.settle(+id, body?.amount, body?.method);
+    return this.paymentsService.processPayment(+id, body?.amount, body?.method);
   }
 
   @Post(':id/serve')
@@ -44,6 +48,14 @@ export class OrdersController {
     return this.ordersService.getActiveOrder(+id);
   }
 
+  @Patch(':id/status')
+  updateStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string; userId?: string },
+  ) {
+    return this.ordersService.updateStatus(+id, body.status, body.userId);
+  }
+
   @Post(':id/move')
   moveOrder(@Param('id') id: string, @Body() body: { targetTableId: number }) {
     return this.ordersService.moveOrder(+id, body.targetTableId);
@@ -54,7 +66,7 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() body: { amount: number },
   ) {
-    return this.ordersService.createRazorpayOrder(+id, body.amount);
+    return this.paymentsService.createRazorpayOrder(+id, body.amount);
   }
 
   @Post(':id/razorpay-verify')
@@ -68,7 +80,7 @@ export class OrdersController {
       amount: number;
     },
   ) {
-    return this.ordersService.verifyRazorpayPayment(
+    return this.paymentsService.verifyRazorpayPayment(
       +id,
       body.paymentId,
       body.orderRpId,
@@ -82,7 +94,7 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() body: { amount: number },
   ) {
-    return this.ordersService.initiatePhonePePayment(+id, body.amount);
+    return this.paymentsService.initiatePhonePePayment(+id, body.amount);
   }
 
   @Post(':id/phonepe-check-status')
@@ -90,7 +102,7 @@ export class OrdersController {
     @Param('id') id: string,
     @Body() body: { merchantTransactionId: string; amount: number },
   ) {
-    return this.ordersService.checkPhonePeStatus(
+    return this.paymentsService.checkPhonePeStatus(
       +id,
       body.merchantTransactionId,
       body.amount,

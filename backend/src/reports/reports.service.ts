@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from '../orders/entities/order.entity';
-import { Payment } from '../orders/entities/payment.entity';
+import { Payment } from '../payments/entities/payment.entity';
 import { Expense } from '../expenses/entities/expense.entity';
 
 @Injectable()
@@ -170,5 +170,63 @@ export class ReportsService {
     }
 
     return results;
+  }
+
+  async getTopSellingItems(limit: number = 10, start?: string, end?: string) {
+    const qb = this.orderRepo.createQueryBuilder('order')
+      .leftJoin('order.items', 'item')
+      .leftJoin('item.menuItem', 'menuItem')
+      .select('menuItem.title', 'name')
+      .addSelect('SUM(item.quantity)', 'quantity')
+      .addSelect('SUM(item.quantity * menuItem.price)', 'revenue')
+      .groupBy('menuItem.id')
+      .addGroupBy('menuItem.title') // Postgres requires this
+      .orderBy('quantity', 'DESC')
+      .limit(limit);
+
+    if (start) qb.andWhere('order.createdAt >= :start', { start });
+    if (end) qb.andWhere('order.createdAt <= :end', { end });
+
+    // Only count completed/confirmed orders?
+    qb.andWhere('order.status IN (:...statuses)', { statuses: ['COMPLETED', 'DUE', 'SERVED', 'CONFIRMED'] });
+
+    return await qb.getRawMany();
+  }
+
+  async getStaffPerformance(start?: string, end?: string) {
+    // Attribute sales to the user who settled the order (COMPLETED event)
+    // This requires joining Order -> OrderEvent
+    // Note: This assumes 'createdBy' in OrderEvent is the identifier we want.
+
+    // Using QueryBuilder on OrderEvent seems more direct for this, but we need Order.totalAmount
+    // Let's query Order joined with Events.
+
+    /* 
+      SELECT e."createdBy" as staff, COUNT(o.id) as orders, SUM(o."totalAmount") as revenue
+      FROM orders o
+      JOIN order_events e ON e."orderId" = o.id
+      WHERE e.status = 'COMPLETED'
+      GROUP BY e."createdBy"
+    */
+
+    // We need to inject OrderEvent repo? Or just use Order's relation.
+    // Ideally we inject OrderEventRepository. 
+    // But since I didn't inject it in constructor, let's try to use orderRepo's manager or relation.
+    // Actually, getting repo via module is better.
+    // For now, let's try raw query or relation if possible.
+    // Creating a QB on orderRepo and joining events is standard.
+
+    const qb = this.orderRepo.createQueryBuilder('o')
+      .innerJoin('o.events', 'e', 'e.status = :status', { status: 'COMPLETED' })
+      .select('e.createdBy', 'staff')
+      .addSelect('COUNT(o.id)', 'orders')
+      .addSelect('SUM(o.totalAmount)', 'revenue')
+      .groupBy('e.createdBy')
+      .orderBy('revenue', 'DESC');
+
+    if (start) qb.andWhere('o.createdAt >= :start', { start });
+    if (end) qb.andWhere('o.createdAt <= :end', { end });
+
+    return await qb.getRawMany();
   }
 }

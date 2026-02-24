@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import {
     Search,
@@ -30,9 +30,9 @@ import {
 import { cn } from "@/lib/utils";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTableStore } from "@/store/useTableStore";
-import { SplitBillModal } from "@/components/pos/SplitBillModal";
-import { Receipt } from "@/components/pos/Receipt";
-import { API_URL } from "@/lib/config";
+import { SplitBillModal } from "@/features/pos/components/SplitBillModal";
+import { Receipt } from "@/features/pos/components/Receipt";
+import apiClient from "@/lib/api";
 import { Suspense } from "react";
 
 interface OrderItem {
@@ -82,18 +82,15 @@ function OrdersContent() {
 
     const fetchOrders = async () => {
         try {
-            const res = await fetch(`${API_URL}/orders`);
-            if (res.ok) {
-                const data = await res.json();
-                const active = data.filter((o: any) => ['PENDING', 'CONFIRMED', 'PARTIAL'].includes(o.status));
-                setOrders(active);
-            }
+            const res = await apiClient.get('/orders');
+            const data = res.data;
+            const active = data.filter((o: any) =>
+                ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'PARTIAL', 'DUE'].includes(o.status)
+            );
+            setOrders(active);
 
-            const statsRes = await fetch(`${API_URL}/orders/stats`);
-            if (statsRes.ok) {
-                const statsData = await statsRes.json();
-                setStats(statsData);
-            }
+            const statsRes = await apiClient.get('/orders/stats');
+            setStats(statsRes.data);
         } catch (e) {
             console.error("Fetch error:", e);
         } finally {
@@ -110,28 +107,24 @@ function OrdersContent() {
     const handleDeleteOrder = async (id: number) => {
         setProcessing(true);
         try {
-            const res = await fetch(`${API_URL}/orders/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                fetchOrders();
-                if (activeOrder?.id === id) setActiveOrder(null);
-            }
+            await apiClient.delete(`/orders/${id}`);
+            fetchOrders();
+            if (activeOrder?.id === id) setActiveOrder(null);
         } catch (e) { console.error(e); }
         finally { setProcessing(false); }
     };
 
-    const handleMarkServed = async (id: number) => {
+    const handleUpdateStatus = async (id: number, status: string) => {
         setProcessing(true);
         try {
-            const res = await fetch(`${API_URL}/orders/${id}/serve`, { method: 'POST' });
-            if (res.ok) {
-                fetchOrders();
-            }
+            await apiClient.patch(`/orders/${id}/status`, { status });
+            fetchOrders();
         } catch (e) { console.error(e); }
         finally { setProcessing(false); }
     };
 
     const handleEditOrder = (order: ActiveOrder) => {
-        router.push(`/billing?tableName=${order.tableName}`);
+        router.push(`/pos?tableName=${order.tableName}`); // Redirect to POS for editing? billing?
     };
 
     const handlePrintBill = () => {
@@ -156,39 +149,26 @@ function OrdersContent() {
         if (!currentTable) return;
 
         try {
-            const res = await fetch(`${API_URL}/tables/shift`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fromId: currentTable.id, toId: Number(targetTableId) })
-            });
-            if (res.ok) {
-                fetchOrders();
-                fetchTables();
-                setIsShiftOpen(false);
-                setActiveOrder(null);
-            }
+            await apiClient.post('/tables/shift', { fromId: currentTable.id, toId: Number(targetTableId) });
+            fetchOrders();
+            fetchTables();
+            setIsShiftOpen(false);
+            setActiveOrder(null);
         } catch (e) { console.error(e); }
     };
 
     const handleProcessPayment = async (method: string) => {
-        if (!activeOrder || !activeOrder.tableName) return;
-        const currentTable = tables.find(t => t.label.toLowerCase() === activeOrder.tableName.toLowerCase());
-        if (!currentTable) return;
+        if (!activeOrder) return;
 
         setProcessing(true);
         try {
             const amount = activeOrder.remaining !== undefined ? activeOrder.remaining : activeOrder.totalAmount;
-            const res = await fetch(`${API_URL}/orders/${currentTable.id}/settle`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ amount, method })
-            });
+            // Use activeOrder.id for settlement, not tableId
+            await apiClient.post(`/orders/${activeOrder.id}/settle`, { amount, method });
 
-            if (res.ok) {
-                setActiveOrder(null);
-                fetchOrders();
-                fetchTables();
-            }
+            setActiveOrder(null);
+            fetchOrders();
+            fetchTables();
         } catch (e) { console.error(e); }
         finally { setProcessing(false); }
     };
@@ -259,7 +239,7 @@ function OrdersContent() {
                                 onPayment={setActiveOrder}
                                 onDelete={handleDeleteOrder}
                                 onEdit={handleEditOrder}
-                                onServe={handleMarkServed}
+                                onUpdateStatus={handleUpdateStatus}
                             />
                         ))}
                         {filtered.length === 0 && !loading && (
@@ -433,7 +413,7 @@ export default function OrdersPage() {
     );
 }
 
-function SimpleStatCard({ label, value, icon: Icon, color, bg }: any) {
+const SimpleStatCard = memo(function SimpleStatCard({ label, value, icon: Icon, color, bg }: any) {
     return (
         <div className="bg-surface/30 backdrop-blur-md border border-surface-light rounded-[32px] p-6 flex flex-col justify-between hover:border-primary/20 transition-all group">
             <div className="flex items-center justify-between mb-4">
@@ -445,14 +425,14 @@ function SimpleStatCard({ label, value, icon: Icon, color, bg }: any) {
             <h3 className="text-2xl font-bold font-serif italic text-foreground">{value}</h3>
         </div>
     );
-}
+});
 
-function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
+const OrderCard = memo(function OrderCard({ order, onPayment, onDelete, onEdit, onUpdateStatus }: any) {
     const { hasPermission } = useAuthStore();
-    const isPending = order.items.some((i: any) => i.status === 'PENDING');
+    const status = order.status;
 
     return (
-        <div className="group relative bg-surface/30 hover:bg-surface/50 backdrop-blur-md border border-surface-light hover:border-primary/30 rounded-[32px] p-6 transition-all duration-300 hover:shadow-2xl flex flex-col h-[480px]">
+        <div className="group relative bg-surface/30 hover:bg-surface/50 backdrop-blur-md border border-surface-light hover:border-primary/30 rounded-[32px] p-6 transition-all duration-300 hover:shadow-2xl flex flex-col h-[520px]">
             {/* Card Header */}
             <div className="flex justify-between items-start mb-6">
                 <div>
@@ -461,9 +441,13 @@ function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
                         <span className="text-[10px] font-mono text-muted">ID#{String(order.id).slice(-4)}</span>
                         <span className={cn(
                             "px-2 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border",
-                            isPending ? "bg-amber-500/10 text-amber-500 border-amber-500/20" : "bg-primary/10 text-primary border-primary/20"
+                            status === 'PENDING' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                                status === 'CONFIRMED' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                                    status === 'PREPARING' ? "bg-purple-500/10 text-purple-500 border-purple-500/20" :
+                                        status === 'READY' ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                                            "bg-primary/10 text-primary border-primary/20"
                         )}>
-                            {isPending ? 'Action Required' : 'Ready'}
+                            {status}
                         </span>
                     </div>
                 </div>
@@ -480,7 +464,6 @@ function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
                             <span className="font-medium text-foreground/80 group-hover/item:text-foreground">{item.menuItem.title}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            {item.status === 'SERVED' && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
                             <span className="text-xs font-bold text-muted">₹{(item.menuItem.price * item.quantity).toFixed(0)}</span>
                         </div>
                     </div>
@@ -494,45 +477,80 @@ function OrderCard({ order, onPayment, onDelete, onEdit, onServe }: any) {
             </div>
 
             {/* Action Grid */}
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-2">
                 <button
                     onClick={() => onDelete(order.id)}
                     disabled={!hasPermission('Orders')}
-                    className="col-span-1 h-12 rounded-2xl bg-surface-light hover:bg-red-500/10 border border-surface-light hover:border-red-500/30 flex items-center justify-center text-muted hover:text-red-400 transition-all active:scale-95 disabled:opacity-30"
+                    className="col-span-1 h-10 rounded-xl bg-surface-light hover:bg-red-500/10 border border-surface-light hover:border-red-500/30 flex items-center justify-center text-muted hover:text-red-400 transition-all active:scale-95 disabled:opacity-30"
                     title="Cancel Order"
                 >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="w-4 h-4" />
                 </button>
-                <div className="col-span-1 flex flex-col gap-2">
-                    <button
-                        onClick={() => onEdit(order)}
-                        disabled={!hasPermission('Orders')}
-                        className="h-full rounded-2xl bg-surface-light hover:bg-surface border border-surface-light flex items-center justify-center text-muted hover:text-primary transition-all active:scale-95 disabled:opacity-30"
-                        title="Edit Order"
-                    >
-                        <Edit2 className="w-5 h-5" />
-                    </button>
-                </div>
+
+                <button
+                    onClick={() => onEdit(order)}
+                    disabled={!hasPermission('Orders')}
+                    className="col-span-1 h-10 rounded-xl bg-surface-light hover:bg-surface border border-surface-light flex items-center justify-center text-muted hover:text-primary transition-all active:scale-95 disabled:opacity-30"
+                    title="Edit Order"
+                >
+                    <Edit2 className="w-4 h-4" />
+                </button>
+
                 <button
                     onClick={() => onPayment(order)}
                     disabled={!hasPermission('Billing')}
-                    className="col-span-2 rounded-2xl bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg font-bold text-xs uppercase tracking-widest shadow-lg shadow-primary/20 flex items-center justify-center gap-2 transition-all active:scale-95"
+                    className="col-span-2 h-10 rounded-xl bg-surface hover:bg-surface-light border border-surface-light hover:border-surface text-foreground font-bold text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                     <CreditCard className="w-4 h-4" />
                     <span>Pay</span>
                 </button>
 
-                {isPending && (
-                    <button
-                        onClick={() => onServe(order.id)}
-                        disabled={!hasPermission('Orders')}
-                        className="col-span-full mt-1 bg-surface-light hover:bg-primary/10 border border-surface-light hover:border-primary/30 py-3 rounded-2xl text-[10px] font-bold text-muted hover:text-primary uppercase tracking-widest transition-all flex items-center justify-center gap-2 disabled:opacity-30"
-                    >
-                        <ChefHat className="w-4 h-4" />
-                        Mark All Served
-                    </button>
-                )}
+                {/* Status Transitions */}
+                <div className="col-span-full flex gap-2">
+                    {status === 'PENDING' && (
+                        <button
+                            onClick={() => onUpdateStatus(order.id, 'CONFIRMED')}
+                            className="flex-1 h-10 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all"
+                        >
+                            Confirm
+                        </button>
+                    )}
+                    {status === 'CONFIRMED' && (
+                        <button
+                            onClick={() => onUpdateStatus(order.id, 'PREPARING')}
+                            className="flex-1 h-10 bg-purple-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-purple-700 transition-all"
+                        >
+                            Start Prep
+                        </button>
+                    )}
+                    {status === 'PREPARING' && (
+                        <button
+                            onClick={() => onUpdateStatus(order.id, 'READY')}
+                            className="flex-1 h-10 bg-green-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-green-700 transition-all"
+                        >
+                            Ready
+                        </button>
+                    )}
+                    {status === 'READY' && (
+                        <button
+                            onClick={() => onUpdateStatus(order.id, 'SERVED')}
+                            className="flex-1 h-10 bg-primary text-primary-fg rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-primary/90 transition-all"
+                        >
+                            Serve
+                        </button>
+                    )}
+                    {status === 'SERVED' && (
+                        <button
+                            onClick={() => onUpdateStatus(order.id, 'COMPLETED')}
+                            disabled={Number(order.remaining || order.totalAmount) > 0.01}
+                            className="flex-1 h-10 bg-gray-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={Number(order.remaining || order.totalAmount) > 0.01 ? "Settle payment first" : "Complete Order"}
+                        >
+                            Complete
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
-}
+});

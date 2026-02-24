@@ -1,0 +1,5 @@
+
+// Mock button component for now since 'components/ui/button' might not be standard shadcn in this repo
+// or I'll just rely on standard HTML buttons styled with tailwind in the components.
+// The Navbar used standard buttons.
+// I will just stub this file out if needed but I'm skipping it since I used HTML buttons in Navbar.

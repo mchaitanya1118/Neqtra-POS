@@ -1,5 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
 import { Role } from './role.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
+import { Branch } from '../branches/entities/branch.entity';
 
 @Entity('users')
 export class User {
@@ -23,6 +25,15 @@ export class User {
 
     @ManyToOne(() => Role, (role) => role.users, { nullable: true, eager: true }) // Eager load role to get permissions
     roleRel: Role;
+
+    @ManyToOne(() => Tenant, (tenant) => tenant.users, { nullable: true, onDelete: 'CASCADE' })
+    tenant: Tenant;
+
+    @ManyToOne(() => Branch, (branch) => branch.users, { nullable: true })
+    branch: Branch;
+
+    @Column({ nullable: true, select: false })
+    refreshToken: string;
 
     @CreateDateColumn()
     createdAt: Date;

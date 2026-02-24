@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Plus, Users, Calendar, Phone, CheckCircle, XCircle, Search } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
-import { API_URL } from "@/lib/config";
+import apiClient from "@/lib/api";
 
 interface Reservation {
     id: number;
@@ -36,9 +36,8 @@ export default function ReservationsPage() {
     const fetchReservations = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/reservations`);
-            const json = await res.json();
-            setData(json);
+            const res = await apiClient.get('/reservations');
+            setData(res.data);
         } catch (e) {
             console.error(e);
         } finally {
@@ -53,13 +52,9 @@ export default function ReservationsPage() {
     const handleCancel = async () => {
         if (!cancelId) return;
         try {
-            const res = await fetch(`${API_URL}/reservations/${cancelId}`, {
-                method: 'DELETE'
-            });
-            if (res.ok) {
-                setData(prev => prev.filter(item => item.id !== cancelId));
-                setCancelId(null);
-            }
+            await apiClient.delete(`/reservations/${cancelId}`);
+            setData(prev => prev.filter(item => item.id !== cancelId));
+            setCancelId(null);
         } catch (e) {
             console.error("Failed to cancel reservation", e);
         }
@@ -71,17 +66,11 @@ export default function ReservationsPage() {
             // Combine date and time
             const isoDate = new Date(`${formData.date}T${formData.time}`).toISOString();
 
-            const res = await fetch(`${API_URL}/reservations`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, date: isoDate })
-            });
+            await apiClient.post('/reservations', { ...formData, date: isoDate });
 
-            if (res.ok) {
-                fetchReservations();
-                setIsModalOpen(false);
-                setFormData({ customerName: "", contact: "", date: "", time: "", guests: 2, notes: "" });
-            }
+            fetchReservations();
+            setIsModalOpen(false);
+            setFormData({ customerName: "", contact: "", date: "", time: "", guests: 2, notes: "" });
         } catch (e) {
             console.error("Failed to create reservation", e);
         }

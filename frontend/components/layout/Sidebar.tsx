@@ -18,7 +18,9 @@ import {
     Users,
     Activity,
     Settings,
-    HelpCircle
+    HelpCircle,
+    ShieldCheck,
+    MapPin
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -52,9 +54,14 @@ const menuGroups = [
     {
         title: "Administration",
         items: [
+            { p: "/admin", label: "SaaS Admin", icon: ShieldCheck, permission: "SaaS Admin" },
+            { p: "/subscription", label: "Billing & Plans", icon: Wallet, permission: "Tenant" },
+            { p: "/settings", label: "Workspace Settings", icon: Settings, permission: "Tenant" },
+            { p: "/branches", label: "Branch Locations", icon: MapPin, permission: "Tenant" },
             { p: "/reports", label: "Analytics & Reports", icon: ClipboardList, permission: "Reports" },
             { p: "/accounting", label: "Accounting", icon: PieChart, permission: "Accounting" },
             { p: "/users", label: "Team Management", icon: Users, permission: "Users" },
+            { p: "/devices", label: "Device Management", icon: Monitor, permission: "Users" },
         ]
     }
 ];

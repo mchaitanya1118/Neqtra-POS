@@ -155,7 +155,7 @@ export default function InventoryPage() {
                     <div className="flex gap-3">
                         <button
                             onClick={exportToCSV}
-                            disabled={!hasPermission('Inventory')}
+                            disabled={!hasPermission('Admin')}
                             className="p-3.5 bg-surface-light hover:bg-surface disabled:opacity-30 border border-surface-light rounded-2xl transition-all hover:shadow-lg text-muted hover:text-primary active:scale-95"
                             title="Export Report"
                         >
@@ -163,7 +163,7 @@ export default function InventoryPage() {
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            disabled={!hasPermission('Inventory')}
+                            disabled={!hasPermission('Admin')}
                             className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-6 py-3.5 rounded-2xl text-sm font-black shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                         >
                             <Plus className="w-5 h-5" />
@@ -371,7 +371,7 @@ export default function InventoryPage() {
                                         </button>
                                         <button
                                             type="submit"
-                                            disabled={!hasPermission('Inventory')}
+                                            disabled={!hasPermission('Admin')}
                                             className="flex-1 bg-primary hover:brightness-110 disabled:opacity-50 text-black py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 transition-all active:scale-95"
                                         >
                                             {editingItem ? 'Confirm Changes' : 'Initialize Stock'}

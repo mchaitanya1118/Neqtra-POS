@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { API_URL } from '@/lib/config';
+import apiClient from '@/lib/api';
 
 interface Item {
     id: number;
@@ -42,10 +42,8 @@ export const useMenuStore = create<MenuState>()(
             fetchMenu: async () => {
                 set({ isLoading: true });
                 try {
-                    const res = await fetch(`${API_URL}/menu/categories`);
-                    if (!res.ok) throw new Error("Failed to fetch menu");
-
-                    const data = await res.json();
+                    const res = await apiClient.get('/menu/categories');
+                    const data = res.data;
                     const mapped = data.map((c: any) => ({
                         ...c,
                         icon: c.icon || 'Coffee',
@@ -60,49 +58,45 @@ export const useMenuStore = create<MenuState>()(
             },
 
             addCategory: async (title, icon, variant) => {
-                const res = await fetch(`${API_URL}/menu/categories`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, icon, variant })
-                });
-                if (res.ok) await get().fetchMenu();
+                try {
+                    await apiClient.post('/menu/categories', { title, icon, variant });
+                    await get().fetchMenu();
+                } catch (e) { console.error(e); }
             },
 
             updateCategory: async (id, data) => {
-                const res = await fetch(`${API_URL}/menu/categories/${id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) await get().fetchMenu();
+                try {
+                    await apiClient.patch(`/menu/categories/${id}`, data);
+                    await get().fetchMenu();
+                } catch (e) { console.error(e); }
             },
 
             deleteCategory: async (id) => {
-                const res = await fetch(`${API_URL}/menu/categories/${id}`, { method: 'DELETE' });
-                if (res.ok) await get().fetchMenu();
+                try {
+                    await apiClient.delete(`/menu/categories/${id}`);
+                    await get().fetchMenu();
+                } catch (e) { console.error(e); }
             },
 
             addItem: async (categoryId, data) => {
-                const res = await fetch(`${API_URL}/menu/items`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ...data, categoryId })
-                });
-                if (res.ok) await get().fetchMenu();
+                try {
+                    await apiClient.post('/menu/items', { ...data, categoryId });
+                    await get().fetchMenu();
+                } catch (e) { console.error(e); }
             },
 
             updateItem: async (id, data) => {
-                const res = await fetch(`${API_URL}/menu/items/${id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                if (res.ok) await get().fetchMenu();
+                try {
+                    await apiClient.patch(`/menu/items/${id}`, data);
+                    await get().fetchMenu();
+                } catch (e) { console.error(e); }
             },
 
             deleteItem: async (id) => {
-                const res = await fetch(`${API_URL}/menu/items/${id}`, { method: 'DELETE' });
-                if (res.ok) await get().fetchMenu();
+                try {
+                    await apiClient.delete(`/menu/items/${id}`);
+                    await get().fetchMenu();
+                } catch (e) { console.error(e); }
             },
         }),
         {

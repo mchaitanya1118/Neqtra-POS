@@ -5,8 +5,9 @@ import { useMenuStore } from "@/store/useMenuStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useTableStore } from "@/store/useTableStore";
 import { useSearchParams } from "next/navigation";
-import { BillingPanel } from "@/components/pos/BillingPanel";
-import { VirtualProductGrid } from "@/components/pos/VirtualProductGrid";
+import { BillingPanel } from "@/features/pos/components/BillingPanel";
+import { VirtualProductGrid } from "@/features/pos/components/VirtualProductGrid";
+import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -108,6 +109,7 @@ function BillingContent() {
       {/* Background Ambience */}
       <div className="fixed inset-0 bg-[url('/login-bg.png')] bg-cover bg-center opacity-[0.03] pointer-events-none" />
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background/95 to-background/80 pointer-events-none" />
+      <OfflineIndicator />
 
       {/* LEFT: Category Sidebar (Desktop) */}
       <aside className="hidden md:flex w-64 flex-shrink-0 bg-surface/30 backdrop-blur-md border-r border-surface-light flex-col overflow-y-auto custom-scrollbar relative z-10 transition-all duration-300">
@@ -189,7 +191,7 @@ function BillingContent() {
         </div>
 
         {/* Items Grid - Virtualized */}
-        <div className="flex-1 p-4 md:p-6 w-full h-[600px] min-h-0 bg-transparent overflow-hidden">
+        <div className="flex-1 p-4 md:p-6 w-full min-h-0 bg-transparent overflow-hidden flex flex-col">
           <VirtualProductGrid items={filteredItems} onAddItem={addItem} />
         </div>
 
@@ -224,16 +226,17 @@ function BillingContent() {
         isCartOpen ? "translate-y-0 opacity-100" : "translate-y-full md:translate-y-0 opacity-0 md:opacity-100"
       )}>
         {/* Mobile Close Handle */}
-        <div className="md:hidden bg-surface/50 backdrop-blur px-6 py-6 flex items-center justify-between shrink-0 border-b border-surface-light">
+        <div className="md:hidden bg-surface/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between shrink-0 border-b border-surface-light shadow-lg">
           <div>
-            <span className="font-serif italic font-bold text-2xl tracking-tight">Active Ledger</span>
-            <p className="text-[10px] font-bold text-muted uppercase tracking-widest mt-1">Transaction Node #8291</p>
+            <span className="font-serif italic font-bold text-xl tracking-tight text-foreground">Active Ledger</span>
+            <p className="text-[9px] font-bold text-muted uppercase tracking-widest mt-0.5">Transaction Sync Buffer</p>
           </div>
           <button
             onClick={() => setIsCartOpen(false)}
-            className="w-12 h-12 bg-surface-light rounded-full flex items-center justify-center text-foreground transition-all active:scale-90"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-fg rounded-full font-bold text-xs shadow-lg shadow-primary/20 transition-all active:scale-95"
           >
-            <ChevronDown className="w-6 h-6" />
+            <ChevronDown className="w-4 h-4" />
+            <span>Back to Menu</span>
           </button>
         </div>
 

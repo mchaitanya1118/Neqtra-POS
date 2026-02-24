@@ -1,6 +1,7 @@
 "use client";
 
 import { useUserStore, Role } from "@/store/useUserStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { Edit2, Shield, ShieldAlert, Trash2, Box } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -10,6 +11,7 @@ interface RoleListProps {
 }
 
 export function RoleList({ onEdit }: RoleListProps) {
+    const { hasPermission } = useAuthStore();
     const { roles, deleteRole } = useUserStore();
 
     const handleDelete = async (role: Role) => {
@@ -58,14 +60,16 @@ export function RoleList({ onEdit }: RoleListProps) {
                                 <div className="flex gap-1 opacity-10 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => onEdit(role)}
-                                        className="p-2 hover:bg-primary/10 rounded-xl text-muted hover:text-primary transition-all"
+                                        disabled={!hasPermission('Admin')}
+                                        className="p-2 hover:bg-primary/10 rounded-xl text-muted hover:text-primary transition-all disabled:opacity-30"
                                     >
                                         <Edit2 className="w-4 h-4" />
                                     </button>
                                     {!role.isSystem && (
                                         <button
                                             onClick={() => handleDelete(role)}
-                                            className="p-2 hover:bg-red-500/10 rounded-xl text-muted hover:text-red-500 transition-all"
+                                            disabled={!hasPermission('Admin')}
+                                            className="p-2 hover:bg-red-500/10 rounded-xl text-muted hover:text-red-500 transition-all disabled:opacity-30"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>

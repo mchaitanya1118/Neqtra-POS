@@ -1,34 +1,36 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, UseGuards, Request } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@UseGuards(JwtAuthGuard)
 @Controller('users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) { }
 
     @Post()
-    create(@Body() createUserDto: CreateUserDto) {
-        return this.usersService.create(createUserDto);
+    create(@Request() req, @Body() createUserDto: CreateUserDto) {
+        return this.usersService.create(req.user.tenantId, createUserDto);
     }
 
     @Get()
-    findAll() {
-        return this.usersService.findAll();
+    findAll(@Request() req) {
+        return this.usersService.findAll(req.user.tenantId);
     }
 
     @Get(':id')
-    findOne(@Param('id', ParseIntPipe) id: number) {
-        return this.usersService.findOne(id);
+    findOne(@Request() req, @Param('id', ParseIntPipe) id: number) {
+        return this.usersService.findOne(req.user.tenantId, id);
     }
 
     @Patch(':id')
-    update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
-        return this.usersService.update(id, updateUserDto);
+    update(@Request() req, @Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
+        return this.usersService.update(req.user.tenantId, id, updateUserDto);
     }
 
     @Delete(':id')
-    remove(@Param('id', ParseIntPipe) id: number) {
-        return this.usersService.remove(id);
+    remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
+        return this.usersService.remove(req.user.tenantId, id);
     }
 }

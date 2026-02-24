@@ -8,8 +8,9 @@ import {
   OneToOne,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
-import { Payment } from './payment.entity';
+import { Payment } from '../../payments/entities/payment.entity';
 import { Delivery } from '../../delivery/entities/delivery.entity';
+import { OrderEvent } from './order-event.entity';
 
 @Entity('orders')
 export class Order {
@@ -51,4 +52,7 @@ export class Order {
 
   @OneToMany(() => Payment, (payment) => payment.order, { cascade: true })
   payments: Payment[];
+
+  @OneToMany(() => OrderEvent, (event) => event.order, { cascade: true })
+  events: OrderEvent[];
 }

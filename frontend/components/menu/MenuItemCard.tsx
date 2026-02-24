@@ -4,6 +4,7 @@ import { Edit, Trash2, Flame, Leaf, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useMenuStore } from "@/store/useMenuStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { useState } from "react";
 
 interface MenuItemCardProps {
@@ -12,6 +13,7 @@ interface MenuItemCardProps {
 }
 
 export function MenuItemCard({ item, onEdit }: MenuItemCardProps) {
+    const { hasPermission } = useAuthStore();
     const { deleteItem, updateItem } = useMenuStore();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
@@ -105,7 +107,7 @@ export function MenuItemCard({ item, onEdit }: MenuItemCardProps) {
                 <div className="flex items-center gap-2">
                     <button
                         onClick={toggleAvailability}
-                        disabled={isUpdating}
+                        disabled={isUpdating || !hasPermission('Admin')}
                         className={cn(
                             "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                             item.isAvailable
@@ -120,15 +122,16 @@ export function MenuItemCard({ item, onEdit }: MenuItemCardProps) {
                 <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                         onClick={() => onEdit(item)}
-                        className="p-2.5 text-muted hover:text-primary hover:bg-primary/10 rounded-xl transition-all"
+                        disabled={!hasPermission('Admin')}
+                        className="p-2.5 text-muted hover:text-primary hover:bg-primary/10 rounded-xl transition-all disabled:opacity-30"
                         title="Edit Item"
                     >
                         <Edit className="w-4 h-4" />
                     </button>
                     <button
                         onClick={handleDelete}
-                        disabled={isDeleting}
-                        className="p-2.5 text-muted hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all"
+                        disabled={isDeleting || !hasPermission('Admin')}
+                        className="p-2.5 text-muted hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all disabled:opacity-30"
                         title="Delete Item"
                     >
                         {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}

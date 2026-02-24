@@ -1,15 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import apiClient from '@/lib/api';
+import { getDeviceId } from '@/lib/deviceId';
 
 type User = {
     id: number;
     name: string;
     role: string;
+    tenantId?: string;
+    branchId?: string;
     roleRel?: {
         id: number;
         name: string;
         permissions: string[];
     };
+    subscriptionPlan?: string;
 };
 
 type AuthState = {
@@ -17,6 +22,7 @@ type AuthState = {
     token: string | null;
     hasHydrated: boolean;
     login: (credentials: { passcode?: string; username?: string; password?: string }) => Promise<{ success: boolean; error?: string; user?: User }>;
+    signup: (data: any) => Promise<{ success: boolean; error?: string; user?: User }>;
     logout: () => void;
     setHasHydrated: (state: boolean) => void;
     hasPermission: (permission: string) => boolean;
@@ -29,35 +35,99 @@ export const useAuthStore = create<AuthState>()(
             token: null,
             hasHydrated: false,
             login: async (credentials) => {
-                try {
-                    const response = await fetch('/api/auth/login', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(credentials),
-                    });
+                // Clear any lingering cache from previous sessions before logging in
+                Object.keys(localStorage).forEach(key => {
+                    if (key !== 'auth-storage' && key !== 'neqtra_device_id') {
+                        localStorage.removeItem(key);
+                    }
+                });
 
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
+                try {
+                    const response = await apiClient.post('/auth/login', credentials);
+                    const data = response.data;
+
+                    // Temporarily set token to allow device registration call to succeed
+                    set({ user: data.user, token: data.access_token });
+
+                    // Register device
+                    try {
+                        const deviceId = getDeviceId();
+                        const deviceName = typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 30) : 'Web Terminal';
+                        await apiClient.post('/devices/register', {
+                            name: deviceName,
+                            identifier: deviceId,
+                            branchId: data.user.branchId
+                        });
+                    } catch (deviceError: any) {
+                        // If device registration fails (e.g. limit reached), undo login
+                        set({ user: null, token: null });
+                        console.error('Device registration failed:', deviceError);
                         return {
                             success: false,
-                            error: errorData.message || `Login failed: ${response.status} ${response.statusText}`
+                            error: deviceError.response?.data?.message || 'Device limit reached for your subscription plan.'
                         };
                     }
 
-                    const data = await response.json();
-                    set({ user: data.user, token: data.access_token });
                     return { success: true, user: data.user };
-                } catch (error) {
+                } catch (error: any) {
                     console.error('Login error:', error);
                     return {
                         success: false,
-                        error: error instanceof Error ? error.message : 'Network error or server unreachable'
+                        error: error.response?.data?.message || error.message || 'Login failed'
                     };
                 }
             },
-            logout: () => set({ user: null, token: null }),
+            signup: async (data: any) => {
+                // Clear any lingering cache from previous sessions before signing up
+                Object.keys(localStorage).forEach(key => {
+                    if (key !== 'auth-storage' && key !== 'neqtra_device_id') {
+                        localStorage.removeItem(key);
+                    }
+                });
+
+                try {
+                    const response = await apiClient.post('/auth/signup', data);
+                    const responseData = response.data;
+
+                    // Temporarily set token to allow device registration
+                    set({ user: responseData.user, token: responseData.access_token });
+
+                    // Register device
+                    try {
+                        const deviceId = getDeviceId();
+                        const deviceName = typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 30) : 'Web Terminal';
+                        await apiClient.post('/devices/register', {
+                            name: deviceName,
+                            identifier: deviceId,
+                            branchId: responseData.user.branchId
+                        });
+                    } catch (deviceError: any) {
+                        set({ user: null, token: null });
+                        console.error('Device registration failed on signup:', deviceError);
+                        return {
+                            success: false,
+                            error: deviceError.response?.data?.message || 'Device registration failed.'
+                        };
+                    }
+
+                    return { success: true, user: responseData.user };
+                } catch (error: any) {
+                    console.error('Signup error:', error);
+                    return {
+                        success: false,
+                        error: error.response?.data?.message || error.message || 'Signup failed'
+                    };
+                }
+            },
+            logout: () => {
+                // Wipe all tenant-specific cached stores upon logout
+                Object.keys(localStorage).forEach(key => {
+                    if (key !== 'auth-storage' && key !== 'neqtra_device_id') {
+                        localStorage.removeItem(key);
+                    }
+                });
+                set({ user: null, token: null });
+            },
             setHasHydrated: (state) => set({ hasHydrated: state }),
             hasPermission: (perm) => {
                 const user = get().user;
@@ -65,6 +135,12 @@ export const useAuthStore = create<AuthState>()(
 
                 // Case-insensitive Admin check
                 const roleLower = user.role?.toLowerCase();
+
+                // Only SuperAdmins can pass explicitly restricted platform-level permissions
+                if (perm === 'Tenant' || perm === 'SaaS Admin') {
+                    return roleLower === 'superadmin';
+                }
+
                 if (roleLower === 'admin' || roleLower === 'superadmin') return true;
 
                 // Explicit permission check from roleRel

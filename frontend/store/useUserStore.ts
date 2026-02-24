@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { API_URL } from '@/lib/config';
+import apiClient from '@/lib/api';
 
 export interface User {
     id: number;
@@ -45,10 +45,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
     fetchUsers: async () => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`${API_URL}/users`);
-            if (!response.ok) throw new Error('Failed to fetch users');
-            const data = await response.json();
-            set({ users: data, isLoading: false });
+            const response = await apiClient.get('/users');
+            set({ users: response.data, isLoading: false });
         } catch (error) {
             set({ error: (error as Error).message, isLoading: false });
         }
@@ -57,19 +55,11 @@ export const useUserStore = create<UserStore>((set, get) => ({
     addUser: async (userData) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`${API_URL}/users`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to add user');
-            }
+            await apiClient.post('/users', userData);
             // Refresh list
             await get().fetchUsers();
-        } catch (error) {
-            set({ error: (error as Error).message, isLoading: false });
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || error.message, isLoading: false });
             throw error;
         }
     },
@@ -77,18 +67,10 @@ export const useUserStore = create<UserStore>((set, get) => ({
     updateUser: async (id, userData) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`${API_URL}/users/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(userData),
-            });
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to update user');
-            }
+            await apiClient.patch(`/users/${id}`, userData);
             await get().fetchUsers();
-        } catch (error) {
-            set({ error: (error as Error).message, isLoading: false });
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || error.message, isLoading: false });
             throw error;
         }
     },
@@ -96,12 +78,9 @@ export const useUserStore = create<UserStore>((set, get) => ({
     deleteUser: async (id) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`${API_URL}/users/${id}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) throw new Error('Failed to delete user');
+            await apiClient.delete(`/users/${id}`);
             await get().fetchUsers();
-        } catch (error) {
+        } catch (error: any) {
             set({ error: (error as Error).message, isLoading: false });
             throw error;
         }
@@ -109,10 +88,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
     fetchRoles: async () => {
         try {
-            const response = await fetch(`${API_URL}/roles`);
-            if (!response.ok) throw new Error('Failed to fetch roles');
-            const data = await response.json();
-            set({ roles: data });
+            const response = await apiClient.get('/roles');
+            set({ roles: response.data });
         } catch (error) {
             console.error('Failed to fetch roles:', error);
         }
@@ -121,16 +98,11 @@ export const useUserStore = create<UserStore>((set, get) => ({
     addRole: async (roleData) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`${API_URL}/roles`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(roleData),
-            });
-            if (!response.ok) throw new Error('Failed to add role');
+            await apiClient.post('/roles', roleData);
             await get().fetchRoles();
             set({ isLoading: false });
-        } catch (error) {
-            set({ error: (error as Error).message, isLoading: false });
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || error.message, isLoading: false });
             throw error;
         }
     },
@@ -138,16 +110,11 @@ export const useUserStore = create<UserStore>((set, get) => ({
     updateRole: async (id, roleData) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`${API_URL}/roles/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(roleData),
-            });
-            if (!response.ok) throw new Error('Failed to update role');
+            await apiClient.patch(`/roles/${id}`, roleData);
             await get().fetchRoles();
             set({ isLoading: false });
-        } catch (error) {
-            set({ error: (error as Error).message, isLoading: false });
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || error.message, isLoading: false });
             throw error;
         }
     },
@@ -155,17 +122,11 @@ export const useUserStore = create<UserStore>((set, get) => ({
     deleteRole: async (id) => {
         set({ isLoading: true, error: null });
         try {
-            const response = await fetch(`${API_URL}/roles/${id}`, {
-                method: 'DELETE',
-            });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.message || 'Failed to delete role');
-            }
+            await apiClient.delete(`/roles/${id}`);
             await get().fetchRoles();
             set({ isLoading: false });
-        } catch (error) {
-            set({ error: (error as Error).message, isLoading: false });
+        } catch (error: any) {
+            set({ error: error.response?.data?.message || error.message, isLoading: false });
             throw error;
         }
     },

@@ -14,7 +14,7 @@ export class UsersService {
         private usersRepository: Repository<User>,
     ) { }
 
-    async create(createUserDto: CreateUserDto) {
+    async create(tenantId: string, createUserDto: CreateUserDto) {
         console.log('UsersService.create called with:', createUserDto);
         const { password, roleId, ...userData } = createUserDto;
 
@@ -28,10 +28,12 @@ export class UsersService {
 
         const user = this.usersRepository.create({
             ...userData,
+            tenant: { id: tenantId } as any
         });
 
         if (roleRel) {
             user.roleRel = roleRel;
+            user.role = roleRel.name;
         }
 
         if (password) {
@@ -44,16 +46,22 @@ export class UsersService {
         return this.usersRepository.save(user);
     }
 
-    findAll() {
-        return this.usersRepository.find({ relations: ['roleRel'] }); // Load relation
+    findAll(tenantId: string) {
+        return this.usersRepository.find({
+            where: { tenant: { id: tenantId } },
+            relations: ['roleRel']
+        });
     }
 
-    findOne(id: number) {
-        return this.usersRepository.findOne({ where: { id }, relations: ['roleRel'] });
+    findOne(tenantId: string, id: number) {
+        return this.usersRepository.findOne({
+            where: { id, tenant: { id: tenantId } },
+            relations: ['roleRel']
+        });
     }
 
-    async update(id: number, updateUserDto: UpdateUserDto) {
-        const user = await this.findOne(id);
+    async update(tenantId: string, id: number, updateUserDto: UpdateUserDto) {
+        const user = await this.findOne(tenantId, id);
         if (!user) {
             throw new NotFoundException(`User with ID ${id} not found`);
         }
@@ -79,7 +87,11 @@ export class UsersService {
         return this.usersRepository.save(user);
     }
 
-    async remove(id: number) {
-        await this.usersRepository.delete(id);
+    async remove(tenantId: string, id: number) {
+        const user = await this.findOne(tenantId, id);
+        if (!user) {
+            throw new NotFoundException(`User with ID ${id} not found`);
+        }
+        await this.usersRepository.delete({ id, tenant: { id: tenantId } });
     }
 }
