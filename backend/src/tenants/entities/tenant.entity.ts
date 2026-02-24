@@ -46,6 +46,9 @@ export class Tenant {
     @Column({ type: 'timestamp', nullable: true })
     trialEndsAt: Date;
 
+    @Column({ type: 'timestamp', nullable: true })
+    subscriptionExpiry: Date;
+
     @Column({ type: 'jsonb', nullable: true })
     metadata: any;
 

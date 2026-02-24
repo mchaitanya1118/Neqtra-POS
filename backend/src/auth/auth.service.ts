@@ -209,6 +209,16 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.username !== 'superadmin' && user.tenant) {
+      if (user.tenant.status === 'SUSPENDED') {
+        throw new UnauthorizedException('Tenant account is suspended. Please contact support.');
+      }
+
+      if (user.tenant.subscriptionExpiry && new Date(user.tenant.subscriptionExpiry) < new Date()) {
+        throw new UnauthorizedException('Subscription Expired. Please renew to continue.');
+      }
+    }
+
     // Self-heal default admin account if local postgres wiped relations
     if (user.username === 'admin' && !user.tenant) {
       const defaultTenant = await this.tenantsRepository.findOne({ where: { name: 'Default Tenant' } });
