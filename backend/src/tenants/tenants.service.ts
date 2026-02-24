@@ -36,8 +36,11 @@ export class TenantsService {
             }
         }
 
-        // Initialize connection to create tables automatically
-        await this.tenancyService.getTenantDataSource(savedTenant.id);
+        // Initialize connection to create tables automatically in the background
+        // Removing 'await' here eliminates the 5-10 second latency during signup
+        this.tenancyService.getTenantDataSource(savedTenant.id)
+            .then(() => this.logger.log(`Background schema sync completed for ${dbName}`))
+            .catch(e => this.logger.error(`Background schema sync failed for ${dbName}`, e));
 
         return savedTenant;
     }
