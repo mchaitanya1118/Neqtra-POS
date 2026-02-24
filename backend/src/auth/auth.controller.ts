@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Logger, BadRequestException, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, Logger, BadRequestException, InternalServerErrorException, UnauthorizedException, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 
@@ -46,5 +46,15 @@ export class AuthController {
       // TEMPORARY: Expose error message for debugging production issue
       throw new InternalServerErrorException(`Login error: ${error.message}`);
     }
+  }
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: any) {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return { success: true }; // Already logged out if no token
+    }
+    const token = authHeader.replace('Bearer ', '');
+    return await this.authService.logout(token);
   }
 }

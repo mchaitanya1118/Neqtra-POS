@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, OnModuleInit, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, OnModuleInit, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -10,6 +10,8 @@ import { Tenant } from '../tenants/entities/tenant.entity';
 import { Branch } from '../branches/entities/branch.entity';
 import { TenantsService } from '../tenants/tenants.service';
 import { BranchesService } from '../branches/branches.service';
+import { RedisService } from '@liaoliaots/nestjs-redis';
+import Redis from 'ioredis';
 
 export interface SignupDto {
   name: string;
@@ -22,6 +24,7 @@ export interface SignupDto {
 @Injectable()
 export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name);
+  private readonly redis: Redis;
 
   constructor(
     @InjectRepository(User)
@@ -34,7 +37,10 @@ export class AuthService implements OnModuleInit {
     private jwtService: JwtService,
     private tenantsService: TenantsService,
     private branchesService: BranchesService,
-  ) { }
+    private redisService: RedisService,
+  ) {
+    this.redis = this.redisService.getOrThrow();
+  }
 
   async onModuleInit() {
     // Only seed if no tenants exist
@@ -237,5 +243,23 @@ export class AuthService implements OnModuleInit {
       },
       // Return refresh token if needed in future, currently just access token
     };
+  }
+
+  async logout(token: string) {
+    try {
+      const decoded = this.jwtService.decode(token) as any;
+      if (decoded && decoded.exp) {
+        const expiresIn = decoded.exp - Math.floor(Date.now() / 1000);
+        if (expiresIn > 0) {
+          // Add token to blacklist in Redis, expiring when the token itself expires
+          await this.redis.set(`blacklist:${token}`, 'true', 'EX', expiresIn);
+          this.logger.log(`Token blacklisted successfully for user ${decoded.username}`);
+        }
+      }
+      return { success: true };
+    } catch (error) {
+      this.logger.error('Error blacklisting token during logout', error);
+      throw new InternalServerErrorException('Failed to process logout');
+    }
   }
 }

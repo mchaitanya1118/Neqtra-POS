@@ -20,9 +20,12 @@ class GlobalExceptionFilter extends BaseExceptionFilter {
   }
 }
 
+import helmet from 'helmet';
+
 async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
+    app.use(helmet());
     app.enableCors();
     const { httpAdapter } = app.get(require('@nestjs/core').HttpAdapterHost);
     app.useGlobalFilters(new GlobalExceptionFilter(httpAdapter));

@@ -119,7 +119,14 @@ export const useAuthStore = create<AuthState>()(
                     };
                 }
             },
-            logout: () => {
+            logout: async () => {
+                try {
+                    // Tell backend to blacklist the token
+                    await apiClient.post('/auth/logout');
+                } catch (e) {
+                    console.error('Failed to notify backend of logout:', e);
+                }
+
                 // Wipe all tenant-specific cached stores upon logout
                 Object.keys(localStorage).forEach(key => {
                     if (key !== 'auth-storage' && key !== 'neqtra_device_id') {

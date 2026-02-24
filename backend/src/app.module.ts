@@ -25,6 +25,9 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { DevicesModule } from './devices/devices.module';
 import { ClsModule } from 'nestjs-cls';
 import { TenancyModule } from './tenancy/tenancy.module';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -44,6 +47,21 @@ import { TenancyModule } from './tenancy/tenancy.module';
         autoLoadEntities: true,
         synchronize: process.env.DB_SYNCHRONIZE === 'true' || process.env.NODE_ENV !== 'production', // Enable via env var or in dev
       }),
+    }),
+    ThrottlerModule.forRoot([{
+      ttl: 60000,
+      limit: 100, // Global limit of 100 requests per minute
+    }]),
+    RedisModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        config: {
+          host: configService.get<string>('REDIS_HOST') || 'localhost',
+          port: configService.get<number>('REDIS_PORT') || 6379,
+          password: configService.get<string>('REDIS_PASSWORD') || undefined,
+        }
+      })
     }),
     ClsModule.forRoot({
       global: true,
@@ -78,9 +96,14 @@ import { TenancyModule } from './tenancy/tenancy.module';
     AdminModule,
     SubscriptionsModule,
     DevicesModule,
-    TenancyModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard
+    }
+  ],
 })
 export class AppModule { }
