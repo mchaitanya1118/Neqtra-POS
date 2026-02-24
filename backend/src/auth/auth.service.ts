@@ -131,9 +131,21 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException('User with this email already exists');
     }
 
-    // 2. Create Tenant
+    // 2. Generate unique subdomain
+    const baseSubdomain = businessName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    let subdomain = baseSubdomain || 'tenant';
+    let counter = 1;
+
+    // Ensure subdomain is unique
+    while (await this.tenantsRepository.findOne({ where: { subdomain } })) {
+      subdomain = `${baseSubdomain}${counter}`;
+      counter++;
+    }
+
+    // 3. Create Tenant
     const tenant = await this.tenantsService.create({
       name: businessName,
+      subdomain,
       status: 'ACTIVE',
       subscriptionPlan: 'TRIAL',
       // industry: businessType // Add industry if needed in entity
