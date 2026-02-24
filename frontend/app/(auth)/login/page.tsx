@@ -31,22 +31,28 @@ export default function LoginPage() {
             const hostname = window.location.hostname;
             const parts = hostname.split('.');
 
-            // Basic subdomain check (e.g. tenant.neqtra.com -> parts = ['tenant', 'neqtra', 'com'])
-            // If hostname is localhost (parts.length === 1) or www.neqtra.com, skip
-            if (parts.length > 2 || (parts.length === 2 && parts[0] !== 'localhost' && parts[1].includes('localhost'))) {
-                const subdomain = parts[0];
-                if (subdomain !== 'www') {
-                    try {
-                        // We use the full API_URL base URL logic in apiClient
-                        const { default: apiClient } = await import('@/lib/api');
-                        const response = await apiClient.get(`/tenants/lookup/${subdomain}`);
-                        if (response.data && response.data.name) {
-                            setTenantName(response.data.name);
-                        }
-                    } catch (error) {
-                        console.error('Failed to resolve tenant subdomain:', error);
-                        // Optionally set an error state here if strict routing is desired
+            // Handle nested subdomains like tenant.pos.neqtra.com
+            const baseDomain = 'pos.neqtra.com';
+            let subdomain = null;
+
+            if (hostname.endsWith(baseDomain) && hostname !== baseDomain) {
+                subdomain = hostname.replace(`.${baseDomain}`, '');
+            } else if (parts.length > 2 || (parts.length === 2 && parts[0] !== 'localhost' && parts[1].includes('localhost'))) {
+                // Fallback for general localhost/other domain testing
+                subdomain = parts[0];
+            }
+
+            if (subdomain && subdomain !== 'www') {
+                try {
+                    // We use the full API_URL base URL logic in apiClient
+                    const { default: apiClient } = await import('@/lib/api');
+                    const response = await apiClient.get(`/tenants/lookup/${subdomain}`);
+                    if (response.data && response.data.name) {
+                        setTenantName(response.data.name);
                     }
+                } catch (error) {
+                    console.error('Failed to resolve tenant subdomain:', error);
+                    // Optionally set an error state here if strict routing is desired
                 }
             }
         };
