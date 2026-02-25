@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { Injectable, UnauthorizedException, OnModuleInit, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -178,6 +179,45 @@ export class AuthService implements OnModuleInit {
     });
 
     await this.usersRepository.save(user);
+
+    // 4.5. Trigger Coolify API to append the new tenant domain
+    try {
+      if (process.env.COOLIFY_API_TOKEN && process.env.COOLIFY_FQDN && process.env.COOLIFY_FRONTEND_UUID) {
+        this.logger.log(`Registering new domain https://${tenant.subdomain}.pos.neqtra.com to Coolify...`);
+
+        // 1. Fetch current domains
+        const getUrl = `${process.env.COOLIFY_FQDN}/api/v1/applications/${process.env.COOLIFY_FRONTEND_UUID}`;
+        const getResponse = await axios.get(getUrl, {
+          headers: {
+            'Authorization': `Bearer ${process.env.COOLIFY_API_TOKEN}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        const currentDomains = getResponse.data.fqdn || 'https://pos.neqtra.com,https://*.pos.neqtra.com';
+
+        // 2. Append new domain (using comma separation as required by Coolify API internally, even if UI shows newlines)
+        const updatedDomains = `${currentDomains},https://${tenant.subdomain}.pos.neqtra.com`;
+
+        // 3. Patch the application
+        await axios.patch(getUrl, {
+          fqdn: updatedDomains
+        }, {
+          headers: {
+            'Authorization': `Bearer ${process.env.COOLIFY_API_TOKEN}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          }
+        });
+
+        this.logger.log(`Successfully added https://${tenant.subdomain}.pos.neqtra.com to Coolify proxy.`);
+      } else {
+        this.logger.warn('Skipping Coolify Domain Auto-Provisioning: COOLIFY_API_TOKEN, COOLIFY_FQDN, or COOLIFY_FRONTEND_UUID missing.');
+      }
+    } catch (e: any) {
+      this.logger.error(`Failed to update Coolify Domain Routing: ${e.response?.data?.message || e.message}`);
+      // Do not throw an error here; we still want the user to be able to log in even if proxy generation lags
+    }
 
     // 5. Generate Token
     const payload = {
