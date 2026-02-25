@@ -51,7 +51,7 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend-wildcard.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.pos.neqtra.com`) || Host(`pos.neqtra.com`)"
+      - "traefik.http.routers.frontend-wildcard.rule=HostRegexp(`{subdomain:[A-Za-z0-9-]+}.pos.neqtra.com`) || Host(`pos.neqtra.com`)"
       - "traefik.http.routers.frontend-wildcard.entrypoints=https"
       - "traefik.http.services.frontend-wildcard.loadbalancer.server.port=3000"
 
