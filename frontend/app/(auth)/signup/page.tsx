@@ -69,8 +69,12 @@ export default function SignupPage() {
             });
 
             if (result.success) {
-                // Redirect to billing or dashboard
-                router.push('/billing');
+                // Redirect to the newly provisioned tenant subdomain
+                if (result.login_url) {
+                    window.location.href = result.login_url;
+                } else {
+                    router.push('/billing');
+                }
             } else {
                 setError(result.error || 'Signup failed');
                 setIsLoading(false);

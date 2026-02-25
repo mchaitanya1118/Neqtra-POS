@@ -131,24 +131,29 @@ export class AuthService implements OnModuleInit {
       throw new BadRequestException('User with this email already exists');
     }
 
-    // 2. Generate unique subdomain
-    const baseSubdomain = businessName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // 2. Generate unique subdomain (max 20 chars, alphanumeric)
+    const baseSubdomain = businessName.toLowerCase().replace(/[^a-z0-9]/g, '').substring(0, 20);
     let subdomain = baseSubdomain || 'tenant';
     let counter = 1;
 
     // Ensure subdomain is unique
     while (await this.tenantsRepository.findOne({ where: { subdomain } })) {
-      subdomain = `${baseSubdomain}${counter}`;
+      const suffix = String(counter);
+      subdomain = `${baseSubdomain.substring(0, 20 - suffix.length)}${suffix}`;
       counter++;
     }
 
-    // 3. Create Tenant
+    // 3. Create Tenant with 14-day trial
+    const trialExpiry = new Date();
+    trialExpiry.setDate(trialExpiry.getDate() + 14);
+
     const tenant = await this.tenantsService.create({
       name: businessName,
       subdomain,
       status: 'ACTIVE',
       subscriptionPlan: 'TRIAL',
-      // industry: businessType // Add industry if needed in entity
+      trialEndsAt: trialExpiry,
+      subscriptionExpiry: trialExpiry,
     });
 
     // 3. Create Default Branch
@@ -184,6 +189,9 @@ export class AuthService implements OnModuleInit {
     };
 
     return {
+      success: true,
+      tenant: tenant.subdomain,
+      login_url: `https://${tenant.subdomain}.pos.neqtra.com`,
       access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
