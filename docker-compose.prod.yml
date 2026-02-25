@@ -49,6 +49,9 @@ services:
       - "3000:3000"
     depends_on:
       - backend
+    networks:
+      - default
+      - coolify
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"
@@ -91,3 +94,8 @@ volumes:
   postgres_data:
   pgadmin_data:
   redis_data:
+
+
+networks:
+  coolify:
+    external: true
