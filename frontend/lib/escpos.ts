@@ -124,9 +124,11 @@ export function generateBillReceipt(order: any, tenantName: string = "Neqtra POS
 
     let subTotal = 0;
     order.items?.forEach((item: any) => {
-        const itemTotal = item.menuItem.price * item.quantity;
+        const title = item.menuItem?.title || item.title || "Unknown Item";
+        const price = item.menuItem?.price || item.price || 0;
+        const itemTotal = price * item.quantity;
         subTotal += itemTotal;
-        encoder.line(formatItemRow(item.menuItem.title, item.quantity, item.menuItem.price, itemTotal));
+        encoder.line(formatItemRow(title, item.quantity, price, itemTotal));
     });
 
     encoder.separator()
@@ -184,8 +186,9 @@ export function generateKOTReceipt(order: any, isUpdate = false) {
 
     order.items?.forEach((item: any) => {
         // Only print un-served items on KOT update
-        if (item.status === 'PENDING') {
-            const row = formatRow(`${item.quantity}x`, item.menuItem.title, 32);
+        if (item.status === 'PENDING' || !item.status) {
+            const title = item.menuItem?.title || item.title || "Unknown Item";
+            const row = formatRow(`${item.quantity}x`, title, 32);
             // KOT items are usually printed larger
             encoder.size(0, 1).line(row).size(0, 0);
 
