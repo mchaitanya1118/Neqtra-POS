@@ -43,8 +43,20 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
                 set({ isConnected: false, device: null, server: null, characteristic: null });
             });
 
-            const server = await device.gatt?.connect();
-            if (!server) throw new Error("Could not connect to GATT Server");
+            let server: BluetoothRemoteGATTServer | null = null;
+            let retries = 3;
+            while (retries > 0) {
+                try {
+                    server = await device.gatt?.connect() || null;
+                    if (server) break;
+                } catch (err: any) {
+                    console.warn(`GATT connection failed, retries left: ${retries - 1}`, err);
+                    retries--;
+                    if (retries === 0) throw err;
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // wait 1s before retry
+                }
+            }
+            if (!server) throw new Error("Could not connect to GATT Server after multiple attempts.");
 
             const services = await server.getPrimaryServices();
             if (services.length === 0) throw new Error("No services found on this device.");
@@ -82,9 +94,20 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
 
         } catch (error: any) {
             console.error("Bluetooth connection error:", error);
+
+            let errorMessage = error.message || "Failed to connect to printer.";
+
+            if (errorMessage.includes("NetworkError: Connection attempt failed") || errorMessage.includes("Connection attempt failed")) {
+                errorMessage = "Connection attempt failed. Please ensure the printer is turned on, in range, and NOT currently paired to your device's native OS Bluetooth settings (Web Bluetooth needs exclusive access).";
+            } else if (errorMessage.includes("User cancelled") || errorMessage.includes("cancelled")) {
+                errorMessage = "Bluetooth pairing was cancelled.";
+            } else if (errorMessage.includes("No Services found")) {
+                errorMessage = "Connected, but no compatible printing services found. Please ensure this is an ESC/POS BLE printer.";
+            }
+
             set({
                 isConnecting: false,
-                error: error.message || "Failed to connect to printer"
+                error: errorMessage
             });
         }
     },
