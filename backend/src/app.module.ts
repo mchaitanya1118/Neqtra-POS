@@ -68,7 +68,21 @@ import { APP_GUARD } from '@nestjs/core';
       middleware: {
         mount: true,
         setup: (cls, req) => {
-          const tenantId = req.headers['x-tenant-id'];
+          let tenantId = req.headers['x-tenant-id'] as string;
+
+          // Fallback to extracting from JWT token if header is missing
+          if (!tenantId && req.headers.authorization) {
+            try {
+              const token = req.headers.authorization.split(' ')[1];
+              if (token) {
+                const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+                if (payload.tenantId) {
+                  tenantId = payload.tenantId;
+                }
+              }
+            } catch (e) { }
+          }
+
           if (tenantId) {
             cls.set('tenantId', tenantId);
           }

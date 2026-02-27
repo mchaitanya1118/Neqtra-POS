@@ -168,6 +168,13 @@ export const useAuthStore = create<AuthState>()(
         }),
         {
             name: 'auth-storage',
+            version: 2,
+            migrate: (persistedState: any, version: number) => {
+                if (version < 2) {
+                    return { user: null, token: null, hasHydrated: false };
+                }
+                return persistedState;
+            },
             onRehydrateStorage: () => (state) => {
                 state?.setHasHydrated(true);
             },
