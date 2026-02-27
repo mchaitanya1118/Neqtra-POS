@@ -35,6 +35,8 @@ import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from "next/navigation";
 
 const Receipt = dynamic(() => import("./Receipt").then(mod => mod.Receipt), { ssr: false });
+import { usePrinterStore } from "@/store/usePrinterStore";
+import { generateBillReceipt, generateKOTReceipt } from "@/lib/escpos";
 const SplitBillModal = dynamic(() => import("./SplitBillModal").then(mod => mod.SplitBillModal), { ssr: false });
 const CustomerModal = dynamic(() => import("./CustomerModal").then(mod => mod.CustomerModal), { ssr: false });
 const KOTPreviewModal = dynamic(() => import("./KOTPreviewModal").then(mod => mod.KOTPreviewModal), { ssr: false });
@@ -69,6 +71,8 @@ export function BillingPanel() {
     })));
     const { user, hasPermission } = useAuthStore();
     const router = useRouter();
+
+    const { isConnected: printerConnected, print: printToBluetooth } = usePrinterStore();
 
     const [isTableModalOpen, setIsTableModalOpen] = useState(false);
     const [tableModalMode, setTableModalMode] = useState<'SELECT' | 'SHIFT'>('SELECT');
@@ -171,7 +175,21 @@ export function BillingPanel() {
     const paidAmount = existingOrder?.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
     const remainingDue = grandTotal - paidAmount;
 
-    const handlePrint = (orderData: any) => {
+    const handlePrint = async (orderData: any, isKOT = false) => {
+        if (printerConnected) {
+            try {
+                const bytes = isKOT
+                    ? generateKOTReceipt(orderData, !!existingOrder)
+                    : generateBillReceipt(orderData, (user as any)?.tenant?.name || "Neqtra POS");
+
+                await printToBluetooth(bytes);
+                return; // Direct ESC/POS print successful, exit fallback HTML approach
+            } catch (e: any) {
+                console.error("Bluetooth print failed, falling back to OS printing format:", e);
+                alert("Bluetooth Print Failed. Calling fallback OS Print dialog.");
+            }
+        }
+
         setLastOrder(orderData);
         setTimeout(() => {
             if (receiptRef.current) {
@@ -646,7 +664,7 @@ export function BillingPanel() {
                 onClose={() => setIsKOTOpen(false)}
                 order={kotOrder}
                 onPrint={() => {
-                    handlePrint(kotOrder);
+                    handlePrint(kotOrder, true);
                     setIsKOTOpen(false);
                 }}
             />

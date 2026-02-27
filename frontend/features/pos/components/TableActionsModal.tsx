@@ -1,5 +1,8 @@
 import { useTableStore } from "@/store/useTableStore";
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { usePrinterStore } from "@/store/usePrinterStore";
+import { generateBillReceipt } from "@/lib/escpos";
 import { cn } from "@/lib/utils";
 import apiClient from "@/lib/api";
 import { Receipt as ReceiptIcon, X, CheckCheck, Printer, ArrowRightLeft } from "lucide-react";
@@ -18,6 +21,9 @@ interface TableActionsModalProps {
 export function TableActionsModal({ isOpen, onClose, onShiftTable }: TableActionsModalProps) {
     const { getSelectedTable, fetchTables, selectTable } = useTableStore();
     const { clearCart } = useCartStore();
+    const { user } = useAuthStore();
+    const { isConnected: printerConnected, print: printToBluetooth } = usePrinterStore();
+
     const [isSettling, setIsSettling] = useState(false);
     const [isSplitOpen, setIsSplitOpen] = useState(false);
     const [activeOrder, setActiveOrder] = useState<any>(null);
@@ -63,10 +69,21 @@ export function TableActionsModal({ isOpen, onClose, onShiftTable }: TableAction
         }
     };
 
-    const handlePrintBill = () => {
+    const handlePrintBill = async () => {
         if (!activeOrder) {
             alert("No active order to print");
             return;
+        }
+
+        if (printerConnected) {
+            try {
+                const bytes = generateBillReceipt(activeOrder, (user as any)?.tenant?.name || "Neqtra POS");
+                await printToBluetooth(bytes);
+                return;
+            } catch (e: any) {
+                console.error("Bluetooth print failed, falling back to web print", e);
+                alert("Bluetooth Print Failed: " + e.message);
+            }
         }
         // Simple Print Logic: Open new window, write html, print
         const printContent = receiptRef.current?.innerHTML;

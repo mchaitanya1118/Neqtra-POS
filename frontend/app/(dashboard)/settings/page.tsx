@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { TenantService } from '@/services/tenant.service';
-import { Store, Save, Loader2, CheckCircle } from 'lucide-react';
+import { Store, Save, Loader2, CheckCircle, Printer, Bluetooth, PowerOff } from 'lucide-react';
+import { usePrinterStore } from '@/store/usePrinterStore';
 
 export default function SettingsPage() {
     const { user } = useAuthStore();
     const [isLoading, setIsLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [error, setError] = useState('');
+
+    const { device, isConnected, isConnecting, error: printerError, connect: connectPrinter, disconnect: disconnectPrinter } = usePrinterStore();
 
     const currentUser = user as any;
 
@@ -159,6 +162,62 @@ export default function SettingsPage() {
                     </button>
                 </div>
             </div>
+
+            {/* Hardware Settings Section */}
+            <div className="flex items-center justify-between bg-surface/50 p-6 rounded-2xl border border-surface-light mt-8">
+                <div>
+                    <h2 className="text-xl font-bold flex items-center gap-2">
+                        <Printer className="text-blue-500" /> Hardware Settings
+                    </h2>
+                    <p className="text-muted text-sm mt-1">Connect local devices like thermal printers via Web Bluetooth.</p>
+                </div>
+            </div>
+
+            {printerError && (
+                <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-xl">
+                    {printerError}
+                </div>
+            )}
+
+            <div className="bg-surface/50 border border-surface-light rounded-2xl p-6 space-y-6">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-background border border-surface-light rounded-xl">
+                    <div className="flex items-center gap-4">
+                        <div className={`p-3 rounded-full ${isConnected ? 'bg-green-500/20 text-green-500' : 'bg-surface text-muted'}`}>
+                            <Bluetooth className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-foreground">Bluetooth Receipt Printer</h3>
+                            <p className="text-sm text-muted">
+                                {isConnected ? `Connected: ${device?.name || 'Thermal Printer'}` : 'Not connected'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div>
+                        {isConnected ? (
+                            <button
+                                onClick={disconnectPrinter}
+                                className="px-5 py-2.5 rounded-xl font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center gap-2"
+                            >
+                                <PowerOff className="w-4 h-4" /> Disconnect
+                            </button>
+                        ) : (
+                            <button
+                                onClick={connectPrinter}
+                                disabled={isConnecting}
+                                className="px-5 py-2.5 rounded-xl font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-70"
+                            >
+                                {isConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bluetooth className="w-4 h-4" />}
+                                {isConnecting ? 'Pairing...' : 'Pair Printer'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+                <p className="text-xs text-muted">
+                    * Note: Web Bluetooth is supported on Android, Windows, and macOS (Chrome/Edge/Opera). iOS explicitly blocks Web Bluetooth. Only pair ESC/POS compatible BLE Thermal Printers.
+                </p>
+            </div>
+
         </div>
     );
 }
