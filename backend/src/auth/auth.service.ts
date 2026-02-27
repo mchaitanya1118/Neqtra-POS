@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { Injectable, UnauthorizedException, OnModuleInit, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -157,7 +156,49 @@ export class AuthService implements OnModuleInit {
       subscriptionExpiry: trialExpiry,
     });
 
-    // 3. Create Default Branch
+    // 3.5 Automate Coolify SSL Domain Provisioning (Option 2)
+    // If COOLIFY_API_TOKEN, COOLIFY_API_URL, and COOLIFY_FRONTEND_UUID are set, automatically attach the new subdomain
+    const coolifyApiToken = process.env.COOLIFY_API_TOKEN;
+    const coolifyApiUrl = process.env.COOLIFY_API_URL;
+    const coolifyFrontendUuid = process.env.COOLIFY_FRONTEND_UUID;
+
+    if (coolifyApiToken && coolifyApiUrl && coolifyFrontendUuid) {
+      try {
+        const newDomain = `https://${subdomain}.pos.neqtra.com`;
+        this.logger.log(`Provisioning Coolify SSL for new domain: ${newDomain}`);
+
+        // Get current domains
+        const getServiceResponse = await fetch(`${coolifyApiUrl}/api/v1/services/${coolifyFrontendUuid}`, {
+          headers: { 'Authorization': `Bearer ${coolifyApiToken}` }
+        });
+
+        if (getServiceResponse.ok) {
+          const serviceData = await getServiceResponse.json();
+          const currentDomains = serviceData.domains || '';
+
+          // Append the new one (as a separate line/comma entry based on existing format)
+          const updatedDomains = currentDomains ? `${currentDomains},${newDomain}` : newDomain;
+
+          // Patch the service with the appended domain list
+          await fetch(`${coolifyApiUrl}/api/v1/services/${coolifyFrontendUuid}`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${coolifyApiToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ domains: updatedDomains })
+          });
+          this.logger.log(`Successfully appended ${newDomain} to Coolify service.`);
+        } else {
+          this.logger.warn(`Failed to fetch Coolify service details for domain automation. Status: ${getServiceResponse.status}`);
+        }
+      } catch (err) {
+        this.logger.error(`Error automating Coolify domain creation for ${subdomain}`, err);
+        // Do not fail the whole signup if the domain automation hiccups
+      }
+    }
+
+    // 4. Create Default Branch
     const branch = await this.branchesService.create(tenant.id, {
       name: 'Main Branch',
       address: 'Headquarters',
@@ -179,45 +220,6 @@ export class AuthService implements OnModuleInit {
     });
 
     await this.usersRepository.save(user);
-
-    // 4.5. Trigger Coolify API to append the new tenant domain
-    try {
-      if (process.env.COOLIFY_API_TOKEN && process.env.COOLIFY_FQDN && process.env.COOLIFY_FRONTEND_UUID) {
-        this.logger.log(`Registering new domain https://${tenant.subdomain}.pos.neqtra.com to Coolify...`);
-
-        // 1. Fetch current domains
-        const getUrl = `${process.env.COOLIFY_FQDN}/api/v1/applications/${process.env.COOLIFY_FRONTEND_UUID}`;
-        const getResponse = await axios.get(getUrl, {
-          headers: {
-            'Authorization': `Bearer ${process.env.COOLIFY_API_TOKEN}`,
-            'Accept': 'application/json'
-          }
-        });
-
-        const currentDomains = getResponse.data.fqdn || 'https://pos.neqtra.com,https://*.pos.neqtra.com';
-
-        // 2. Append new domain (using comma separation as required by Coolify API internally, even if UI shows newlines)
-        const updatedDomains = `${currentDomains},https://${tenant.subdomain}.pos.neqtra.com`;
-
-        // 3. Patch the application
-        await axios.patch(getUrl, {
-          fqdn: updatedDomains
-        }, {
-          headers: {
-            'Authorization': `Bearer ${process.env.COOLIFY_API_TOKEN}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          }
-        });
-
-        this.logger.log(`Successfully added https://${tenant.subdomain}.pos.neqtra.com to Coolify proxy.`);
-      } else {
-        this.logger.warn('Skipping Coolify Domain Auto-Provisioning: COOLIFY_API_TOKEN, COOLIFY_FQDN, or COOLIFY_FRONTEND_UUID missing.');
-      }
-    } catch (e: any) {
-      this.logger.error(`Failed to update Coolify Domain Routing: ${e.response?.data?.message || e.message}`);
-      // Do not throw an error here; we still want the user to be able to log in even if proxy generation lags
-    }
 
     // 5. Generate Token
     const payload = {

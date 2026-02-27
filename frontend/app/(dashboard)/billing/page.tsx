@@ -52,33 +52,25 @@ function BillingContent() {
   const { tables, selectTable, fetchTables } = useTableStore();
 
   useEffect(() => {
-    const handleSelection = async () => {
-      if (Array.isArray(tables) && tables.length > 0) {
-        if (initTableId) {
-          const id = parseInt(initTableId);
-          const table = tables.find(t => t.id === id);
-          if (table) {
-            selectTable(id);
-            return;
-          }
-        }
-
-        if (initTableName) {
-          const targetName = decodeURIComponent(initTableName);
-          const table = tables.find(t => t.label === targetName);
-          if (table) {
-            selectTable(table.id);
-            return;
-          }
+    if (Array.isArray(tables) && tables.length > 0) {
+      if (initTableId) {
+        const id = parseInt(initTableId);
+        const table = tables.find(t => t.id === id);
+        if (table) {
+          selectTable(id);
+          return;
         }
       }
 
-      if (!Array.isArray(tables) || tables.length === 0) {
-        fetchTables();
+      if (initTableName) {
+        const targetName = decodeURIComponent(initTableName);
+        const table = tables.find(t => t.label === targetName);
+        if (table) {
+          selectTable(table.id);
+          return;
+        }
       }
-    };
-
-    handleSelection();
+    }
   }, [initTableName, initTableId, tables, selectTable]);
 
   // Initial Fetch on mount

@@ -72,11 +72,12 @@ export const useTableStore = create<TableState>()(
         }),
         {
             name: 'neqtra-tables',
-            version: 3, // Increment version to force clear bad state
+            version: 4, // Increment version to force clear bad state
+            partialize: (state) => ({ tables: state.tables, selectedTableId: state.selectedTableId }),
             migrate: (persistedState: any, version: number) => {
-                if (version < 3 || !persistedState || !Array.isArray(persistedState.tables)) {
+                if (version < 4 || !persistedState || !Array.isArray(persistedState.tables)) {
                     // Reset if version is old or state is corrupted (tables not array)
-                    return { tables: [], selectedTableId: null, isLoading: false };
+                    return { tables: [], selectedTableId: null };
                 }
                 return persistedState;
             },

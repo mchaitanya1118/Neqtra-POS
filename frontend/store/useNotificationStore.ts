@@ -122,7 +122,7 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     connectSocket: () => {
         if (get().socket) return;
 
-        const socket = io(`${API_URL}/notifications`);
+        const socket = io('/notifications');
 
         socket.on('connect', () => {
             set({ isConnected: true });

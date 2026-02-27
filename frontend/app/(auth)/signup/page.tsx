@@ -70,7 +70,7 @@ export default function SignupPage() {
 
             if (result.success) {
                 // Redirect to the newly provisioned tenant subdomain
-                if (result.login_url) {
+                if (result.login_url && window.location.hostname !== 'localhost') {
                     window.location.href = result.login_url;
                 } else {
                     router.push('/billing');

@@ -47,7 +47,7 @@ export default function KitchenPage() {
         fetchOrders();
 
         // Connect to backend websocket
-        const socket = io(API_URL);
+        const socket = io();
 
         socket.on("connect", () => {
             console.log("Connected to Kitchen Gateway");
