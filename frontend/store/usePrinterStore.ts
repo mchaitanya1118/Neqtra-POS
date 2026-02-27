@@ -63,20 +63,28 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
 
             let printChar: BluetoothRemoteGATTCharacteristic | null = null;
 
-            // Search for a writable characteristic
+            // Search for a writable characteristic, prioritizing writeWithoutResponse
             for (const service of services) {
                 try {
                     const characteristics = await service.getCharacteristics();
+                    let fallbackChar: BluetoothRemoteGATTCharacteristic | null = null;
+
                     for (const char of characteristics) {
-                        if (char.properties.write || char.properties.writeWithoutResponse) {
+                        if (char.properties.writeWithoutResponse) {
                             printChar = char;
-                            break;
+                            break; // Found the best one, stop searching this service
                         }
+                        if (char.properties.write) {
+                            fallbackChar = char;
+                        }
+                    }
+                    if (!printChar && fallbackChar) {
+                        printChar = fallbackChar;
                     }
                 } catch (e) {
                     console.warn("Error reading characteristics for service", service.uuid, e);
                 }
-                if (printChar) break;
+                if (printChar) break; // Break out of services loop once we found a char
             }
 
             if (!printChar) {
@@ -133,20 +141,22 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
             throw new Error("Printer is not connected");
         }
 
-        // Print in chunks. BLE typically limits chunks to 20 or 512 bytes depending on the MTU.
-        // We use 200 bytes per chunk as a safe ground. a slightly bigger chunk size speeds it up but might be dropped.
-        const CHUNK_SIZE = 100;
+        // Most BLE printers operate over a very small MTU (typically 20-512 bytes).
+        // A CHUNK_SIZE of 64 or 20 is universally safe. 
+        // We use 64 bytes per chunk and a 50ms delay to prevent buffer overflows on generic printers.
+        const CHUNK_SIZE = 64;
 
         try {
             for (let i = 0; i < data.length; i += CHUNK_SIZE) {
                 const chunk = data.slice(i, i + CHUNK_SIZE);
+                // Try writing without response first as it's faster and many thermal printers expect this
                 if (characteristic.properties.writeWithoutResponse) {
                     await characteristic.writeValueWithoutResponse(chunk);
                 } else {
-                    await characteristic.writeValue(chunk);
+                    await characteristic.writeValue(chunk); // Slower, waits for ACK
                 }
-                // Small delay to prevent overwhelming the printer's buffer
-                await new Promise(resolve => setTimeout(resolve, 20));
+                // Delay to allow printer hardware buffer to process the chunk
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
         } catch (error: any) {
             console.error("Print failed:", error);
