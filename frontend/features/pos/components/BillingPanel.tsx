@@ -186,7 +186,7 @@ export function BillingPanel() {
                 return; // Direct ESC/POS print successful, exit fallback HTML approach
             } catch (e: any) {
                 console.error("Bluetooth print failed, falling back to OS printing format:", e);
-                alert("Bluetooth Print Failed. Calling fallback OS Print dialog.");
+                alert("Bluetooth Print Failed: " + (e.message || "Unknown Error") + ". Calling fallback OS Print dialog.");
             }
         }
 
