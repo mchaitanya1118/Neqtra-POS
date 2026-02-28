@@ -268,7 +268,7 @@ function OrdersContent() {
                     tableId={currentTableId}
                     onSuccess={() => {
                         fetchOrders();
-                        if (activeOrder.remaining && activeOrder.remaining <= 0) setActiveOrder(null);
+                        if (activeOrder.remaining !== undefined && activeOrder.remaining <= 0) setActiveOrder(null);
                     }}
                 />
             )}
@@ -510,7 +510,8 @@ const OrderCard = memo(function OrderCard({ order, onPayment, onDelete, onEdit, 
                     {status === 'PENDING' && (
                         <button
                             onClick={() => onUpdateStatus(order.id, 'CONFIRMED')}
-                            className="flex-1 h-10 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all"
+                            disabled={order.items.length === 0}
+                            className="flex-1 h-10 bg-blue-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-blue-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Confirm
                         </button>
@@ -542,9 +543,9 @@ const OrderCard = memo(function OrderCard({ order, onPayment, onDelete, onEdit, 
                     {status === 'SERVED' && (
                         <button
                             onClick={() => onUpdateStatus(order.id, 'COMPLETED')}
-                            disabled={Number(order.remaining || order.totalAmount) > 0.01}
+                            disabled={(order.remaining !== undefined ? Number(order.remaining) : Number(order.totalAmount)) > 0.01}
                             className="flex-1 h-10 bg-gray-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={Number(order.remaining || order.totalAmount) > 0.01 ? "Settle payment first" : "Complete Order"}
+                            title={(order.remaining !== undefined ? Number(order.remaining) : Number(order.totalAmount)) > 0.01 ? "Settle payment first" : "Complete Order"}
                         >
                             Complete
                         </button>
