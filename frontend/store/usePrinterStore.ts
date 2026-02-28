@@ -32,10 +32,13 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
                 acceptAllDevices: true,
                 optionalServices: [
                     // Common thermal printer service UUIDs
-                    '000018f0-0000-1000-8000-00805f9b34fb',
-                    'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
+                    '000018f0-0000-1000-8000-00805f9b34fb', // Standard printing service
+                    'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Vendor-specific printer
                     '0000fee7-0000-1000-8000-00805f9b34fb', // Often used by generic Chinese printers
                     '49535343-fe7d-4ae5-8fa9-9fafd205e455', // iOS SPP substitute (sometimes on BLE printers)
+                    '0000ff00-0000-1000-8000-00805f9b34fb', // Generic custom service 1
+                    '0000ffe0-0000-1000-8000-00805f9b34fb', // Generic custom service 2
+                    '0000180a-0000-1000-8000-00805f9b34fb'  // Device Information service
                 ]
             });
 
@@ -111,6 +114,8 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
                 errorMessage = "Bluetooth pairing was cancelled.";
             } else if (errorMessage.includes("No Services found")) {
                 errorMessage = "Connected, but no compatible printing services found. Please ensure this is an ESC/POS BLE printer.";
+            } else if (errorMessage.includes("Unsupported device")) {
+                errorMessage = "Unsupported device. Please select a compatible Bluetooth Thermal Printer (often named 'MTP-II', 'PT-210', 'RPP02N', or showing as an Unknown Device with a MAC address). Disconnect from regular OS Bluetooth first.";
             }
 
             set({
