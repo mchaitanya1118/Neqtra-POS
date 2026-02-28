@@ -28,19 +28,43 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
                 throw new Error("Web Bluetooth is not supported in this browser. Please use Chrome, Edge, or Opera on a supported OS (Windows, macOS, Android). Note: iOS explicitly blocks Web Bluetooth.");
             }
 
-            const device = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: [
-                    // Common thermal printer service UUIDs
-                    '000018f0-0000-1000-8000-00805f9b34fb', // Standard printing service
-                    'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Vendor-specific printer
-                    '0000fee7-0000-1000-8000-00805f9b34fb', // Often used by generic Chinese printers
-                    '49535343-fe7d-4ae5-8fa9-9fafd205e455', // iOS SPP substitute (sometimes on BLE printers)
-                    '0000ff00-0000-1000-8000-00805f9b34fb', // Generic custom service 1
-                    '0000ffe0-0000-1000-8000-00805f9b34fb', // Generic custom service 2
-                    '0000180a-0000-1000-8000-00805f9b34fb'  // Device Information service
-                ]
-            });
+            let device: BluetoothDevice;
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    acceptAllDevices: true,
+                    optionalServices: [
+                        '000018f0-0000-1000-8000-00805f9b34fb', // Standard printing service
+                        'e7810a71-73ae-499d-8c15-faa9aef0c3f2', // Vendor-specific printer
+                        '0000fee7-0000-1000-8000-00805f9b34fb', // Often used by generic Chinese printers
+                        '49535343-fe7d-4ae5-8fa9-9fafd205e455', // iOS SPP substitute (sometimes on BLE printers)
+                    ]
+                });
+            } catch (err: any) {
+                if (err.message && err.message.includes('Unsupported device')) {
+                    // Fallback 1: Try with fewer services or no optional services if browser allows 
+                    // (Chrome requires optionalServices to access them later, but some generic Chinese printers 
+                    // fail the initial request if ANY of the UUIDs are deemed 'unsupported' by Chrome's blocklist).
+                    // We will do a generic fallback with just the most common vendor-specific one to bypass the block.
+                    console.warn("Retrying without extended UUIDs due to Unsupported Device error...");
+                    try {
+                        device = await navigator.bluetooth.requestDevice({
+                            acceptAllDevices: true,
+                            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+                        });
+                    } catch (err2: any) {
+                        if (err2.message && err2.message.includes('Unsupported device')) {
+                            console.warn("Retrying with NO optional services as last resort...");
+                            device = await navigator.bluetooth.requestDevice({
+                                acceptAllDevices: true
+                            });
+                        } else {
+                            throw err2;
+                        }
+                    }
+                } else {
+                    throw err;
+                }
+            }
 
             device.addEventListener('gattserverdisconnected', () => {
                 set({ isConnected: false, device: null, server: null, characteristic: null });
