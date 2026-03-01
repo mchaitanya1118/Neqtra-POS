@@ -130,52 +130,52 @@ export default function InventoryPage() {
                     <p className="text-muted font-medium ml-1">Real-time stock monitoring & asset management</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3 md:gap-4 w-full lg:w-auto">
                     {/* Metrics Cards */}
-                    <div className="flex items-center gap-3 bg-surface border border-surface-light px-6 py-3 rounded-3xl shadow-sm">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
-                            <Layers className="w-5 h-5" />
+                    <div className="flex-1 min-w-[140px] flex items-center gap-2 md:gap-3 bg-surface border border-surface-light px-4 py-3 md:px-6 md:py-3 rounded-[20px] md:rounded-3xl shadow-sm">
+                        <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                            <Layers className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black text-muted uppercase tracking-widest leading-none mb-1 text-nowrap">Total Items</p>
-                            <p className="text-xl font-black leading-none">{totalItems}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 bg-surface border border-surface-light px-6 py-3 rounded-3xl shadow-sm">
-                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20">
-                            <DollarSign className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-muted uppercase tracking-widest leading-none mb-1 text-nowrap">Stock Value</p>
-                            <p className="text-xl font-black leading-none">₹{inventoryValue.toLocaleString()}</p>
+                        <div className="overflow-hidden">
+                            <p className="text-[9px] md:text-[10px] font-black text-muted uppercase tracking-widest leading-none mb-1 truncate">Total Items</p>
+                            <p className="text-lg md:text-xl font-black leading-none truncate">{totalItems}</p>
                         </div>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex-1 min-w-[140px] flex items-center gap-2 md:gap-3 bg-surface border border-surface-light px-4 py-3 md:px-6 md:py-3 rounded-[20px] md:rounded-3xl shadow-sm">
+                        <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500 border border-green-500/20">
+                            <DollarSign className="w-4 h-4 md:w-5 md:h-5" />
+                        </div>
+                        <div className="overflow-hidden">
+                            <p className="text-[9px] md:text-[10px] font-black text-muted uppercase tracking-widest leading-none mb-1 truncate">Stock Value</p>
+                            <p className="text-lg md:text-xl font-black leading-none truncate">₹{inventoryValue.toLocaleString()}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2 md:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
                         <button
                             onClick={exportToCSV}
                             disabled={!hasPermission('Admin')}
-                            className="p-3.5 bg-surface-light hover:bg-surface disabled:opacity-30 border border-surface-light rounded-2xl transition-all hover:shadow-lg text-muted hover:text-primary active:scale-95"
+                            className="p-3 md:p-3.5 bg-surface-light hover:bg-surface disabled:opacity-30 border border-surface-light rounded-xl md:rounded-2xl transition-all hover:shadow-lg text-muted hover:text-primary active:scale-95 shrink-0"
                             title="Export Report"
                         >
-                            <Download className="w-5 h-5" />
+                            <Download className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
                         <button
                             onClick={() => setIsModalOpen(true)}
                             disabled={!hasPermission('Admin')}
-                            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-6 py-3.5 rounded-2xl text-sm font-black shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                            className="flex-1 sm:flex-none bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-4 md:px-6 py-3 md:py-3.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-black shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
                         >
-                            <Plus className="w-5 h-5" />
-                            Add Stock
+                            <Plus className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
+                            <span className="whitespace-nowrap">Add Stock</span>
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Controls Layer */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-surface/50 backdrop-blur-md p-6 rounded-[32px] border border-surface-light">
-                <div className="flex p-1.5 bg-surface-light/50 rounded-2xl border border-surface-light w-full md:w-auto overflow-x-auto">
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 xl:gap-6 bg-surface/50 backdrop-blur-md p-4 md:p-6 rounded-[24px] md:rounded-[32px] border border-surface-light">
+                <div className="flex p-1.5 bg-surface-light/50 rounded-xl md:rounded-2xl border border-surface-light w-full xl:w-auto overflow-x-auto no-scrollbar">
                     {[
                         { id: 'all', label: 'All Stock', icon: Box, color: 'primary' },
                         { id: 'low', label: 'Low Stock', icon: AlertTriangle, color: 'yellow-500', count: lowStockCount },
@@ -185,7 +185,7 @@ export default function InventoryPage() {
                             key={tab.id}
                             onClick={() => setFilterStatus(tab.id as any)}
                             className={cn(
-                                "px-6 py-3 rounded-xl text-sm font-black transition-all flex items-center gap-2 whitespace-nowrap",
+                                "flex-1 xl:flex-none px-4 md:px-6 py-2.5 md:py-3 rounded-lg md:rounded-xl text-xs md:text-sm font-black transition-all flex items-center justify-center gap-1.5 md:gap-2 whitespace-nowrap shrink-0",
                                 filterStatus === tab.id
                                     ? "bg-surface-light shadow-xl text-foreground scale-105 border border-surface-light/50"
                                     : "text-muted hover:text-foreground/70"
