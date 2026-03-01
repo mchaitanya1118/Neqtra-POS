@@ -85,27 +85,27 @@ export default function ReservationsPage() {
             <div className="fixed inset-0 bg-gradient-to-br from-background via-background/95 to-background/80 pointer-events-none" />
 
             {/* Header */}
-            <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-surface-light px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0 transition-all duration-300">
-                <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold font-serif italic tracking-tighter text-foreground">Reservations</h1>
-                    <span className="px-3 py-1 bg-surface-light rounded-full text-xs font-bold text-muted border border-surface-light/50">
+            <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-surface-light px-4 md:px-6 py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 transition-all duration-300">
+                <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                    <h1 className="text-2xl md:text-3xl font-bold font-serif italic tracking-tighter text-foreground">Reservations</h1>
+                    <span className="px-3 py-1 bg-surface-light rounded-full text-[10px] md:text-xs font-bold text-muted border border-surface-light/50 whitespace-nowrap">
                         {data.length} Active
                     </span>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full md:w-auto">
                     <button
                         onClick={() => setIsModalOpen(true)}
                         disabled={!hasPermission('Reservations')}
-                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg rounded-full text-sm font-bold shadow-[0_0_20px_rgba(105,215,189,0.3)] hover:shadow-[0_0_30px_rgba(105,215,189,0.5)] transition-all transform hover:scale-105 active:scale-95 group"
+                        className="flex items-center justify-center gap-2 px-5 md:px-6 py-2 md:py-2.5 bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg rounded-full text-xs md:text-sm font-bold shadow-[0_0_20px_rgba(105,215,189,0.3)] hover:shadow-[0_0_30px_rgba(105,215,189,0.5)] transition-all transform hover:scale-105 active:scale-95 group shrink-0"
                     >
                         <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-                        <span>New Reservation</span>
+                        <span className="whitespace-nowrap">New Reservation</span>
                     </button>
-                    <div className="relative group w-full sm:w-64">
+                    <div className="relative group w-full sm:w-64 flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
                         <input
-                            className="w-full pl-11 pr-4 py-2.5 bg-surface-light/50 border border-surface-light/50 focus:border-primary/50 rounded-full text-sm text-foreground placeholder:text-muted focus:outline-none transition-all ring-1 ring-transparent focus:ring-primary/20 backdrop-blur-sm"
+                            className="w-full pl-11 pr-4 py-2 md:py-2.5 bg-surface-light/50 border border-surface-light/50 focus:border-primary/50 rounded-full text-sm text-foreground placeholder:text-muted focus:outline-none transition-all ring-1 ring-transparent focus:ring-primary/20 backdrop-blur-sm"
                             placeholder="Search guest name..."
                         />
                     </div>
