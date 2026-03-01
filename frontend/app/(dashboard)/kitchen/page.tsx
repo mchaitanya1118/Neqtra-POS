@@ -111,8 +111,8 @@ export default function KitchenPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-6">
-            <header className="flex justify-between items-center mb-10 bg-gray-800/50 p-6 rounded-2xl border border-gray-700 backdrop-blur-md">
+        <div className="min-h-screen bg-gray-900 text-white p-4 md:p-6">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 md:mb-10 bg-gray-800/50 p-5 md:p-6 rounded-2xl border border-gray-700 backdrop-blur-md">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-yellow-500 rounded-xl flex items-center justify-center text-black shadow-lg shadow-yellow-500/20">
                         <Clock className="w-6 h-6" />
@@ -126,8 +126,8 @@ export default function KitchenPage() {
                     </div>
                 </div>
 
-                <div className="flex gap-4">
-                    <div className="bg-gray-700/50 px-6 py-3 rounded-xl border border-gray-600">
+                <div className="flex gap-4 w-full md:w-auto">
+                    <div className="flex-1 md:flex-none bg-gray-700/50 px-4 py-3 md:px-6 md:py-3 rounded-xl border border-gray-600">
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Active Tickets</p>
                         <p className="text-2xl font-bold text-yellow-500">{pendingOrders.length}</p>
                     </div>
