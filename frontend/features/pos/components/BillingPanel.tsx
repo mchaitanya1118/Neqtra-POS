@@ -84,6 +84,7 @@ export function BillingPanel() {
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isKOTOpen, setIsKOTOpen] = useState(false);
     const [kotOrder, setKotOrder] = useState<any>(null);
+    const [kotIsUpdate, setKotIsUpdate] = useState(false);
 
     const [existingOrder, setExistingOrder] = useState<ActiveOrder | null>(null);
     const [paymentTxnId, setPaymentTxnId] = useState<string | null>(null);
@@ -179,7 +180,7 @@ export function BillingPanel() {
         if (printerConnected) {
             try {
                 const bytes = isKOT
-                    ? generateKOTReceipt(orderData, !!existingOrder)
+                    ? generateKOTReceipt(orderData, kotIsUpdate)
                     : generateBillReceipt(orderData, (user as any)?.tenant?.name || "Neqtra POS");
 
                 await printToBluetooth(bytes);
@@ -323,6 +324,7 @@ export function BillingPanel() {
                     alert("Delivery Order Created!");
                     router.push('/delivery');
                 } else {
+                    setKotIsUpdate(!!existingOrder); // capture BEFORE fetchActiveOrder updates it
                     setKotOrder(currentOrder);
                     setIsKOTOpen(true);
                     clearCart();

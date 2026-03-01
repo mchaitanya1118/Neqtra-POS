@@ -165,31 +165,63 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
     },
 
     print: async (data: Uint8Array) => {
-        const { characteristic, isConnected } = get();
-        if (!isConnected || !characteristic) {
-            throw new Error("Printer is not connected");
+        let { characteristic, isConnected, device, server } = get();
+        if (!isConnected || !characteristic || !device) {
+            throw new Error("Printer is not connected. Please connect the printer first.");
         }
 
-        // Most BLE printers operate over a very small MTU (typically 20-512 bytes).
-        // A CHUNK_SIZE of 64 or 20 is universally safe. 
-        // We use 64 bytes per chunk and a 50ms delay to prevent buffer overflows on generic printers.
-        const CHUNK_SIZE = 64;
+        // If GATT server has dropped, attempt to reconnect
+        if (!server?.connected) {
+            console.warn("GATT server disconnected, attempting to reconnect...");
+            try {
+                const reconnected = await device.gatt?.connect();
+                if (!reconnected) throw new Error("Reconnect failed");
+
+                // Re-acquire the services and characteristic
+                const services = await reconnected.getPrimaryServices();
+                let printChar: BluetoothRemoteGATTCharacteristic | null = null;
+                for (const service of services) {
+                    try {
+                        const chars = await service.getCharacteristics();
+                        for (const c of chars) {
+                            if (c.properties.writeWithoutResponse || c.properties.write) {
+                                printChar = c;
+                                break;
+                            }
+                        }
+                    } catch (_) { }
+                    if (printChar) break;
+                }
+
+                if (!printChar) throw new Error("Could not re-acquire printer characteristic after reconnect.");
+
+                set({ server: reconnected, characteristic: printChar, isConnected: true });
+                characteristic = printChar;
+                console.log("Printer reconnected successfully.");
+            } catch (reconnectErr: any) {
+                set({ isConnected: false, server: null, characteristic: null });
+                throw new Error(`Printer disconnected and reconnect failed: ${reconnectErr.message}. Please reconnect the printer manually.`);
+            }
+        }
+
+        // Use 20-byte chunks — the safest MTU for all BLE thermal printers
+        const CHUNK_SIZE = 20;
 
         try {
             for (let i = 0; i < data.length; i += CHUNK_SIZE) {
                 const chunk = data.slice(i, i + CHUNK_SIZE);
-                // Try writing without response first as it's faster and many thermal printers expect this
                 if (characteristic.properties.writeWithoutResponse) {
                     await characteristic.writeValueWithoutResponse(chunk);
                 } else {
-                    await characteristic.writeValueWithResponse(chunk); // Slower, waits for ACK
+                    await characteristic.writeValueWithResponse(chunk);
                 }
-                // Delay to allow printer hardware buffer to process the chunk
-                await new Promise(resolve => setTimeout(resolve, 50));
+                // 100ms delay — gives slower printers time to process each chunk
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
         } catch (error: any) {
             console.error("Print failed:", error);
-            throw new Error("Printing failed. The connection to the printer might have been lost.");
+            set({ isConnected: false, server: null, characteristic: null });
+            throw new Error(`Printing failed: ${error.message}. The printer connection was lost. Please reconnect and try again.`);
         }
     }
 }));
