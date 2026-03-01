@@ -58,9 +58,9 @@ export default function ReportsPage() {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-10 animate-in fade-in duration-700">
             {/* Header Section */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 md:gap-6">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-primary/10 rounded-xl">
@@ -72,34 +72,34 @@ export default function ReportsPage() {
                     <p className="text-muted text-sm mt-3 max-w-md">Comprehensive overview of your business performance and growth metrics.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 bg-surface/50 backdrop-blur-xl p-3 rounded-[28px] border border-surface-light shadow-2xl">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-background/50 rounded-2xl border border-surface-light/50">
-                        <Calendar className="w-4 h-4 text-muted" />
+                <div className="w-full lg:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-3 md:gap-4 bg-surface/50 backdrop-blur-xl p-2.5 md:p-3 rounded-2xl md:rounded-[28px] border border-surface-light shadow-2xl">
+                    <div className="flex-1 flex items-center justify-center gap-2 px-3 md:px-4 py-2.5 md:py-2 bg-background/50 rounded-xl md:rounded-2xl border border-surface-light/50">
+                        <Calendar className="w-4 h-4 text-muted shrink-0" />
                         <input
                             type="date"
                             name="start"
                             value={dateRange.start}
                             onChange={handleRangeChange}
-                            className="bg-transparent text-xs font-bold outline-none text-foreground cursor-pointer"
+                            className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-foreground cursor-pointer w-full text-center"
                         />
-                        <span className="text-muted mx-1">/</span>
+                        <span className="text-muted mx-1 shrink-0">/</span>
                         <input
                             type="date"
                             name="end"
                             value={dateRange.end}
                             onChange={handleRangeChange}
-                            className="bg-transparent text-xs font-bold outline-none text-foreground cursor-pointer"
+                            className="bg-transparent text-[10px] md:text-xs font-bold outline-none text-foreground cursor-pointer w-full text-center"
                         />
                     </div>
                     <div className="flex items-center gap-2">
                         <button
                             onClick={fetchData}
-                            className="p-3 bg-surface-light hover:bg-surface-light/80 text-foreground rounded-2xl transition-all active:scale-95"
+                            className="p-3 bg-surface-light hover:bg-surface-light/80 text-foreground rounded-xl md:rounded-2xl transition-all active:scale-95 shrink-0"
                         >
                             <RefreshCcw className={cn("w-4 h-4", loading && "animate-spin")} />
                         </button>
                         <button
-                            className="flex items-center gap-2 px-5 py-3 bg-primary text-primary-fg rounded-2xl text-xs font-bold hover:brightness-110 transition-all shadow-lg shadow-primary/20"
+                            className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-3 bg-primary text-primary-fg rounded-xl md:rounded-2xl text-xs font-bold hover:brightness-110 transition-all shadow-lg shadow-primary/20 shrink-0"
                         >
                             <Download className="w-4 h-4" /> Export
                         </button>
@@ -138,9 +138,9 @@ export default function ReportsPage() {
                         </div>
                     )}
 
-                    <div className={cn("space-y-8 transition-all duration-1000", !isPro && "opacity-20 pointer-events-none select-none grayscale-50")}>
+                    <div className={cn("space-y-6 md:space-y-8 transition-all duration-1000", !isPro && "opacity-20 pointer-events-none select-none grayscale-50")}>
                         {/* Summary Cards */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                             <SummaryCard
                                 title="Total Revenue"
                                 value={`₹${summary?.totalRevenue.toLocaleString() || '0.00'}`}
@@ -172,9 +172,9 @@ export default function ReportsPage() {
                         </div>
 
                         {/* Middle Section: Chart and Payments */}
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <div className="lg:col-span-2 bg-surface/40 backdrop-blur-md rounded-[40px] p-8 border border-surface-light shadow-xl">
-                                <div className="flex items-center justify-between mb-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
+                            <div className="lg:col-span-2 bg-surface/40 backdrop-blur-md rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-surface-light shadow-xl">
+                                <div className="flex items-center justify-between mb-6 md:mb-8">
                                     <h3 className="text-xl font-bold text-foreground font-serif italic">Revenue Trajectory</h3>
                                     <div className="flex items-center gap-2">
                                         <div className="flex items-center gap-1.5">
@@ -186,9 +186,9 @@ export default function ReportsPage() {
                                 <SalesChart data={chartData} />
                             </div>
 
-                            <div className="bg-surface/40 backdrop-blur-md rounded-[40px] p-8 border border-surface-light shadow-xl flex flex-col">
-                                <h3 className="text-xl font-bold text-foreground font-serif italic mb-8">Settlement Methods</h3>
-                                <div className="space-y-6 flex-1">
+                            <div className="bg-surface/40 backdrop-blur-md rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-surface-light shadow-xl flex flex-col">
+                                <h3 className="text-lg md:text-xl font-bold text-foreground font-serif italic mb-6 md:mb-8">Settlement Methods</h3>
+                                <div className="space-y-4 md:space-y-6 flex-1">
                                     {summary?.paymentStats.map((stat, i) => {
                                         const percentage = summary.totalRevenue > 0 ? (stat.total / summary.totalRevenue) * 100 : 0;
                                         return (
@@ -226,17 +226,17 @@ export default function ReportsPage() {
                         </div>
 
                         {/* High Value Tables */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div className="bg-surface/40 backdrop-blur-md rounded-[40px] p-8 border border-surface-light shadow-xl">
-                                <div className="flex items-center justify-between mb-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 overflow-hidden">
+                            <div className="bg-surface/40 backdrop-blur-md rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-surface-light shadow-xl overflow-x-auto no-scrollbar">
+                                <div className="flex items-center justify-between mb-6 md:mb-8">
                                     <h3 className="text-xl font-bold text-foreground font-serif italic">Performance Stars</h3>
                                     <div className="text-[10px] font-bold text-primary bg-primary/10 px-3 py-1 rounded-full uppercase tracking-widest">Top Selling</div>
                                 </div>
                                 <TopItemsTable items={topItems} />
                             </div>
 
-                            <div className="bg-surface/40 backdrop-blur-md rounded-[40px] p-8 border border-surface-light shadow-xl">
-                                <div className="flex items-center justify-between mb-8">
+                            <div className="bg-surface/40 backdrop-blur-md rounded-3xl md:rounded-[40px] p-5 md:p-8 border border-surface-light shadow-xl overflow-x-auto no-scrollbar">
+                                <div className="flex items-center justify-between mb-6 md:mb-8">
                                     <h3 className="text-xl font-bold text-foreground font-serif italic">Talent Matrix</h3>
                                     <div className="text-[10px] font-bold text-blue-500 bg-blue-500/10 px-3 py-1 rounded-full uppercase tracking-widest">Efficiency</div>
                                 </div>
@@ -259,9 +259,9 @@ function SummaryCard({ title, value, icon, trend, color }: { title: string; valu
     }[color] || "bg-primary/10 text-primary border-primary/20 shadow-primary/10";
 
     return (
-        <div className="group bg-surface/40 backdrop-blur-md p-7 rounded-[32px] border border-surface-light shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-            <div className="flex justify-between items-start mb-4">
-                <div className={cn("p-4 rounded-2xl border transition-all duration-500 group-hover:scale-110 shadow-lg", colorClasses)}>
+        <div className="group bg-surface/40 backdrop-blur-md p-5 md:p-7 rounded-3xl md:rounded-[32px] border border-surface-light shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <div className="flex justify-between items-start mb-3 md:mb-4">
+                <div className={cn("p-3 md:p-4 rounded-xl md:rounded-2xl border transition-all duration-500 group-hover:scale-110 shadow-lg shrink-0", colorClasses)}>
                     {icon}
                 </div>
                 {trend && (
