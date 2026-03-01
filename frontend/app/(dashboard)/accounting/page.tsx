@@ -202,17 +202,17 @@ export default function AccountingPage() {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 min-h-screen relative">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 min-h-screen relative">
             {/* Header */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
                 <div>
                     <h1 className="text-4xl font-bold tracking-tight font-serif italic dark:text-white">Accounting</h1>
                     <p className="text-sm text-muted mt-2">Track expenses, analyze allocation, and monitor profitability.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="bg-surface border border-surface-light px-5 py-2.5 rounded-2xl flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                <div className="w-full md:w-auto flex flex-wrap items-center gap-3 md:gap-4">
+                    <div className="flex-1 md:flex-none bg-surface border border-surface-light px-4 md:px-5 py-2 md:py-2.5 rounded-2xl flex items-center gap-3">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
                             <DollarSign className="w-5 h-5" />
                         </div>
                         <div>
@@ -225,7 +225,7 @@ export default function AccountingPage() {
 
                     <button
                         onClick={handleExport}
-                        className="bg-surface border border-surface-light text-foreground p-3 rounded-full hover:bg-surface-light transition-all shadow-sm"
+                        className="bg-surface border border-surface-light text-foreground p-2.5 md:p-3 rounded-full md:rounded-2xl hover:bg-surface-light transition-all shadow-sm shrink-0"
                         title="Export CSV"
                     >
                         <Download className="w-5 h-5" />
@@ -233,18 +233,18 @@ export default function AccountingPage() {
 
                     <button
                         onClick={() => openModal()}
-                        className="bg-primary hover:bg-primary/90 text-black px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                        className="w-full sm:w-auto justify-center bg-primary hover:bg-primary/90 text-black px-5 md:px-6 py-3 rounded-2xl md:rounded-full text-sm font-bold shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                     >
-                        <Plus className="w-5 h-5" /> Add Expense
+                        <Plus className="w-5 h-5 shrink-0" /> <span className="whitespace-nowrap">Add Expense</span>
                     </button>
                 </div>
             </div>
 
             {/* Controls & Metrics Row */}
-            <div className="flex flex-col xl:flex-row gap-6">
+            <div className="flex flex-col xl:flex-row gap-4 md:gap-6">
                 {/* Date and Search */}
-                <div className="flex flex-col md:flex-row gap-4 flex-1">
-                    <div className="flex items-center gap-3 bg-surface border border-surface-light px-4 py-2.5 rounded-2xl flex-1 focus-within:ring-2 ring-primary/20 transition-all">
+                <div className="flex flex-col md:flex-row gap-3 md:gap-4 flex-1">
+                    <div className="flex items-center gap-3 bg-surface border border-surface-light px-4 py-2.5 rounded-2xl w-full focus-within:ring-2 ring-primary/20 transition-all">
                         <Search className="w-4 h-4 text-muted" />
                         <input
                             className="bg-transparent text-sm focus:outline-none w-full placeholder:text-muted/50 dark:text-white"
@@ -254,8 +254,8 @@ export default function AccountingPage() {
                         />
                     </div>
 
-                    <div className="flex items-center bg-surface border border-surface-light rounded-2xl p-1 shadow-sm">
-                        <Calendar className="w-4 h-4 ml-3 text-muted" />
+                    <div className="flex items-center bg-surface border border-surface-light rounded-2xl p-1 shadow-sm w-full md:w-auto justify-center">
+                        <Calendar className="w-4 h-4 ml-3 text-muted shrink-0" />
                         <input
                             type="date"
                             className="bg-transparent border-none outline-none text-xs p-2.5 dark:text-white"
@@ -273,9 +273,9 @@ export default function AccountingPage() {
                 </div>
 
                 {/* Mini Stats */}
-                <div className="flex gap-4">
-                    <div className="flex-1 bg-surface border border-surface-light p-4 rounded-2xl flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
+                <div className="flex flex-row gap-3 md:gap-4 w-full xl:w-auto">
+                    <div className="flex-1 bg-surface border border-surface-light p-3 md:p-4 rounded-xl md:rounded-2xl flex items-center gap-3 md:gap-4">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-green-500/10 flex items-center justify-center text-green-500 shrink-0">
                             <TrendingUp className="w-5 h-5" />
                         </div>
                         <div>
@@ -283,9 +283,9 @@ export default function AccountingPage() {
                             <p className="font-bold">₹{revenue.toLocaleString()}</p>
                         </div>
                     </div>
-                    <div className="flex-1 bg-surface border border-surface-light p-4 rounded-2xl flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
-                            <TrendingDown className="w-5 h-5" />
+                    <div className="flex-1 bg-surface border border-surface-light p-3 md:p-4 rounded-xl md:rounded-2xl flex items-center gap-3 md:gap-4">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
+                            <TrendingDown className="w-4 h-4 md:w-5 md:h-5" />
                         </div>
                         <div>
                             <p className="text-[10px] font-black text-muted uppercase tracking-widest">Expenses</p>
@@ -295,9 +295,9 @@ export default function AccountingPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                 {/* Expense List */}
-                <div className="lg:col-span-2 space-y-6">
+                <div className="lg:col-span-2 space-y-4 md:space-y-6">
                     <div className="flex items-center justify-between px-2">
                         <h3 className="text-xl font-bold dark:text-white">Recent Transactions</h3>
                         <span className="text-xs font-medium text-muted bg-surface-light px-3 py-1.5 rounded-full">
@@ -328,11 +328,11 @@ export default function AccountingPage() {
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         key={exp.id}
-                                        className="group bg-surface border border-surface-light p-4 rounded-[24px] flex items-center justify-between hover:border-primary/50 hover:shadow-lg transition-all"
+                                        className="group bg-surface border border-surface-light p-3 md:p-4 rounded-[20px] md:rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0 hover:border-primary/50 hover:shadow-lg transition-all"
                                     >
-                                        <div className="flex items-center gap-5">
+                                        <div className="flex items-center gap-3 md:gap-5">
                                             <div className={cn(
-                                                "w-12 h-12 rounded-2xl flex items-center justify-center text-[10px] font-black tracking-tighter shadow-sm",
+                                                "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center text-[10px] font-black tracking-tighter shadow-sm shrink-0",
                                                 exp.category === 'INVENTORY' ? "bg-orange-500/10 text-orange-500 border border-orange-500/20" :
                                                     exp.category === 'SALARY' ? "bg-purple-500/10 text-purple-500 border border-purple-500/20" :
                                                         exp.category === 'UTILITY' ? "bg-blue-500/10 text-blue-500 border border-blue-500/20" :
@@ -354,12 +354,12 @@ export default function AccountingPage() {
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-6">
-                                            <div className="text-right">
-                                                <p className="font-black text-lg text-red-500">-₹{Number(exp.amount).toLocaleString()}</p>
+                                        <div className="flex items-center justify-between sm:justify-end gap-4 md:gap-6 mt-2 sm:mt-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-surface-light/30">
+                                            <div className="text-left sm:text-right">
+                                                <p className="font-black text-base md:text-lg text-red-500">-₹{Number(exp.amount).toLocaleString()}</p>
                                             </div>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0">
-                                                <button onClick={() => openModal(exp)} className="p-2.5 hover:bg-primary/10 rounded-xl text-muted hover:text-primary transition-all">
+                                            <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity sm:translate-x-2 sm:group-hover:translate-x-0">
+                                                <button onClick={() => openModal(exp)} className="p-2 md:p-2.5 hover:bg-primary/10 rounded-lg md:rounded-xl text-muted hover:text-primary transition-all">
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button onClick={() => handleDelete(exp.id)} className="p-2.5 hover:bg-red-500/10 rounded-xl text-muted hover:text-red-500 transition-all">
@@ -375,10 +375,10 @@ export default function AccountingPage() {
                 </div>
 
                 {/* Charts Sidebar */}
-                <div className="space-y-8">
+                <div className="space-y-6 md:space-y-8">
                     {/* Allocation Donut */}
-                    <div className="bg-surface border border-surface-light p-8 rounded-[32px] shadow-sm relative overflow-hidden group">
-                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors" />
+                    <div className="bg-surface border border-surface-light p-5 md:p-8 rounded-3xl md:rounded-[32px] shadow-sm relative overflow-hidden group">
+                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/10 transition-colors pointer-events-none" />
                         <h3 className="text-sm font-black dark:text-white mb-8 uppercase tracking-[0.2em] text-muted/60">Expense Allocation</h3>
                         <div className="h-64">
                             <ResponsiveContainer width="100%" height="100%">
@@ -413,9 +413,9 @@ export default function AccountingPage() {
                     </div>
 
                     {/* Trend Chart */}
-                    <div className="bg-surface border border-surface-light p-8 rounded-[32px] shadow-sm">
-                        <h3 className="text-sm font-black dark:text-white mb-8 uppercase tracking-[0.2em] text-muted/60">Spending Trend</h3>
-                        <div className="h-48">
+                    <div className="bg-surface border border-surface-light p-5 md:p-8 rounded-3xl md:rounded-[32px] shadow-sm">
+                        <h3 className="text-sm font-black dark:text-white mb-6 md:mb-8 uppercase tracking-[0.2em] text-muted/60">Spending Trend</h3>
+                        <div className="h-40 md:h-48">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={trendData}>
                                     <defs>
@@ -451,10 +451,10 @@ export default function AccountingPage() {
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="bg-surface border border-surface-light w-full max-w-md rounded-[40px] p-10 shadow-2xl relative overflow-hidden"
+                            className="bg-surface border border-surface-light w-full max-w-md rounded-3xl md:rounded-[40px] p-6 md:p-10 shadow-2xl relative overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar"
                         >
-                            <div className="flex justify-between items-center mb-8">
-                                <h2 className="text-2xl font-bold font-serif italic dark:text-white">
+                            <div className="flex justify-between items-center mb-6 md:mb-8">
+                                <h2 className="text-xl md:text-2xl font-bold font-serif italic dark:text-white">
                                     {editingExpense ? 'Edit Transaction' : 'New Transaction'}
                                 </h2>
                                 <button onClick={closeModal} className="w-10 h-10 flex items-center justify-center bg-surface-light rounded-full text-muted hover:text-foreground hover:rotate-90 transition-all">
