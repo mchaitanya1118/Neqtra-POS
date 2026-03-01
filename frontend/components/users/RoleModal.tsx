@@ -112,11 +112,11 @@ export function RoleModal({ isOpen, onClose, role }: RoleModalProps) {
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-2xl bg-surface border border-surface-light rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+                        className="relative w-full max-w-2xl bg-surface border border-surface-light rounded-3xl md:rounded-[40px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
                     >
-                        <div className="p-8 border-b border-surface-light flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                        <div className="p-5 md:p-8 border-b border-surface-light flex items-center justify-between shrink-0">
+                            <div className="flex items-center gap-3 md:gap-4">
+                                <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                                     <Shield className="w-6 h-6" />
                                 </div>
                                 <div>
@@ -124,12 +124,12 @@ export function RoleModal({ isOpen, onClose, role }: RoleModalProps) {
                                     <p className="text-xs text-muted">Define access levels and system permissions.</p>
                                 </div>
                             </div>
-                            <button onClick={onClose} className="p-3 hover:bg-surface-light rounded-full transition-colors text-muted hover:text-foreground">
-                                <X className="w-6 h-6" />
+                            <button onClick={onClose} className="p-2 md:p-3 hover:bg-surface-light rounded-full transition-colors text-muted hover:text-foreground shrink-0">
+                                <X className="w-5 h-5 md:w-6 md:h-6" />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 custom-scrollbar">
+                        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 md:p-8 custom-scrollbar no-scrollbar">
                             {error && (
                                 <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-sm font-medium">
                                     {error}
@@ -210,11 +210,11 @@ export function RoleModal({ isOpen, onClose, role }: RoleModalProps) {
                             </div>
                         </form>
 
-                        <div className="p-8 border-t border-surface-light flex gap-4">
+                        <div className="p-5 md:p-8 border-t border-surface-light flex gap-3 md:gap-4 shrink-0">
                             <button
                                 type="button"
                                 onClick={onClose}
-                                className="flex-1 px-8 py-4 bg-surface-light hover:bg-surface-light/80 text-foreground font-bold rounded-2xl transition-all"
+                                className="flex-1 px-4 md:px-8 py-3.5 md:py-4 bg-surface-light hover:bg-surface-light/80 text-foreground font-bold rounded-xl md:rounded-2xl transition-all text-sm md:text-base"
                             >
                                 Cancel
                             </button>
@@ -222,7 +222,7 @@ export function RoleModal({ isOpen, onClose, role }: RoleModalProps) {
                                 type="submit"
                                 onClick={handleSubmit}
                                 disabled={isSubmitting}
-                                className="flex-[2] px-8 py-4 bg-primary hover:bg-primary/90 text-black font-bold rounded-2xl shadow-lg shadow-primary/25 transition-all disabled:opacity-50"
+                                className="flex-[2] px-4 md:px-8 py-3.5 md:py-4 bg-primary hover:bg-primary/90 text-black font-bold rounded-xl md:rounded-2xl shadow-lg shadow-primary/25 transition-all disabled:opacity-50 text-sm md:text-base"
                             >
                                 {isSubmitting ? "Saving..." : role ? "Save Global Changes" : "Create Security Role"}
                             </button>

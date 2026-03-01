@@ -45,19 +45,19 @@ export function RoleList({ onEdit }: RoleListProps) {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.9 }}
                         key={role.id}
-                        className="group bg-surface border border-surface-light p-6 rounded-[32px] hover:border-primary/50 transition-all relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+                        className="group bg-surface border border-surface-light p-5 md:p-6 rounded-3xl md:rounded-[32px] hover:border-primary/50 transition-all relative overflow-hidden flex flex-col justify-between min-h-[220px]"
                     >
                         <div>
                             <div className="flex items-start justify-between mb-4">
                                 <div className={cn(
-                                    "w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-110",
+                                    "w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-110 shrink-0",
                                     role.isSystem
                                         ? "bg-purple-500/10 text-purple-500 border border-purple-500/20"
                                         : "bg-primary/10 text-primary border border-primary/20"
                                 )}>
-                                    {role.isSystem ? <ShieldAlert className="w-6 h-6" /> : <Shield className="w-6 h-6" />}
+                                    {role.isSystem ? <ShieldAlert className="w-5 h-5 md:w-6 md:h-6" /> : <Shield className="w-5 h-5 md:w-6 md:h-6" />}
                                 </div>
-                                <div className="flex gap-1 opacity-10 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => onEdit(role)}
                                         disabled={!hasPermission('Admin')}

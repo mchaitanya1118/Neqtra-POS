@@ -24,7 +24,7 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="group bg-surface border border-surface-light p-5 rounded-[28px] hover:border-primary/50 hover:shadow-xl transition-all relative overflow-hidden"
+            className="group bg-surface border border-surface-light p-4 md:p-5 rounded-[24px] md:rounded-[28px] hover:border-primary/50 hover:shadow-xl transition-all relative overflow-hidden"
         >
             {/* Background Glow */}
             <div className={cn(
@@ -76,7 +76,7 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
                 </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="bg-surface-light/30 border border-surface-light/20 p-3 rounded-2xl flex items-center gap-3">
                     <Mail className="w-4 h-4 text-primary/60" />
                     <div className="min-w-0">

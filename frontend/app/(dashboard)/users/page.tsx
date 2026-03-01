@@ -85,29 +85,29 @@ export default function UsersPage() {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8 min-h-screen relative">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 min-h-screen relative">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-6">
                 <div>
                     <h1 className="text-4xl font-bold tracking-tight font-serif italic dark:text-white">Staff & Roles</h1>
                     <p className="text-sm text-muted mt-2">Manage team access, permissions, and security profiles.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
-                    <div className="bg-surface border border-surface-light px-5 py-2.5 rounded-2xl flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                <div className="w-full md:w-auto flex flex-wrap items-center gap-3 md:gap-4">
+                    <div className="flex-1 md:flex-none bg-surface border border-surface-light px-4 md:px-5 py-2 md:py-2.5 rounded-2xl flex items-center gap-3">
+                        <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
                             {users.length}
                         </div>
                         <div>
                             <p className="text-[10px] uppercase font-bold text-muted tracking-wider">Total Staff</p>
-                            <p className="text-sm font-bold text-foreground">Active Members</p>
+                            <p className="text-xs md:text-sm font-bold text-foreground">Active Members</p>
                         </div>
                     </div>
 
                     <button
                         onClick={handleExport}
                         disabled={!hasPermission('Admin')}
-                        className="bg-surface border border-surface-light text-foreground p-3 rounded-full hover:bg-surface-light disabled:opacity-30 transition-all shadow-sm group"
+                        className="bg-surface border border-surface-light text-foreground p-2.5 md:p-3 rounded-full md:rounded-2xl hover:bg-surface-light disabled:opacity-30 transition-all shadow-sm group shrink-0"
                         title="Export CSV"
                     >
                         <Download className="w-5 h-5 group-hover:scale-110 transition-transform" />
@@ -116,34 +116,34 @@ export default function UsersPage() {
                     <button
                         onClick={activeTab === 'users' ? handleCreateUser : handleCreateRole}
                         disabled={!hasPermission('Admin')}
-                        className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                        className="w-full sm:w-auto justify-center bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-5 md:px-6 py-3 rounded-2xl md:rounded-full text-sm font-bold shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
                     >
-                        <Plus className="w-5 h-5" /> {activeTab === 'users' ? "Add Member" : "Add Role"}
+                        <Plus className="w-5 h-5 shrink-0" /> <span className="whitespace-nowrap">{activeTab === 'users' ? "Add Member" : "Add Role"}</span>
                     </button>
                 </div>
             </div>
 
             {/* Controls Bar */}
-            <div className="flex flex-col xl:flex-row gap-6">
+            <div className="flex flex-col xl:flex-row gap-4 md:gap-6">
                 {/* Tabs with Slider */}
-                <div className="flex bg-surface border border-surface-light p-1 rounded-2xl relative w-full xl:w-fit self-start">
+                <div className="flex bg-surface border border-surface-light p-1 rounded-2xl relative w-full xl:w-fit self-start overflow-hidden">
                     <button
                         onClick={() => setActiveTab('users')}
                         className={cn(
-                            "relative z-10 px-8 py-2.5 text-sm font-bold transition-all rounded-xl flex items-center gap-2",
+                            "flex-1 md:flex-none relative z-10 px-4 md:px-8 py-2.5 text-sm font-bold transition-all rounded-xl flex items-center justify-center md:justify-start gap-2",
                             activeTab === 'users' ? "text-black" : "text-muted hover:text-foreground"
                         )}
                     >
-                        <Users className="w-4 h-4" /> Users
+                        <Users className="w-4 h-4 shrink-0" /> Users
                     </button>
                     <button
                         onClick={() => setActiveTab('roles')}
                         className={cn(
-                            "relative z-10 px-8 py-2.5 text-sm font-bold transition-all rounded-xl flex items-center gap-2",
+                            "flex-1 md:flex-none relative z-10 px-4 md:px-8 py-2.5 text-sm font-bold transition-all rounded-xl flex items-center justify-center md:justify-start gap-2",
                             activeTab === 'roles' ? "text-black" : "text-muted hover:text-foreground"
                         )}
                     >
-                        <Shield className="w-4 h-4" /> Roles
+                        <Shield className="w-4 h-4 shrink-0" /> Roles
                     </button>
                     <motion.div
                         layoutId="activeTab"
@@ -160,8 +160,8 @@ export default function UsersPage() {
 
                 {/* Search (only for users) */}
                 {activeTab === 'users' && (
-                    <div className="flex items-center gap-3 bg-surface border border-surface-light px-5 py-3 rounded-2xl flex-1 focus-within:ring-2 ring-primary/20 transition-all group">
-                        <Search className="w-5 h-5 text-muted group-focus-within:text-primary transition-colors" />
+                    <div className="flex items-center gap-3 bg-surface border border-surface-light px-4 md:px-5 py-2.5 md:py-3 rounded-2xl flex-1 focus-within:ring-2 ring-primary/20 transition-all group w-full">
+                        <Search className="w-4 h-4 md:w-5 md:h-5 text-muted group-focus-within:text-primary transition-colors shrink-0" />
                         <input
                             className="bg-transparent text-sm focus:outline-none w-full placeholder:text-muted/50 dark:text-white"
                             placeholder="Search names, usernames, or roles..."
