@@ -132,14 +132,18 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
 
             let errorMessage = error.message || "Failed to connect to printer.";
 
-            if (errorMessage.includes("NetworkError: Connection attempt failed") || errorMessage.includes("Connection attempt failed")) {
-                errorMessage = "Connection attempt failed. Please ensure the printer is turned on, in range, and NOT currently paired to your device's native OS Bluetooth settings (Web Bluetooth needs exclusive access).";
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+            if (isIOS && !navigator.bluetooth) {
+                errorMessage = "iOS Safari does not support Bluetooth. Please use the 'Browser Print' button in the preview or use an Android/Windows/macOS device.";
+            } else if (!navigator.bluetooth) {
+                errorMessage = "Web Bluetooth is not supported in this browser. Please use Chrome/Edge on Android, Windows, or macOS.";
+            } else if (errorMessage.includes("NetworkError: Connection attempt failed") || errorMessage.includes("Connection attempt failed")) {
+                errorMessage = "Connection attempt failed. Ensure the printer is on and NOT paired to your phone's OS settings.";
             } else if (errorMessage.includes("User cancelled") || errorMessage.includes("cancelled")) {
-                errorMessage = "Bluetooth pairing was cancelled.";
-            } else if (errorMessage.includes("No Services found")) {
-                errorMessage = "Connected, but no compatible printing services found. Please ensure this is an ESC/POS BLE printer.";
+                errorMessage = "Connection cancelled.";
             } else if (errorMessage.includes("Unsupported device")) {
-                errorMessage = "Unsupported device. Please select a compatible Bluetooth Thermal Printer (often named 'MTP-II', 'PT-210', 'RPP02N', or showing as an Unknown Device with a MAC address). Disconnect from regular OS Bluetooth first.";
+                errorMessage = "Unsupported device. Please select a compatible Bluetooth Thermal Printer. Disconnect from regular OS Bluetooth first.";
             }
 
             set({

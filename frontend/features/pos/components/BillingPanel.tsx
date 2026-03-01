@@ -176,46 +176,73 @@ export function BillingPanel() {
     const paidAmount = existingOrder?.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
     const remainingDue = grandTotal - paidAmount;
 
+    const printViaIframe = (content: string, title: string = "Print") => {
+        // Create a hidden iframe
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        iframe.name = "printFrame";
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow?.document || iframe.contentDocument;
+        if (!doc) {
+            console.error("Could not access iframe document");
+            document.body.removeChild(iframe);
+            return;
+        }
+
+        doc.write('<html><head><title>' + title + '</title>');
+        // Use inline styles to avoid external CSS load delays in iframe
+        doc.write('</head><body>' + content + '</body></html>');
+        doc.close();
+
+        // Wait for content (and scripts if any) to load
+        setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+
+            // Clean up after half a minute (enough for print dialog to finish/dismiss)
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 30000);
+        }, 500);
+    };
+
     const printKOTInBrowser = (orderData: any, isUpdate: boolean = false) => {
         const items = orderData.items || [];
         const now = new Date();
-        const html = `
-            <html>
-            <head>
-                <title>KOT #${orderData.id}</title>
-                <style>
-                    body { font-family: monospace; width: 280px; margin: 0 auto; font-size: 14px; }
-                    h1 { text-align: center; font-size: 18px; font-weight: bold; margin: 0; }
-                    h2 { text-align: center; font-size: 15px; margin: 4px 0; }
-                    .meta { text-align: center; font-size: 11px; color: #555; margin-bottom: 8px; }
-                    hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
-                    .header-row { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; }
-                    .item-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 15px; font-weight: bold; }
-                    .qty { min-width: 32px; font-size: 18px; font-weight: 900; }
-                    @media print { body { width: 100%; } }
-                </style>
-            </head>
-            <body>
-                <h1>${isUpdate ? 'KOT (UPDATE)' : 'KOT (NEW)'}</h1>
-                <h2>Table: ${orderData.tableName || 'Delivery'}</h2>
-                <div class="meta">#${orderData.id} &nbsp;|&nbsp; ${now.toLocaleTimeString()}</div>
-                <hr/>
-                <div class="header-row"><span>Qty</span><span style="flex:1;margin-left:12px">Item</span></div>
-                ${items.map((item: any) => `
-                    <div class="item-row">
-                        <span class="qty">${item.quantity}x</span>
-                        <span style="flex:1;margin-left:12px">${item.menuItem?.title || item.title || 'Unknown'}</span>
-                    </div>
-                `).join('')}
-                <hr/>
-                <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
-            </body>
-            </html>`;
-        const win = window.open('', '_blank', 'width=320,height=600');
-        if (win) {
-            win.document.write(html);
-            win.document.close();
-        }
+        const content = `
+            <style>
+                body { font-family: monospace; width: 280px; margin: 0 auto; font-size: 14px; color: #000; }
+                h1 { text-align: center; font-size: 18px; font-weight: bold; margin: 0; }
+                h2 { text-align: center; font-size: 15px; margin: 4px 0; }
+                .meta { text-align: center; font-size: 11px; color: #555; margin-bottom: 8px; }
+                hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
+                .header-row { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; }
+                .item-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 15px; font-weight: bold; }
+                .qty { min-width: 32px; font-size: 18px; font-weight: 900; }
+                @media print { 
+                    body { width: 100%; margin: 0; } 
+                }
+            </style>
+            <h1>${isUpdate ? 'KOT (UPDATE)' : 'KOT (NEW)'}</h1>
+            <h2>Table: ${orderData.tableName || 'Delivery'}</h2>
+            <div class="meta">#${orderData.id} &nbsp;|&nbsp; ${now.toLocaleTimeString()}</div>
+            <hr/>
+            <div class="header-row"><span>Qty</span><span style="flex:1;margin-left:12px">Item</span></div>
+            ${items.map((item: any) => `
+                <div class="item-row">
+                    <span class="qty">${item.quantity}x</span>
+                    <span style="flex:1;margin-left:12px">${item.menuItem?.title || item.title || 'Unknown'}</span>
+                </div>
+            `).join('')}
+            <hr/>
+        `;
+        printViaIframe(content, `KOT #${orderData.id}`);
     };
 
     const handlePrint = async (orderData: any, isKOT = false, isUpdate = false) => {
@@ -248,16 +275,11 @@ export function BillingPanel() {
         setTimeout(() => {
             if (receiptRef.current) {
                 const printContent = receiptRef.current.innerHTML;
-                const win = window.open('', '', 'height=600,width=400');
-                if (win) {
-                    win.document.write('<html><head><title>Receipt</title>');
-                    win.document.write('<script src="https://cdn.tailwindcss.com"></script>');
-                    win.document.write('</head><body>');
-                    win.document.write(printContent);
-                    win.document.write('</body></html>');
-                    win.document.close();
-                    setTimeout(() => win.print(), 500);
-                }
+                const stylizedContent = `
+                    <script src="https://cdn.tailwindcss.com"></script>
+                    <div class="p-4">${printContent}</div>
+                `;
+                printViaIframe(stylizedContent, "Receipt");
             }
         }, 100);
     };
