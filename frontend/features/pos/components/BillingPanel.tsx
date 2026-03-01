@@ -327,7 +327,7 @@ export function BillingPanel() {
                     setKotIsUpdate(!!existingOrder); // capture BEFORE fetchActiveOrder updates it
                     setKotOrder(currentOrder);
                     setIsKOTOpen(true);
-                    clearCart();
+                    // clearCart is called after KOT modal is dismissed
                 }
             }
 
@@ -673,11 +673,17 @@ export function BillingPanel() {
 
             <KOTPreviewModal
                 isOpen={isKOTOpen}
-                onClose={() => setIsKOTOpen(false)}
+                onClose={() => {
+                    setIsKOTOpen(false);
+                    clearCart();
+                    fetchActiveOrder();
+                }}
                 order={kotOrder}
                 onPrint={async () => {
                     await handlePrint(kotOrder, true);
                     setIsKOTOpen(false);
+                    clearCart();
+                    fetchActiveOrder();
                 }}
             />
         </div>
