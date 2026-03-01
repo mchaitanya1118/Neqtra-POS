@@ -182,7 +182,7 @@ export const usePrinterStore = create<PrinterState>((set, get) => ({
                 if (characteristic.properties.writeWithoutResponse) {
                     await characteristic.writeValueWithoutResponse(chunk);
                 } else {
-                    await characteristic.writeValue(chunk); // Slower, waits for ACK
+                    await characteristic.writeValueWithResponse(chunk); // Slower, waits for ACK
                 }
                 // Delay to allow printer hardware buffer to process the chunk
                 await new Promise(resolve => setTimeout(resolve, 50));
