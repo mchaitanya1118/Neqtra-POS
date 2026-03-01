@@ -144,7 +144,7 @@ export default function DuesPage() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 relative min-h-screen" onClick={() => setActiveMenu(null)}>
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-8">
                 <div>
                     <h1 className="text-4xl font-bold tracking-tight font-serif italic">Dues Management</h1>
                     <p className="text-muted text-sm mt-2">Track customer debts, credits, and settlements</p>
@@ -152,15 +152,15 @@ export default function DuesPage() {
                 <button
                     onClick={(e) => { e.stopPropagation(); setIsAddModalOpen(true); }}
                     disabled={!hasPermission('Admin')}
-                    className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg px-6 py-3 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all flex items-center gap-2 transform hover:scale-105 active:scale-95"
+                    className="w-full md:w-auto bg-primary hover:bg-primary/90 disabled:opacity-50 text-primary-fg px-6 py-3.5 md:py-3 rounded-2xl md:rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2 transform hover:scale-105 active:scale-95 shrink-0"
                 >
-                    <Plus className="w-5 h-5" /> Add Customer
+                    <Plus className="w-5 h-5 shrink-0" /> <span className="whitespace-nowrap">Add Customer</span>
                 </button>
             </div>
 
             {/* Search */}
-            <div className="flex items-center gap-4 bg-surface/50 backdrop-blur-sm p-4 rounded-3xl border border-surface-light w-full md:w-fit shadow-sm">
-                <Search className="w-5 h-5 text-muted" />
+            <div className="flex items-center gap-3 md:gap-4 bg-surface/50 backdrop-blur-sm p-3.5 md:p-4 rounded-2xl md:rounded-3xl border border-surface-light w-full md:w-fit shadow-sm mt-6 mb-8 group focus-within:ring-2 ring-primary/20 transition-all">
+                <Search className="w-5 h-5 text-muted group-focus-within:text-primary transition-colors shrink-0" />
                 <input
                     className="bg-transparent text-sm focus:outline-none w-full md:w-80 placeholder:text-muted/50"
                     placeholder="Search customers by name or phone..."
@@ -171,7 +171,7 @@ export default function DuesPage() {
             </div>
 
             {/* List */}
-            <div className="relative mt-8">
+            <div className="relative mt-2 md:mt-8">
                 {!isProOrStarter && (
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm rounded-[32px] border border-surface-light p-8 text-center min-h-[400px]">
                         <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 mx-auto">
