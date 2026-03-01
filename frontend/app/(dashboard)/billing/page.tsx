@@ -146,8 +146,8 @@ function BillingContent() {
 
         {/* Search Bar & Mobile Headers */}
         <div className="bg-background/80 backdrop-blur-xl border-b border-surface-light flex flex-col gap-4 z-10 p-4 md:p-6 transition-all">
-          <div className="flex items-center gap-4">
-            <div className="relative flex-1 group">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="relative flex-1 min-w-[200px] group">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
               <input
                 className="w-full pl-12 pr-6 py-3.5 bg-surface-light/50 border border-transparent focus:border-primary/50 rounded-full text-sm text-foreground focus:outline-none transition-all placeholder:text-muted/50 backdrop-blur-md ring-1 ring-transparent focus:ring-primary/20"
@@ -157,7 +157,7 @@ function BillingContent() {
               />
             </div>
 
-            <div className="hidden lg:flex items-center gap-3 bg-surface/50 backdrop-blur-sm border border-surface-light rounded-full px-4 py-2">
+            <div className="hidden sm:flex items-center gap-3 bg-surface/50 backdrop-blur-sm border border-surface-light rounded-full px-4 py-2 shrink-0">
               <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               <span className="text-[10px] font-bold text-muted uppercase tracking-widest whitespace-nowrap">Live Menu Bridge</span>
             </div>

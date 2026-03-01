@@ -56,21 +56,20 @@ export function Header({ onMenuClick }: HeaderProps) {
     const filteredNavItems = navItems.filter(item => !item.permission || hasPermission(item.permission));
 
     return (
-        <header className="h-20 bg-background/80 backdrop-blur-md border-b border-surface-light flex items-center px-6 justify-between shrink-0 sticky top-0 z-40">
+        <header className="h-16 md:h-20 bg-background/80 backdrop-blur-md border-b border-surface-light flex items-center px-4 md:px-6 justify-between shrink-0 sticky top-0 z-40">
             {/* Left Section */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 md:gap-6">
                 {/* Menu functionality moved to floating Sidebar toggle */}
                 <button
                     onClick={() => useUIStore.getState().toggleSidebar()}
-                    className="w-10 h-10 rounded-[12px] border border-surface-light flex flex-col gap-1.5 items-center justify-center text-foreground hover:bg-surface-light hover:text-primary transition-all group"
+                    className="w-10 h-10 md:w-12 md:h-12 rounded-[10px] md:rounded-[12px] border border-surface-light flex flex-col gap-1.5 items-center justify-center text-foreground hover:bg-surface-light hover:text-primary transition-all group shrink-0"
                 >
-                    <div className="w-5 h-0.5 bg-foreground group-hover:bg-primary transition-colors" />
-                    <div className="w-5 h-0.5 bg-foreground group-hover:bg-primary transition-colors" />
+                    <div className="w-5 h-0.5 md:w-6 md:h-0.5 bg-foreground group-hover:bg-primary transition-colors" />
+                    <div className="w-5 h-0.5 md:w-6 md:h-0.5 bg-foreground group-hover:bg-primary transition-colors" />
                 </button>
 
                 {/* Logo - Pushed left if menu is gone, or kept for branding */}
-
-                <div className="hidden md:flex items-center">
+                <div className="hidden md:flex items-center shrink-0">
                     <span className="text-3xl font-bold text-primary italic font-serif tracking-tighter">
                         N
                     </span>
@@ -83,13 +82,13 @@ export function Header({ onMenuClick }: HeaderProps) {
                         useTableStore.getState().selectTable(null);
                         router.push('/billing');
                     }}
-                    className="ml-2 bg-primary hover:bg-primary/90 text-primary-fg px-6 py-2.5 rounded-full text-sm font-bold shadow-[0_0_15px_rgba(105,215,189,0.3)] hover:shadow-[0_0_20px_rgba(105,215,189,0.5)] transition-all transform hover:scale-105 active:scale-95"
+                    className="ml-0 md:ml-2 bg-primary hover:bg-primary/90 text-primary-fg px-4 py-2 md:px-6 md:py-2.5 rounded-full text-xs md:text-sm font-bold shadow-[0_0_15px_rgba(105,215,189,0.3)] hover:shadow-[0_0_20px_rgba(105,215,189,0.5)] transition-all transform hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap"
                 >
                     New Order
                 </button>
 
                 {/* Search Bar */}
-                <div className="ml-4 relative hidden md:block w-64">
+                <div className="ml-4 relative hidden md:block w-64 shrink-0">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
                     <input
                         className="w-full pl-10 pr-4 py-2.5 bg-surface-light border border-transparent focus:border-primary/50 rounded-full text-sm text-foreground placeholder:text-muted focus:outline-none transition-all"
@@ -107,7 +106,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             </div>
 
             {/* Right Section */}
-            <div className="flex items-center gap-2 md:gap-6">
+            <div className="flex items-center gap-1 md:gap-6 shrink-0">
                 {/* Nav Icons */}
                 <div className="hidden xl:flex items-center gap-2 border-r border-surface-light pr-4 mr-2 flex-shrink-0">
                     {filteredNavItems.map((item) => {
@@ -136,20 +135,22 @@ export function Header({ onMenuClick }: HeaderProps) {
                 </div>
 
                 {/* Notification */}
-                <NotificationCenter />
+                <div className="scale-90 md:scale-100 origin-right">
+                    <NotificationCenter />
+                </div>
 
                 {/* Help */}
-                <button className="p-2.5 rounded-full hover:bg-surface-light text-muted hover:text-foreground transition-colors flex-shrink-0">
-                    <HelpCircle className="w-5 h-5" />
+                <button className="p-2 md:p-2.5 rounded-full hover:bg-surface-light text-muted hover:text-foreground transition-colors flex-shrink-0">
+                    <HelpCircle className="w-4 h-4 md:w-5 md:h-5" />
                 </button>
 
                 {/* Power / Logout */}
                 <button
                     onClick={handleLogout}
-                    className="p-2.5 rounded-full hover:bg-destructive/10 hover:text-destructive text-muted transition-colors flex-shrink-0"
+                    className="p-2 md:p-2.5 rounded-full hover:bg-destructive/10 hover:text-destructive text-muted transition-colors flex-shrink-0"
                     title="Logout"
                 >
-                    <Power className="w-5 h-5" />
+                    <Power className="w-4 h-4 md:w-5 md:h-5" />
                 </button>
 
             </div>
