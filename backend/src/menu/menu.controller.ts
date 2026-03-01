@@ -32,6 +32,12 @@ export class MenuController {
     return this.aiMenuService.extractMenuFromImage(file.buffer, file.mimetype);
   }
 
+  @Post('ai-import')
+  @UseInterceptors(FileInterceptor('file'))
+  async importMenu(@UploadedFile() file: Express.Multer.File) {
+    return this.aiMenuService.extractAndImportMenu(file.buffer, file.mimetype);
+  }
+
   @Get('items')
   findAllItems(@Query('categoryId') categoryId?: string) {
     return this.menuService.findAllItems(categoryId ? +categoryId : undefined);

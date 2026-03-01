@@ -16,76 +16,47 @@ interface AIMenuModalProps {
 }
 
 export function AIMenuModal({ isOpen, onClose }: AIMenuModalProps) {
-    const [step, setStep] = useState<'upload' | 'processing' | 'preview'>('upload');
-    const [file, setFile] = useState<File | null>(null);
-    const [extractedData, setExtractedData] = useState<any>(null);
+    const [step, setStep] = useState<'upload' | 'processing' | 'done'>('upload');
+    const [importResult, setImportResult] = useState<{ summary: { categoriesAdded: number; itemsAdded: number; itemsSkipped: number } } | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [isSaving, setIsSaving] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const extractMenu = useMenuStore(state => state.extractMenu);
-    const addCategory = useMenuStore(state => state.addCategory);
-    const addItem = useMenuStore(state => state.addItem);
     const fetchMenu = useMenuStore(state => state.fetchMenu);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selected = e.target.files?.[0];
         if (selected) {
-            startExtraction(selected);
+            startImport(selected);
         }
     };
 
-    const startExtraction = async (selectedFile: File) => {
-        setFile(selectedFile);
+    const startImport = async (selectedFile: File) => {
         setStep('processing');
         setError(null);
 
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
         try {
-            const data = await extractMenu(selectedFile);
-            setExtractedData(data);
-            setStep('preview');
-        } catch (err) {
-            setError("Failed to extract menu. Please try a clearer photo.");
+            const res = await (await import('@/lib/api')).default.post('/menu/ai-import', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            setImportResult(res.data);
+            setStep('done');
+            // Refresh the menu so new items appear immediately
+            await fetchMenu();
+        } catch (err: any) {
+            console.error('AI Import failed:', err);
+            setError(err?.response?.data?.message || 'Failed to extract menu. Please try a clearer photo.');
             setStep('upload');
         }
     };
 
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            const currentCategories = useMenuStore.getState().categories;
-
-            for (const catData of extractedData.categories) {
-                // Check if category already exists to avoid duplication
-                let targetCat = currentCategories.find(c =>
-                    c.title.toLowerCase() === catData.title.toLowerCase()
-                );
-
-                if (!targetCat) {
-                    targetCat = await addCategory(catData.title, 'Utensils', 'orange');
-                }
-
-                if (targetCat) {
-                    for (const item of catData.items) {
-                        await addItem(targetCat.id, {
-                            title: item.title,
-                            price: item.price,
-                            description: item.description,
-                            isAvailable: true
-                        });
-                    }
-                }
-            }
-            onClose();
-            setStep('upload');
-            setExtractedData(null);
-            setFile(null);
-        } catch (err) {
-            console.error("Save failed:", err);
-            setError("Failed to save some items. Please check your connection.");
-        } finally {
-            setIsSaving(false);
-        }
+    const handleClose = () => {
+        onClose();
+        setStep('upload');
+        setImportResult(null);
+        setError(null);
     };
 
     if (!isOpen) return null;
@@ -198,80 +169,38 @@ export function AIMenuModal({ isOpen, onClose }: AIMenuModalProps) {
                             </div>
                         )}
 
-                        {step === 'preview' && extractedData && (
-                            <div className="space-y-8 pb-4">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        Extraction Complete
-                                    </h3>
-                                    <button
-                                        onClick={() => setStep('upload')}
-                                        className="text-xs font-bold text-muted hover:text-foreground"
-                                    >
-                                        Re-upload
-                                    </button>
+                        {step === 'done' && importResult && (
+                            <div className="flex flex-col items-center justify-center py-16 space-y-6 text-center">
+                                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <CheckCircle2 className="w-10 h-10 text-primary" />
                                 </div>
-
-                                <div className="space-y-6">
-                                    {extractedData.categories.map((cat: any, cIdx: number) => (
-                                        <div key={cIdx} className="space-y-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="h-px bg-surface-light flex-1" />
-                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted">{cat.title}</span>
-                                                <div className="h-px bg-surface-light flex-1" />
-                                            </div>
-                                            <div className="grid gap-3">
-                                                {cat.items.map((item: any, iIdx: number) => (
-                                                    <div
-                                                        key={iIdx}
-                                                        className="p-4 bg-surface-light/30 border border-surface-light rounded-2xl flex items-center justify-between group hover:border-primary/30 transition-colors"
-                                                    >
-                                                        <div className="min-w-0 pr-4">
-                                                            <div className="text-sm font-bold truncate">{item.title}</div>
-                                                            {item.description && (
-                                                                <div className="text-[10px] text-muted truncate mt-0.5">{item.description}</div>
-                                                            )}
-                                                        </div>
-                                                        <div className="font-bold text-sm shrink-0">₹{item.price}</div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div className="space-y-2">
+                                    <h3 className="text-xl font-black">Import Complete!</h3>
+                                    <p className="text-sm text-muted">Your menu has been updated successfully.</p>
                                 </div>
+                                <div className="grid grid-cols-3 gap-4 w-full max-w-xs">
+                                    <div className="bg-surface-light rounded-2xl p-4 text-center">
+                                        <div className="text-2xl font-black text-primary">{importResult.summary.categoriesAdded}</div>
+                                        <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Categories</div>
+                                    </div>
+                                    <div className="bg-surface-light rounded-2xl p-4 text-center">
+                                        <div className="text-2xl font-black text-primary">{importResult.summary.itemsAdded}</div>
+                                        <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Items Added</div>
+                                    </div>
+                                    <div className="bg-surface-light rounded-2xl p-4 text-center">
+                                        <div className="text-2xl font-black text-muted">{importResult.summary.itemsSkipped}</div>
+                                        <div className="text-[10px] text-muted font-bold uppercase tracking-widest mt-1">Skipped</div>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleClose}
+                                    className="bg-primary hover:bg-primary/90 text-black px-8 py-3 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/20"
+                                >
+                                    Done
+                                </button>
                             </div>
                         )}
                     </div>
-
-                    {/* Footer Actions */}
-                    {step === 'preview' && (
-                        <div className="p-6 border-t border-surface-light bg-surface-light/20 flex gap-4">
-                            <button
-                                onClick={onClose}
-                                className="flex-1 py-4 text-sm font-black uppercase tracking-widest text-muted hover:text-foreground transition-colors"
-                            >
-                                Discard
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving}
-                                className="flex-[2] bg-primary hover:bg-primary/90 text-black py-4 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                            >
-                                {isSaving ? (
-                                    <>
-                                        <Loader2 className="w-5 h-5 animate-spin" />
-                                        Importing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-5 h-5" />
-                                        Import to Menu
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    )}
                 </motion.div>
             </div>
         </AnimatePresence>
