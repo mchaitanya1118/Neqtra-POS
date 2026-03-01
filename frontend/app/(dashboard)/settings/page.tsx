@@ -61,8 +61,8 @@ export default function SettingsPage() {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <div className="flex items-center justify-between bg-surface/50 p-6 rounded-2xl border border-surface-light">
+        <div className="max-w-4xl mx-auto space-y-4 md:space-y-6 p-4 md:p-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-surface/50 p-4 md:p-6 rounded-2xl border border-surface-light gap-4 md:gap-0">
                 <div>
                     <h1 className="text-2xl font-bold flex items-center gap-2">
                         <Store className="text-primary" /> Workspace Settings
@@ -83,8 +83,8 @@ export default function SettingsPage() {
                 </div>
             )}
 
-            <div className="bg-surface/50 border border-surface-light rounded-2xl p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-surface/50 border border-surface-light rounded-2xl p-4 md:p-6 space-y-4 md:space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase tracking-wider text-muted">Business Name</label>
                         <input
@@ -151,20 +151,20 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                <div className="pt-4 flex justify-end">
+                <div className="pt-2 md:pt-4 flex justify-end">
                     <button
                         onClick={handleSave}
                         disabled={isLoading}
-                        className="px-6 py-3 rounded-xl font-bold bg-primary text-primary-fg hover:opacity-90 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
+                        className="w-full sm:w-auto px-6 py-3.5 md:py-3 rounded-xl font-bold bg-primary text-primary-fg hover:opacity-90 transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
                     >
-                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                        {isLoading ? 'Saving...' : 'Save Settings'}
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin shrink-0" /> : <Save className="w-5 h-5 shrink-0" />}
+                        <span className="whitespace-nowrap">{isLoading ? 'Saving...' : 'Save Settings'}</span>
                     </button>
                 </div>
             </div>
 
             {/* Hardware Settings Section */}
-            <div className="flex items-center justify-between bg-surface/50 p-6 rounded-2xl border border-surface-light mt-8">
+            <div className="flex items-center justify-between bg-surface/50 p-4 md:p-6 rounded-2xl border border-surface-light mt-6 md:mt-8">
                 <div>
                     <h2 className="text-xl font-bold flex items-center gap-2">
                         <Printer className="text-blue-500" /> Hardware Settings
@@ -179,25 +179,25 @@ export default function SettingsPage() {
                 </div>
             )}
 
-            <div className="bg-surface/50 border border-surface-light rounded-2xl p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-background border border-surface-light rounded-xl">
-                    <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-full ${isConnected ? 'bg-green-500/20 text-green-500' : 'bg-surface text-muted'}`}>
-                            <Bluetooth className="w-6 h-6" />
+            <div className="bg-surface/50 border border-surface-light rounded-2xl p-4 md:p-6 space-y-4 md:space-y-6 mb-8 md:mb-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-background border border-surface-light rounded-xl">
+                    <div className="flex items-center gap-3 md:gap-4 w-full sm:w-auto">
+                        <div className={`p-2.5 md:p-3 rounded-full shrink-0 ${isConnected ? 'bg-green-500/20 text-green-500' : 'bg-surface text-muted'}`}>
+                            <Bluetooth className="w-5 h-5 md:w-6 md:h-6" />
                         </div>
-                        <div>
-                            <h3 className="font-bold text-foreground">Bluetooth Receipt Printer</h3>
-                            <p className="text-sm text-muted">
+                        <div className="flex-1">
+                            <h3 className="font-bold text-foreground text-sm md:text-base">Bluetooth Receipt Printer</h3>
+                            <p className="text-xs md:text-sm text-muted">
                                 {isConnected ? `Connected: ${device?.name || 'Thermal Printer'}` : 'Not connected'}
                             </p>
                         </div>
                     </div>
 
-                    <div>
+                    <div className="w-full sm:w-auto">
                         {isConnected ? (
                             <button
                                 onClick={disconnectPrinter}
-                                className="px-5 py-2.5 rounded-xl font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center gap-2"
+                                className="w-full sm:w-auto justify-center px-4 md:px-5 py-2.5 rounded-xl font-bold bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors flex items-center gap-2"
                             >
                                 <PowerOff className="w-4 h-4" /> Disconnect
                             </button>
@@ -205,10 +205,10 @@ export default function SettingsPage() {
                             <button
                                 onClick={connectPrinter}
                                 disabled={isConnecting}
-                                className="px-5 py-2.5 rounded-xl font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-70"
+                                className="w-full sm:w-auto justify-center px-4 md:px-5 py-2.5 rounded-xl font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors flex items-center gap-2 disabled:opacity-70"
                             >
-                                {isConnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bluetooth className="w-4 h-4" />}
-                                {isConnecting ? 'Pairing...' : 'Pair Printer'}
+                                {isConnecting ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Bluetooth className="w-4 h-4 shrink-0" />}
+                                <span className="whitespace-nowrap">{isConnecting ? 'Pairing...' : 'Pair Printer'}</span>
                             </button>
                         )}
                     </div>
