@@ -176,6 +176,48 @@ export function BillingPanel() {
     const paidAmount = existingOrder?.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
     const remainingDue = grandTotal - paidAmount;
 
+    const printKOTInBrowser = (orderData: any) => {
+        const items = orderData.items || [];
+        const now = new Date();
+        const html = `
+            <html>
+            <head>
+                <title>KOT #${orderData.id}</title>
+                <style>
+                    body { font-family: monospace; width: 280px; margin: 0 auto; font-size: 14px; }
+                    h1 { text-align: center; font-size: 18px; font-weight: bold; margin: 0; }
+                    h2 { text-align: center; font-size: 15px; margin: 4px 0; }
+                    .meta { text-align: center; font-size: 11px; color: #555; margin-bottom: 8px; }
+                    hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
+                    .header-row { display: flex; justify-content: space-between; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 4px; }
+                    .item-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 15px; font-weight: bold; }
+                    .qty { min-width: 32px; font-size: 18px; font-weight: 900; }
+                    @media print { body { width: 100%; } }
+                </style>
+            </head>
+            <body>
+                <h1>${kotIsUpdate ? 'KOT (UPDATE)' : 'KOT (NEW)'}</h1>
+                <h2>Table: ${orderData.tableName || 'Delivery'}</h2>
+                <div class="meta">#${orderData.id} &nbsp;|&nbsp; ${now.toLocaleTimeString()}</div>
+                <hr/>
+                <div class="header-row"><span>Qty</span><span style="flex:1;margin-left:12px">Item</span></div>
+                ${items.map((item: any) => `
+                    <div class="item-row">
+                        <span class="qty">${item.quantity}x</span>
+                        <span style="flex:1;margin-left:12px">${item.menuItem?.title || item.title || 'Unknown'}</span>
+                    </div>
+                `).join('')}
+                <hr/>
+                <script>window.onload = () => { window.print(); window.onafterprint = () => window.close(); }</script>
+            </body>
+            </html>`;
+        const win = window.open('', '_blank', 'width=320,height=600');
+        if (win) {
+            win.document.write(html);
+            win.document.close();
+        }
+    };
+
     const handlePrint = async (orderData: any, isKOT = false) => {
         if (printerConnected) {
             try {
@@ -184,23 +226,24 @@ export function BillingPanel() {
                     : generateBillReceipt(orderData, (user as any)?.tenant?.name || "Neqtra POS");
 
                 await printToBluetooth(bytes);
-                return; // success
+                return; // Bluetooth success
             } catch (e: any) {
                 console.error("Bluetooth print failed:", e);
-                const msg = e.message || "Unknown Error";
                 if (isKOT) {
-                    alert(`KOT Print Failed: ${msg}\n\nPlease check the printer connection and try again.`);
-                    return; // don't fallback for KOT
+                    // Bluetooth failed — fall back to browser KOT print
+                    console.warn("Bluetooth KOT failed, falling back to browser print");
+                    printKOTInBrowser(orderData);
+                    return;
                 }
-                // Bill: fallback to browser print dialog
-                alert(`Bluetooth Print Failed: ${msg}. Falling back to browser print.`);
+                alert(`Bluetooth Print Failed: ${e.message || 'Unknown error'}. Falling back to browser print.`);
             }
         } else if (isKOT) {
-            alert("Printer not connected. Please connect a Bluetooth printer from the Printer settings before printing KOT.");
+            // No Bluetooth — use browser KOT print directly
+            printKOTInBrowser(orderData);
             return;
         }
 
-        // Fallback: browser print dialog (bills only)
+        // Bill fallback: browser print dialog using Receipt component
         setLastOrder(orderData);
         setTimeout(() => {
             if (receiptRef.current) {
