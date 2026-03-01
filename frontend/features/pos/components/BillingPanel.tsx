@@ -176,7 +176,7 @@ export function BillingPanel() {
     const paidAmount = existingOrder?.payments?.reduce((sum: number, p: any) => sum + Number(p.amount), 0) || 0;
     const remainingDue = grandTotal - paidAmount;
 
-    const printKOTInBrowser = (orderData: any) => {
+    const printKOTInBrowser = (orderData: any, isUpdate: boolean = false) => {
         const items = orderData.items || [];
         const now = new Date();
         const html = `
@@ -196,7 +196,7 @@ export function BillingPanel() {
                 </style>
             </head>
             <body>
-                <h1>${kotIsUpdate ? 'KOT (UPDATE)' : 'KOT (NEW)'}</h1>
+                <h1>${isUpdate ? 'KOT (UPDATE)' : 'KOT (NEW)'}</h1>
                 <h2>Table: ${orderData.tableName || 'Delivery'}</h2>
                 <div class="meta">#${orderData.id} &nbsp;|&nbsp; ${now.toLocaleTimeString()}</div>
                 <hr/>
@@ -218,11 +218,11 @@ export function BillingPanel() {
         }
     };
 
-    const handlePrint = async (orderData: any, isKOT = false) => {
+    const handlePrint = async (orderData: any, isKOT = false, isUpdate = false) => {
         if (printerConnected) {
             try {
                 const bytes = isKOT
-                    ? generateKOTReceipt(orderData, kotIsUpdate)
+                    ? generateKOTReceipt(orderData, isUpdate)
                     : generateBillReceipt(orderData, (user as any)?.tenant?.name || "Neqtra POS");
 
                 await printToBluetooth(bytes);
@@ -232,14 +232,14 @@ export function BillingPanel() {
                 if (isKOT) {
                     // Bluetooth failed — fall back to browser KOT print
                     console.warn("Bluetooth KOT failed, falling back to browser print");
-                    printKOTInBrowser(orderData);
+                    printKOTInBrowser(orderData, isUpdate);
                     return;
                 }
                 alert(`Bluetooth Print Failed: ${e.message || 'Unknown error'}. Falling back to browser print.`);
             }
         } else if (isKOT) {
             // No Bluetooth — use browser KOT print directly
-            printKOTInBrowser(orderData);
+            printKOTInBrowser(orderData, isUpdate);
             return;
         }
 
@@ -367,8 +367,26 @@ export function BillingPanel() {
                     alert("Delivery Order Created!");
                     router.push('/delivery');
                 } else {
-                    setKotIsUpdate(!!existingOrder); // capture BEFORE fetchActiveOrder updates it
-                    setKotOrder(currentOrder);
+                    const isUpdate = !!existingOrder;
+                    setKotIsUpdate(isUpdate);
+
+                    // On update, KOT should only show the NEW items just added (from cart),
+                    // not all existing items already on the table.
+                    // On new order, all items are new so we can use the full order.
+                    const kotData = isUpdate
+                        ? {
+                            ...currentOrder,
+                            tableName: selectedTable?.label || currentOrder.tableName,
+                            items: items.map(i => ({
+                                quantity: i.quantity,
+                                menuItem: { title: i.title },
+                                title: i.title,
+                                status: 'PENDING',
+                            })),
+                        }
+                        : { ...currentOrder, tableName: selectedTable?.label || currentOrder.tableName };
+
+                    setKotOrder(kotData);
                     setIsKOTOpen(true);
                     // clearCart is called after KOT modal is dismissed
                 }
@@ -716,6 +734,7 @@ export function BillingPanel() {
 
             <KOTPreviewModal
                 isOpen={isKOTOpen}
+                tableLabel={selectedTable?.label}
                 onClose={() => {
                     setIsKOTOpen(false);
                     clearCart();
@@ -723,7 +742,7 @@ export function BillingPanel() {
                 }}
                 order={kotOrder}
                 onPrint={async () => {
-                    await handlePrint(kotOrder, true);
+                    await handlePrint(kotOrder, true, kotIsUpdate);
                     setIsKOTOpen(false);
                     clearCart();
                     fetchActiveOrder();

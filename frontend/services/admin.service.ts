@@ -5,6 +5,8 @@ export interface Tenant {
     name: string;
     status: 'ACTIVE' | 'SUSPENDED';
     subscriptionPlan: 'FREE' | 'BASIC' | 'PRO' | 'ENTERPRISE';
+    maxUsers: number;
+    maxTables: number;
     createdAt: string;
 }
 

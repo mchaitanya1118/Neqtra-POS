@@ -1,12 +1,16 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Req } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { AdminAuditService } from './admin-audit.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SuperAdminGuard } from '../auth/super-admin.guard';
 
 @Controller('admin')
 @UseGuards(JwtAuthGuard, SuperAdminGuard)
 export class AdminController {
-    constructor(private readonly adminService: AdminService) { }
+    constructor(
+        private readonly adminService: AdminService,
+        private readonly auditService: AdminAuditService,
+    ) { }
 
     @Post('tenants')
     createTenant(@Body() body: { name: string; plan?: string }, @Req() req: any) {
@@ -40,8 +44,6 @@ export class AdminController {
 
     @Get('audit-logs')
     getAuditLogs() {
-        // This will be implemented in the AuditService but we expose it here
-        // Note: AdminService doesn't have getLogs yet but we can inject AuditService or add to AdminService
-        return (this.adminService as any).auditService.getLogs();
+        return this.auditService.getLogs();
     }
 }

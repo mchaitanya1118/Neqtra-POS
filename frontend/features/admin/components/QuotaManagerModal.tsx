@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tenant, AdminService } from '@/services/admin.service';
 import { X, Users, LayoutGrid, Save, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,12 +20,12 @@ export default function QuotaManagerModal({ tenant, isOpen, onClose, onSuccess }
     const [loading, setLoading] = useState(false);
 
     // Sync quotas when tenant changes
-    useState(() => {
+    useEffect(() => {
         if (tenant) {
-            setMaxUsers((tenant as any).maxUsers || 10);
-            setMaxTables((tenant as any).maxTables || 20);
+            setMaxUsers(tenant.maxUsers || 10);
+            setMaxTables(tenant.maxTables || 20);
         }
-    });
+    }, [tenant]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

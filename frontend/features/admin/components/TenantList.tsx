@@ -94,7 +94,7 @@ export default function TenantList({ tenants, onRefresh }: TenantListProps) {
                                 <p className="text-[10px] font-black text-muted uppercase tracking-widest mb-1">Infrastructure</p>
                                 <div className="flex items-center gap-2 justify-center">
                                     <UserPlus2 className="w-4 h-4 text-primary" />
-                                    <span className="text-lg font-black text-foreground">{(tenant as any).maxUsers || 10}</span>
+                                    <span className="text-lg font-black text-foreground">{tenant.maxUsers || 10}</span>
                                 </div>
                             </div>
                             <div className="text-center">
@@ -127,6 +127,7 @@ export default function TenantList({ tenants, onRefresh }: TenantListProps) {
                                 className="flex-1 lg:flex-none bg-surface/50 border border-surface-light text-foreground text-[10px] font-black font-serif uppercase tracking-widest rounded-xl focus:ring-primary focus:border-primary block p-3 outline-none"
                             >
                                 <option value="FREE">Standard</option>
+                                <option value="TRIAL">Trial</option>
                                 <option value="BASIC">Performance</option>
                                 <option value="PRO">Elite</option>
                                 <option value="ENTERPRISE">Omni-Channel</option>
