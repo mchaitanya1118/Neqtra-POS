@@ -81,44 +81,46 @@ export default function DashboardPage() {
     return (
         <div className="min-h-screen bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col">
             {/* Header */}
-            <header className="sticky top-0 z-20 bg-[#050505]/80 backdrop-blur-md border-b border-[#1A1E21] px-8 py-5 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-4">
+            <header className="sticky top-0 z-20 bg-[#050505]/80 backdrop-blur-md border-b border-[#1A1E21] px-4 md:px-8 py-4 md:py-5 flex flex-wrap gap-4 items-center justify-between shrink-0">
+                <div className="flex items-center gap-3 md:gap-4">
                     <button
                         onClick={toggleSidebar}
-                        className="w-12 h-12 rounded-2xl bg-[#1A1E21] flex items-center justify-center border border-[#2A2E31] group cursor-pointer hover:bg-[#2A2E31] transition-colors"
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[#1A1E21] flex items-center justify-center border border-[#2A2E31] group cursor-pointer hover:bg-[#2A2E31] transition-colors shrink-0"
                     >
-                        <LayoutDashboard className="w-6 h-6 text-primary group-hover:scale-110 transition-transform" />
+                        <LayoutDashboard className="w-5 h-5 md:w-6 md:h-6 text-primary group-hover:scale-110 transition-transform" />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold font-serif italic tracking-tighter text-white">Dashboard</h1>
-                        <div className="flex items-center gap-2 mt-1">
-                            <span className="flex h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
-                            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">Live System Feed</span>
+                        <h1 className="text-2xl md:text-3xl font-bold font-serif italic tracking-tighter text-white">Dashboard</h1>
+                        <div className="flex items-center gap-2 mt-0.5 md:mt-1">
+                            <span className="flex h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)] shrink-0" />
+                            <span className="text-[9px] md:text-[10px] font-bold text-primary uppercase tracking-[0.2em] truncate relative top-[1px]">Live System Feed</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 md:gap-4">
                     <button
                         onClick={fetchMetrics}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-[#1A1E21] hover:bg-[#2A2E31] border border-[#2A2E31] rounded-full text-xs font-bold text-gray-400 hover:text-white transition-all group"
+                        className="flex items-center justify-center gap-2 w-10 h-10 md:w-auto md:px-5 md:py-2.5 bg-[#1A1E21] hover:bg-[#2A2E31] border border-[#2A2E31] rounded-full text-xs font-bold text-gray-400 hover:text-white transition-all group shrink-0"
+                        title="Refresh Feed"
                     >
-                        <RefreshCw className={cn("w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500", loading && "animate-spin")} />
-                        <span className="tracking-widest uppercase">Refresh Feed</span>
+                        <RefreshCw className={cn("w-4 h-4 md:w-3.5 md:h-3.5 group-hover:rotate-180 transition-transform duration-500", loading && "animate-spin")} />
+                        <span className="hidden md:inline tracking-widest uppercase">Refresh Feed</span>
                     </button>
                     <button
                         onClick={() => router.push('/billing')}
-                        className="flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary/80 text-primary-fg rounded-full text-xs font-bold shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_20%,transparent)] hover:shadow-[0_0_30px_color-mix(in_srgb,var(--primary)_40%,transparent)] transition-all transform hover:scale-105 active:scale-95"
+                        className="flex items-center justify-center gap-2 w-10 h-10 md:w-auto md:px-6 md:py-2.5 bg-primary hover:bg-primary/80 text-primary-fg rounded-full text-xs font-bold shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_20%,transparent)] hover:shadow-[0_0_30px_color-mix(in_srgb,var(--primary)_40%,transparent)] transition-all transform hover:scale-105 active:scale-95 shrink-0"
+                        title="New Order"
                     >
-                        <Plus className="w-4 h-4" />
-                        <span className="tracking-widest uppercase">New Order</span>
+                        <Plus className="w-5 h-5 md:w-4 md:h-4" />
+                        <span className="hidden md:inline tracking-widest uppercase">New Order</span>
                     </button>
                 </div>
             </header>
 
             {/* Content Area */}
-            <main className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar">
-                <div className="max-w-[1600px] mx-auto space-y-8 pb-12">
+            <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 custom-scrollbar">
+                <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8 pb-12">
 
                     {loading && !metrics ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
@@ -181,10 +183,10 @@ export default function DashboardPage() {
                                 <div className="lg:col-span-2 space-y-8">
                                     {/* Critical Inventory */}
                                     {hasPermission('Inventory') && (
-                                        <div className="bg-[#0D1212] border border-[#1A1E21] rounded-[32px] p-8 relative overflow-hidden group hover:border-primary/20 transition-all">
-                                            <div className="flex items-center justify-between mb-8">
-                                                <div className="flex items-center gap-5">
-                                                    <div className="w-14 h-14 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                                        <div className="bg-[#0D1212] border border-[#1A1E21] rounded-[24px] md:rounded-[32px] p-5 md:p-8 relative overflow-hidden group hover:border-primary/20 transition-all">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
+                                                <div className="flex items-center gap-4 md:gap-5">
+                                                    <div className="w-12 h-12 md:w-14 md:h-14 shrink-0 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                                                         <AlertTriangle className="w-7 h-7" />
                                                     </div>
                                                     <div>
@@ -226,7 +228,7 @@ export default function DashboardPage() {
 
                                     {/* Financial Performance / PnL */}
                                     {hasPermission('Reports') && (
-                                        <div className="bg-[#0D1212] border border-[#1A1E21] rounded-[32px] p-8">
+                                        <div className="bg-[#0D1212] border border-[#1A1E21] rounded-[24px] md:rounded-[32px] p-5 md:p-8 overflow-x-auto">
                                             <PnLCalendar />
                                         </div>
                                     )}
@@ -238,8 +240,8 @@ export default function DashboardPage() {
                                     <CloudNodeStatus />
 
                                     {/* Execution Gateways */}
-                                    <div className="bg-[#0D1212] border border-[#1A1E21] rounded-[32px] p-8">
-                                        <h2 className="text-xl font-bold font-serif italic text-white tracking-tight mb-8">Execution Gateways</h2>
+                                    <div className="bg-[#0D1212] border border-[#1A1E21] rounded-[24px] md:rounded-[32px] p-5 md:p-8">
+                                        <h2 className="text-xl font-bold font-serif italic text-white tracking-tight mb-6 md:mb-8">Execution Gateways</h2>
                                         <div className="space-y-4">
                                             {hasPermission('Reservations') && (
                                                 <ExecutionGatewayBtn
@@ -297,11 +299,11 @@ const MetricCard = memo(function MetricCard({ title, value, icon: Icon, trend, i
     return (
         <div
             onClick={onClick}
-            className="bg-[#0D1212] border border-[#1A1E21] rounded-[32px] p-8 hover:border-[color-mix(in_srgb,var(--primary)_30%,transparent)] hover:shadow-[0_0_30px_color-mix(in_srgb,var(--primary)_5%,transparent)] transition-all duration-300 group cursor-pointer relative overflow-hidden"
+            className="bg-[#0D1212] border border-[#1A1E21] rounded-[24px] md:rounded-[32px] p-5 md:p-8 hover:border-[color-mix(in_srgb,var(--primary)_30%,transparent)] hover:shadow-[0_0_30px_color-mix(in_srgb,var(--primary)_5%,transparent)] transition-all duration-300 group cursor-pointer relative overflow-hidden flex flex-col justify-between"
         >
-            <div className="flex items-start justify-between mb-8 relative z-10">
-                <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all border border-white/5", iconBg, iconColor)}>
-                    <Icon className="w-7 h-7" />
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-6 md:mb-8 relative z-10">
+                <div className={cn("w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center transition-all border border-white/5 shrink-0", iconBg, iconColor)}>
+                    <Icon className="w-6 h-6 md:w-7 md:h-7" />
                 </div>
                 {trend && (
                     <div className="px-3 py-1.5 rounded-full border border-[#2A2E31] bg-[#1A1E21]">
