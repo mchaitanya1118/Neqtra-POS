@@ -183,13 +183,23 @@ export function BillingPanel() {
                     : generateBillReceipt(orderData, (user as any)?.tenant?.name || "Neqtra POS");
 
                 await printToBluetooth(bytes);
-                return; // Direct ESC/POS print successful, exit fallback HTML approach
+                return; // success
             } catch (e: any) {
-                console.error("Bluetooth print failed, falling back to OS printing format:", e);
-                alert("Bluetooth Print Failed: " + (e.message || "Unknown Error") + ". Calling fallback OS Print dialog.");
+                console.error("Bluetooth print failed:", e);
+                const msg = e.message || "Unknown Error";
+                if (isKOT) {
+                    alert(`KOT Print Failed: ${msg}\n\nPlease check the printer connection and try again.`);
+                    return; // don't fallback for KOT
+                }
+                // Bill: fallback to browser print dialog
+                alert(`Bluetooth Print Failed: ${msg}. Falling back to browser print.`);
             }
+        } else if (isKOT) {
+            alert("Printer not connected. Please connect a Bluetooth printer from the Printer settings before printing KOT.");
+            return;
         }
 
+        // Fallback: browser print dialog (bills only)
         setLastOrder(orderData);
         setTimeout(() => {
             if (receiptRef.current) {
@@ -663,8 +673,8 @@ export function BillingPanel() {
                 isOpen={isKOTOpen}
                 onClose={() => setIsKOTOpen(false)}
                 order={kotOrder}
-                onPrint={() => {
-                    handlePrint(kotOrder, true);
+                onPrint={async () => {
+                    await handlePrint(kotOrder, true);
                     setIsKOTOpen(false);
                 }}
             />
