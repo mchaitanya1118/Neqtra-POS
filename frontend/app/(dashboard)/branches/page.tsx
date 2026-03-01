@@ -65,19 +65,19 @@ export default function BranchesPage() {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
-            <div className="flex items-center justify-between bg-surface/50 p-6 rounded-2xl border border-surface-light">
+        <div className="max-w-5xl mx-auto space-y-4 md:space-y-6 p-4 md:p-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between bg-surface/50 p-4 md:p-6 rounded-2xl border border-surface-light gap-4 md:gap-0">
                 <div>
-                    <h1 className="text-2xl font-bold flex items-center gap-2">
-                        <Store className="text-primary" /> Branch Management
+                    <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+                        <Store className="text-primary w-5 h-5 md:w-6 md:h-6 shrink-0" /> Branch Management
                     </h1>
-                    <p className="text-muted text-sm mt-1">Manage multiple physical locations for your workspace.</p>
+                    <p className="text-muted text-xs md:text-sm mt-1">Manage multiple physical locations for your workspace.</p>
                 </div>
                 <button
                     onClick={() => setIsAdding(!isAdding)}
-                    className="px-4 py-2 bg-primary text-primary-fg font-bold rounded-xl flex items-center gap-2 hover:opacity-90 transition-opacity"
+                    className="w-full md:w-auto justify-center px-4 py-3 md:py-2 bg-primary text-primary-fg font-bold rounded-xl flex items-center gap-2 hover:opacity-90 transition-opacity shrink-0"
                 >
-                    <Plus className="w-5 h-5" /> Add Branch
+                    <Plus className="w-5 h-5 shrink-0" /> <span className="whitespace-nowrap">Add Branch</span>
                 </button>
             </div>
 
@@ -95,9 +95,9 @@ export default function BranchesPage() {
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                     >
-                        <div className="bg-surface/50 border border-surface-light rounded-2xl p-6 space-y-4 mb-6">
-                            <h3 className="font-bold border-b border-surface-light pb-2">New Branch Location</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-surface/50 border border-surface-light rounded-2xl p-4 md:p-6 space-y-4 mb-6">
+                            <h3 className="font-bold border-b border-surface-light pb-2 text-sm md:text-base">New Branch Location</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
                                 <input
                                     placeholder="Branch Name (e.g. Downtown Cafe)"
                                     value={newBranch.name}
@@ -117,10 +117,10 @@ export default function BranchesPage() {
                                     className="bg-background border border-surface-light rounded-xl px-4 py-3 focus:border-primary focus:outline-none"
                                 />
                             </div>
-                            <div className="flex justify-end gap-2 pt-2">
-                                <button onClick={() => setIsAdding(false)} className="px-4 py-2 rounded-xl text-muted hover:bg-surface-light transition-colors">Cancel</button>
-                                <button onClick={handleCreate} disabled={isLoading} className="px-6 py-2 rounded-xl font-bold bg-primary text-primary-fg hover:opacity-90 transition-colors flex items-center gap-2">
-                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Store className="w-4 h-4" />} Save Branch
+                            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
+                                <button onClick={() => setIsAdding(false)} className="w-full sm:w-auto px-4 py-3 md:py-2 rounded-xl text-muted hover:bg-surface-light transition-colors font-bold text-sm">Cancel</button>
+                                <button onClick={handleCreate} disabled={isLoading} className="w-full sm:w-auto justify-center px-6 py-3 md:py-2 rounded-xl font-bold bg-primary text-primary-fg hover:opacity-90 transition-colors flex items-center gap-2 text-sm">
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Store className="w-4 h-4 shrink-0" />} <span className="whitespace-nowrap">Save Branch</span>
                                 </button>
                             </div>
                         </div>
@@ -128,16 +128,16 @@ export default function BranchesPage() {
                 )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                 {branches.map(branch => (
-                    <div key={branch.id} className="bg-surface/30 border border-surface-light rounded-2xl p-6 space-y-4 hover:border-primary/50 transition-colors group">
+                    <div key={branch.id} className="bg-surface/30 border border-surface-light rounded-2xl p-5 md:p-6 space-y-4 hover:border-primary/50 transition-colors group">
                         <div className="flex justify-between items-start">
                             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-2">
                                 <Store className="w-6 h-6" />
                             </div>
                             <button
                                 onClick={() => handleDelete(branch.id)}
-                                className="text-muted hover:text-destructive hover:bg-destructive/10 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                className="text-muted hover:text-destructive hover:bg-destructive/10 p-2 rounded-lg transition-colors md:opacity-0 md:group-hover:opacity-100"
                                 title="Delete Branch"
                             >
                                 <Trash2 className="w-4 h-4" />
