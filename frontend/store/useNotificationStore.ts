@@ -122,7 +122,15 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     connectSocket: () => {
         if (get().socket) return;
 
-        const socket = io('/notifications');
+        // Ensure socket.io connects to the correct absolute URL, not simply relative path
+        // which can fail if Next.js rewrites or Traefik doesn't proxy /socket.io correctly.
+        // API_URL will output 'https://api.neqtra.com' in production.
+        const baseUrl = API_URL.endsWith('/api') ? API_URL.slice(0, -4) : API_URL;
+
+        const socket = io(`${baseUrl}/notifications`, {
+            path: '/socket.io',
+            transports: ['websocket', 'polling'] // Try WebSocket first
+        });
 
         socket.on('connect', () => {
             set({ isConnected: true });
