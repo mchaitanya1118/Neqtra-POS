@@ -57,9 +57,9 @@ export default function AdminDashboard() {
     if (!user) return null;
 
     return (
-        <div className="min-h-screen bg-background p-8 animate-in fade-in duration-700">
+        <div className="min-h-screen bg-background p-4 md:p-8 animate-in fade-in duration-700">
             {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-8 md:mb-12">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-primary/10 rounded-xl">
@@ -73,19 +73,19 @@ export default function AdminDashboard() {
                     <p className="text-muted font-bold mt-2">Global SaaS Orchestration & Infrastructure Monitoring</p>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center w-full md:w-auto mt-2 md:mt-0">
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="group flex items-center gap-3 px-6 py-4 bg-primary text-primary-foreground font-black rounded-2xl hover:scale-105 transition-all shadow-2xl shadow-primary/20"
+                        className="w-full md:w-auto group flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-3 md:py-4 bg-primary text-primary-foreground font-black rounded-xl md:rounded-2xl text-sm md:text-base hover:scale-105 transition-all shadow-xl shadow-primary/20"
                     >
-                        <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
-                        Provision Tenant
+                        <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300 shrink-0" />
+                        <span className="whitespace-nowrap">Provision Tenant</span>
                     </button>
                 </div>
             </div>
 
             {/* Global Vitals */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-8 md:mb-12">
                 <StatusCard
                     title="Total Ecosystem"
                     value={globalStats?.totalTenants || tenants.length}
@@ -117,16 +117,16 @@ export default function AdminDashboard() {
             </div>
 
             {/* Tab Navigation */}
-            <div className="flex gap-2 p-1.5 bg-surface-light/30 backdrop-blur-xl w-fit rounded-2xl border border-surface-light mb-8">
-                <TabButton active={activeTab === 'tenants'} onClick={() => setActiveTab('tenants')} icon={<Globe size={16} />} label="Tenants" />
-                <TabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<BarChart3 size={16} />} label="Analytics" />
-                <TabButton active={activeTab === 'audit'} onClick={() => setActiveTab('audit')} icon={<History size={16} />} label="Audit Logs" />
+            <div className="flex gap-2 p-1.5 bg-surface-light/30 backdrop-blur-xl w-full md:w-fit rounded-xl md:rounded-2xl border border-surface-light mb-6 md:mb-8 overflow-x-auto no-scrollbar">
+                <TabButton active={activeTab === 'tenants'} onClick={() => setActiveTab('tenants')} icon={<Globe size={16} className="shrink-0" />} label="Tenants" />
+                <TabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<BarChart3 size={16} className="shrink-0" />} label="Analytics" />
+                <TabButton active={activeTab === 'audit'} onClick={() => setActiveTab('audit')} icon={<History size={16} className="shrink-0" />} label="Audit Logs" />
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-surface/30 backdrop-blur-3xl rounded-[2.5rem] border border-surface-light/50 overflow-hidden shadow-2xl shadow-black/20">
+            <div className="bg-surface/30 backdrop-blur-3xl rounded-[1.5rem] md:rounded-[2.5rem] border border-surface-light/50 overflow-hidden shadow-2xl shadow-black/20">
                 {activeTab === 'tenants' && (
-                    <div className="p-8">
+                    <div className="p-4 md:p-8">
                         <TenantList tenants={tenants} onRefresh={fetchAllData} />
                     </div>
                 )}
@@ -156,18 +156,18 @@ function StatusCard({ title, value, label, icon, color }: any) {
     };
 
     return (
-        <div className="bg-surface/40 backdrop-blur-2xl p-6 rounded-[2rem] border border-surface-light/50 group hover:border-primary/30 transition-all duration-500 shadow-lg">
-            <div className="flex justify-between items-start mb-6">
-                <div className={cn("p-3 rounded-2xl border animate-pulse", colors[color as keyof typeof colors])}>
+        <div className="bg-surface/40 backdrop-blur-2xl p-4 md:p-6 rounded-2xl md:rounded-[2rem] border border-surface-light/50 group hover:border-primary/30 transition-all duration-500 shadow-lg">
+            <div className="flex justify-between items-start mb-4 md:mb-6">
+                <div className={cn("p-2 md:p-3 rounded-xl md:rounded-2xl border animate-pulse shrink-0", colors[color as keyof typeof colors])}>
                     {icon}
                 </div>
-                <div className="text-right">
-                    <p className="text-[10px] font-black text-muted uppercase tracking-widest">{title}</p>
+                <div className="text-right overflow-hidden ml-2">
+                    <p className="text-[8px] md:text-[10px] font-black text-muted uppercase tracking-widest truncate leading-tight mt-1">{title}</p>
                 </div>
             </div>
             <div>
-                <h3 className="text-3xl font-black text-foreground mb-1">{value}</h3>
-                <p className="text-[10px] font-bold text-muted uppercase tracking-tight">{label}</p>
+                <h3 className="text-xl md:text-3xl font-black text-foreground mb-0.5 md:mb-1 truncate">{value}</h3>
+                <p className="text-[8px] md:text-[10px] font-bold text-muted uppercase tracking-tight truncate">{label}</p>
             </div>
         </div>
     );
@@ -178,7 +178,7 @@ function TabButton({ active, onClick, icon, label }: any) {
         <button
             onClick={onClick}
             className={cn(
-                "flex items-center gap-2 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all",
+                "flex-1 md:flex-none flex items-center justify-center gap-1.5 md:gap-2 px-3 md:px-6 py-2.5 md:py-3 rounded-lg md:rounded-xl font-black text-[10px] md:text-xs uppercase tracking-wider md:tracking-widest transition-all whitespace-nowrap shrink-0",
                 active ? "bg-primary text-primary-foreground shadow-lg shadow-primary/30" : "text-muted hover:text-foreground hover:bg-surface-light"
             )}
         >

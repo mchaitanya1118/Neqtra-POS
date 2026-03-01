@@ -63,8 +63,8 @@ export default function TenantList({ tenants, onRefresh }: TenantListProps) {
     return (
         <div className="space-y-4">
             {tenants.map((tenant) => (
-                <div key={tenant.id} className="group relative bg-background/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-surface-light hover:border-primary/20 transition-all duration-500 shadow-xl">
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+                <div key={tenant.id} className="group relative bg-background/40 backdrop-blur-2xl p-4 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-surface-light hover:border-primary/20 transition-all duration-500 shadow-xl">
+                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 md:gap-8">
                         {/* Tenant Info */}
                         <div className="flex items-center gap-6">
                             <div className={cn(
@@ -107,7 +107,7 @@ export default function TenantList({ tenants, onRefresh }: TenantListProps) {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex flex-wrap items-center gap-3 ml-auto">
+                        <div className="flex flex-wrap items-center gap-2 md:gap-3 w-full lg:w-auto lg:ml-auto mt-2 lg:mt-0">
                             <button
                                 onClick={() => {
                                     setSelectedTenant(tenant);
@@ -124,7 +124,7 @@ export default function TenantList({ tenants, onRefresh }: TenantListProps) {
                                 value={tenant.subscriptionPlan}
                                 onChange={(e) => handlePlanChange(tenant, e.target.value)}
                                 disabled={updating === tenant.id}
-                                className="bg-surface/50 border border-surface-light text-foreground text-[10px] font-black font-serif uppercase tracking-widest rounded-xl focus:ring-primary focus:border-primary block p-3 outline-none"
+                                className="flex-1 lg:flex-none bg-surface/50 border border-surface-light text-foreground text-[10px] font-black font-serif uppercase tracking-widest rounded-xl focus:ring-primary focus:border-primary block p-3 outline-none"
                             >
                                 <option value="FREE">Standard</option>
                                 <option value="BASIC">Performance</option>
