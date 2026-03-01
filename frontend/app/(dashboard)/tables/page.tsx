@@ -173,66 +173,74 @@ export default function TablesPage() {
             <div className="fixed inset-0 bg-gradient-to-br from-background via-background/95 to-background/80 pointer-events-none" />
 
             {/* Header / Toolbar */}
-            <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-surface-light px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0 transition-all duration-300">
-                <div className="flex items-center gap-6">
-                    <h1 className="text-3xl font-bold font-serif italic tracking-tighter text-foreground">Table View</h1>
+            <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-surface-light px-4 md:px-6 py-4 flex flex-col items-start gap-4 shrink-0 transition-all duration-300">
+                <div className="flex flex-wrap md:flex-nowrap items-center justify-between w-full gap-4">
+                    <div className="flex items-center gap-4 md:gap-6">
+                        <h1 className="text-2xl md:text-3xl font-bold font-serif italic tracking-tighter text-foreground">Table View</h1>
 
-                    <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
-                        <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Live System Bridge</span>
+                        <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full border border-primary/20">
+                            <span className="flex h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Live System Bridge</span>
+                        </div>
                     </div>
 
-                    <div className="relative group w-full sm:w-64">
-                        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
-                        <input
-                            className="w-full pl-11 pr-4 py-2 bg-surface-light/50 border border-surface-light/50 focus:border-primary/50 rounded-full text-sm text-foreground placeholder:text-muted focus:outline-none transition-all ring-1 ring-transparent focus:ring-primary/20 backdrop-blur-sm"
-                            placeholder="Find Table..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+                    <div className="flex items-center justify-end flex-1 w-full md:w-auto min-w-[200px] md:min-w-0">
+                        <div className="relative group w-full sm:w-64">
+                            <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
+                            <input
+                                className="w-full pl-11 pr-4 py-2 bg-surface-light/50 border border-surface-light/50 focus:border-primary/50 rounded-full text-sm text-foreground placeholder:text-muted focus:outline-none transition-all ring-1 ring-transparent focus:ring-primary/20 backdrop-blur-sm"
+                                placeholder="Find Table..."
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="flex items-center bg-surface-light/50 backdrop-blur-sm border border-surface-light rounded-full p-1">
-                        {(['all', 'free', 'occupied'] as const).map((s) => (
-                            <button
-                                key={s}
-                                onClick={() => setFilterStatus(s)}
-                                className={cn(
-                                    "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
-                                    filterStatus === s ? "bg-primary text-primary-fg shadow-lg shadow-primary/20" : "text-muted hover:text-foreground"
-                                )}
-                            >
-                                {s}
-                            </button>
-                        ))}
+                <div className="flex flex-wrap items-center justify-between w-full gap-3 md:gap-4 mt-2 md:mt-0">
+                    <div className="flex items-center gap-2 overflow-x-auto no-scrollbar max-w-full">
+                        <div className="flex items-center bg-surface-light/50 backdrop-blur-sm border border-surface-light rounded-full p-1 shrink-0">
+                            {(['all', 'free', 'occupied'] as const).map((s) => (
+                                <button
+                                    key={s}
+                                    onClick={() => setFilterStatus(s)}
+                                    className={cn(
+                                        "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
+                                        filterStatus === s ? "bg-primary text-primary-fg shadow-lg shadow-primary/20" : "text-muted hover:text-foreground"
+                                    )}
+                                >
+                                    {s}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
-                    <button
-                        onClick={() => fetchTables()}
-                        className="p-2.5 bg-surface-light hover:bg-surface border border-surface-light rounded-full text-muted transition-all active:scale-95"
-                    >
-                        <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
-                    </button>
+                    <div className="flex items-center gap-2 md:gap-3 shrink-0">
+                        <button
+                            onClick={() => fetchTables()}
+                            className="p-2 md:p-2.5 bg-surface-light hover:bg-surface border border-surface-light rounded-full text-muted transition-all active:scale-95"
+                        >
+                            <RefreshCw className={cn("w-4 h-4", isLoading && "animate-spin")} />
+                        </button>
+                    </div>
 
-                    <div className="flex flex-wrap items-center gap-4">
-                        <div className="bg-surface border border-surface-light px-5 py-2.5 rounded-2xl flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                    <div className="flex items-center gap-2 md:gap-4 ml-auto shrink-0 overflow-x-auto no-scrollbar">
+                        <div className="bg-surface border border-surface-light px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl flex items-center gap-2 md:gap-3 shrink-0">
+                            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs md:text-base">
                                 {tables.length}
                             </div>
-                            <div>
-                                <p className="text-[10px] uppercase font-black text-muted tracking-widest leading-none mb-1">Total Stations</p>
-                                <p className="text-sm font-black dark:text-zinc-400">Layout Registry</p>
+                            <div className="hidden sm:block">
+                                <p className="text-[8px] md:text-[10px] uppercase font-black text-muted tracking-widest leading-none mb-1">Total Stations</p>
+                                <p className="text-xs md:text-sm font-black dark:text-zinc-400">Layout Registry</p>
                             </div>
                         </div>
 
                         <button
                             onClick={() => { setEditingTable(null); setIsModalOpen(true); }}
                             disabled={!hasPermission('Admin')}
-                            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-6 py-3.5 rounded-2xl text-sm font-black shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                            className="bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-4 py-2 md:px-6 md:py-3.5 rounded-xl md:rounded-2xl text-xs md:text-sm font-black shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-1 md:gap-2 shrink-0 whitespace-nowrap"
                         >
-                            <Plus className="w-5 h-5 font-black" />
+                            <Plus className="w-4 h-4 md:w-5 md:h-5 font-black" />
                             Create Station
                         </button>
                     </div>
@@ -240,11 +248,11 @@ export default function TablesPage() {
             </header>
 
             {/* Content Area */}
-            <main className="flex-1 overflow-y-auto px-6 py-8 relative z-10 custom-scrollbar">
+            <main className="flex-1 overflow-y-auto px-4 md:px-6 py-6 md:py-8 relative z-10 custom-scrollbar">
                 <div className="max-w-[1920px] mx-auto space-y-12 pb-20">
 
                     {/* Legend: Floating Pill */}
-                    <div className="flex items-center gap-6 bg-surface/30 backdrop-blur-md border border-surface-light rounded-full px-6 py-3 w-fit mx-auto mb-10 shadow-xl">
+                    <div className="flex flex-wrap items-center justify-center gap-3 md:gap-6 bg-surface/30 backdrop-blur-md border border-surface-light rounded-2xl md:rounded-full px-4 py-3 md:px-6 w-full md:w-fit mx-auto mb-8 md:mb-10 shadow-xl">
                         <LegendItem color="bg-surface-light" label="Free" />
                         <LegendItem color="bg-primary shadow-[0_0_8px_rgba(105,215,189,0.6)]" label="Occupied" />
                         <LegendItem color="bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" label="Printed" />
