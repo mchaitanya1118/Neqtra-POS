@@ -7,16 +7,29 @@ import {
   Patch,
   Delete,
   Query,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { MenuService } from './menu.service';
+import { AiMenuService } from './ai-menu.service';
 
 @Controller('menu')
 export class MenuController {
-  constructor(private readonly menuService: MenuService) { }
+  constructor(
+    private readonly menuService: MenuService,
+    private readonly aiMenuService: AiMenuService,
+  ) { }
 
   @Get('categories')
   findAll() {
     return this.menuService.findAllCategories();
+  }
+
+  @Post('ai-extract')
+  @UseInterceptors(FileInterceptor('file'))
+  async extractMenu(@UploadedFile() file: Express.Multer.File) {
+    return this.aiMenuService.extractMenuFromImage(file.buffer, file.mimetype);
   }
 
   @Get('items')

@@ -10,7 +10,8 @@ import {
     LayoutGrid,
     Coffee,
     Pizza,
-    ChefHat
+    ChefHat,
+    Brain
 } from "lucide-react";
 import { useMenuStore } from "@/store/useMenuStore";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { CategoryModal } from "@/features/pos/components/CategoryModal";
 import { MenuItemModal } from "@/features/pos/components/MenuItemModal";
+import { AIMenuModal } from "@/features/pos/components/AIMenuModal";
 import { MenuCategorySection } from "@/components/menu/MenuCategorySection";
 import { useShallow } from 'zustand/react/shallow';
 
@@ -53,6 +55,7 @@ export default function MenuPage() {
     const [editingCategory, setEditingCategory] = useState<any>(null);
     const [editingItem, setEditingItem] = useState<any>(null);
     const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+    const [isAIModalOpen, setIsAIModalOpen] = useState(false);
 
     useEffect(() => {
         fetchMenu();
@@ -145,6 +148,15 @@ export default function MenuPage() {
                     <div className="h-10 w-px bg-surface-light mx-2 hidden lg:block" />
 
                     <div className="flex gap-2 md:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+                        <button
+                            onClick={() => setIsAIModalOpen(true)}
+                            disabled={!hasPermission('Admin')}
+                            className="p-3 md:p-4 bg-primary/10 border border-primary/20 hover:border-primary/50 rounded-xl md:rounded-2xl text-primary transition-all shadow-sm shrink-0 flex items-center gap-2"
+                            title="AI Menu Extractor"
+                        >
+                            <Brain className="w-4 h-4 md:w-5 h-5 shrink-0" />
+                            <span className="hidden sm:inline text-xs font-black uppercase tracking-widest">AI Menu</span>
+                        </button>
                         <button
                             onClick={handleExport}
                             className="p-3 md:p-4 bg-surface border border-surface-light hover:border-primary/50 rounded-xl md:rounded-2xl text-muted hover:text-primary transition-all shadow-sm shrink-0"
@@ -254,6 +266,11 @@ export default function MenuPage() {
                 }}
                 initialData={editingItem}
                 title={editingItem ? "Refine Creation" : "New Culinary Detail"}
+            />
+
+            <AIMenuModal
+                isOpen={isAIModalOpen}
+                onClose={() => setIsAIModalOpen(false)}
             />
         </div>
     );

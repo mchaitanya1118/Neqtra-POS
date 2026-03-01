@@ -32,6 +32,7 @@ interface MenuState {
     addItem: (categoryId: number, data: any) => Promise<void>;
     updateItem: (id: number, data: any) => Promise<void>;
     deleteItem: (id: number) => Promise<void>;
+    extractMenu: (file: File) => Promise<any>;
 }
 
 export const useMenuStore = create<MenuState>()(
@@ -97,6 +98,19 @@ export const useMenuStore = create<MenuState>()(
                     await apiClient.delete(`/menu/items/${id}`);
                     await get().fetchMenu();
                 } catch (e) { console.error(e); }
+            },
+            extractMenu: async (file) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const res = await apiClient.post('/menu/ai-extract', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    return res.data;
+                } catch (e) {
+                    console.error("AI Extraction failed:", e);
+                    throw e;
+                }
             },
         }),
         {
