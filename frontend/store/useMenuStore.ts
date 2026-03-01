@@ -26,10 +26,10 @@ interface MenuState {
     categories: Category[];
     isLoading: boolean;
     fetchMenu: () => Promise<void>;
-    addCategory: (title: string, icon: string, variant: string) => Promise<void>;
+    addCategory: (title: string, icon: string, variant: string) => Promise<any>;
     updateCategory: (id: number, data: Partial<Category>) => Promise<void>;
     deleteCategory: (id: number) => Promise<void>;
-    addItem: (categoryId: number, data: any) => Promise<void>;
+    addItem: (categoryId: number, data: any) => Promise<any>;
     updateItem: (id: number, data: any) => Promise<void>;
     deleteItem: (id: number) => Promise<void>;
     extractMenu: (file: File) => Promise<any>;
@@ -60,9 +60,13 @@ export const useMenuStore = create<MenuState>()(
 
             addCategory: async (title, icon, variant) => {
                 try {
-                    await apiClient.post('/menu/categories', { title, icon, variant });
+                    const res = await apiClient.post('/menu/categories', { title, icon, variant });
                     await get().fetchMenu();
-                } catch (e) { console.error(e); }
+                    return res.data;
+                } catch (e) {
+                    console.error(e);
+                    throw e;
+                }
             },
 
             updateCategory: async (id, data) => {
@@ -81,9 +85,13 @@ export const useMenuStore = create<MenuState>()(
 
             addItem: async (categoryId, data) => {
                 try {
-                    await apiClient.post('/menu/items', { ...data, categoryId });
+                    const res = await apiClient.post('/menu/items', { ...data, categoryId });
                     await get().fetchMenu();
-                } catch (e) { console.error(e); }
+                    return res.data;
+                } catch (e) {
+                    console.error(e);
+                    throw e;
+                }
             },
 
             updateItem: async (id, data) => {

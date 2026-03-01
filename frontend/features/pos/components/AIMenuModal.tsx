@@ -53,18 +53,21 @@ export function AIMenuModal({ isOpen, onClose }: AIMenuModalProps) {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            for (const cat of extractedData.categories) {
-                // For simplicity, we'll create new categories. 
-                // A better implementation would find existing ones.
-                const newCat: any = await addCategory(cat.title, 'Utensils', 'orange');
-                // The addCategory in the store calls fetchMenu, so we need to be careful with IDs.
-                // Re-fetch to get latest IDs
-                const currentCategories = useMenuStore.getState().categories;
-                const savedCat = currentCategories.find(c => c.title === cat.title);
+            const currentCategories = useMenuStore.getState().categories;
 
-                if (savedCat) {
-                    for (const item of cat.items) {
-                        await addItem(savedCat.id, {
+            for (const catData of extractedData.categories) {
+                // Check if category already exists to avoid duplication
+                let targetCat = currentCategories.find(c =>
+                    c.title.toLowerCase() === catData.title.toLowerCase()
+                );
+
+                if (!targetCat) {
+                    targetCat = await addCategory(catData.title, 'Utensils', 'orange');
+                }
+
+                if (targetCat) {
+                    for (const item of catData.items) {
+                        await addItem(targetCat.id, {
                             title: item.title,
                             price: item.price,
                             description: item.description,
@@ -78,7 +81,8 @@ export function AIMenuModal({ isOpen, onClose }: AIMenuModalProps) {
             setExtractedData(null);
             setFile(null);
         } catch (err) {
-            setError("Failed to save some items.");
+            console.error("Save failed:", err);
+            setError("Failed to save some items. Please check your connection.");
         } finally {
             setIsSaving(false);
         }
