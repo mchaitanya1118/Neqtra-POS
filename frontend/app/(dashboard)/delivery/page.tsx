@@ -129,16 +129,16 @@ export default function DeliveryPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex gap-4 p-1.5 bg-surface border border-surface-light rounded-[28px] shadow-sm">
-                        <div className="px-6 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-[22px] flex items-center gap-3">
-                            <Bike className="w-5 h-5 text-blue-500" />
+                    <div className="flex flex-wrap md:flex-nowrap gap-4 p-1.5 bg-surface border border-surface-light rounded-3xl md:rounded-[28px] shadow-sm w-full lg:w-auto">
+                        <div className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-blue-500/10 border border-blue-500/20 rounded-2xl md:rounded-[22px] flex flex-col md:flex-row items-center md:items-start md:gap-3 text-center md:text-left">
+                            <Bike className="w-5 h-5 text-blue-500 mb-1 md:mb-0" />
                             <div>
                                 <p className="text-[10px] font-black text-blue-500/60 uppercase tracking-widest">Ongoing</p>
                                 <p className="text-xl font-black leading-none">{activeCount}</p>
                             </div>
                         </div>
-                        <div className="px-6 py-2.5 bg-green-500/10 border border-green-500/20 rounded-[22px] flex items-center gap-3">
-                            <CheckCircle2 className="w-5 h-5 text-green-500" />
+                        <div className="flex-1 md:flex-none px-4 md:px-6 py-2.5 bg-green-500/10 border border-green-500/20 rounded-2xl md:rounded-[22px] flex flex-col md:flex-row items-center md:items-start md:gap-3 text-center md:text-left">
+                            <CheckCircle2 className="w-5 h-5 text-green-500 mb-1 md:mb-0" />
                             <div>
                                 <p className="text-[10px] font-black text-green-500/60 uppercase tracking-widest">Done Today</p>
                                 <p className="text-xl font-black leading-none">{deliveredTodayCount}</p>
@@ -148,47 +148,47 @@ export default function DeliveryPage() {
 
                     <div className="h-10 w-px bg-surface-light mx-2 hidden lg:block" />
 
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 w-full lg:w-auto">
                         <button
                             onClick={handleExport}
-                            className="p-4 bg-surface border border-surface-light hover:border-primary/50 rounded-2xl text-muted hover:text-primary transition-all shadow-sm"
+                            className="p-4 bg-surface border border-surface-light hover:border-primary/50 text-muted hover:text-primary transition-all shadow-sm rounded-2xl md:rounded-[22px]"
                             title="Export Fleet Data"
                         >
                             <Download className="w-5 h-5" />
                         </button>
                         <button
                             onClick={() => router.push('/billing?type=delivery')}
-                            className="bg-primary hover:bg-primary/90 text-black px-8 py-4 rounded-2xl text-sm font-black shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+                            className="flex-1 lg:flex-none bg-primary hover:bg-primary/90 text-black px-6 md:px-8 py-4 text-sm md:text-base font-black shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-2 md:gap-3 rounded-2xl md:rounded-[22px]"
                         >
-                            <Plus className="w-5 h-5" />
-                            New Dispatch
+                            <Plus className="w-5 h-5 shrink-0" />
+                            <span className="whitespace-nowrap">New Dispatch</span>
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Controls Bar */}
-            <div className="flex flex-col md:flex-row gap-6 items-center justify-between bg-surface/50 backdrop-blur-md border border-surface-light p-3 rounded-[32px]">
-                <div className="relative flex p-1.5 bg-surface-light/40 rounded-[24px] w-full md:w-auto">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center justify-between bg-surface/50 backdrop-blur-md border border-surface-light p-3 rounded-3xl md:rounded-[32px]">
+                <div className="relative flex p-1.5 bg-surface-light/40 rounded-2xl md:rounded-[24px] w-full md:w-auto">
                     {['active', 'history'].map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
                             className={cn(
-                                "relative px-8 py-3.5 rounded-[20px] text-xs font-black uppercase tracking-widest transition-all duration-300 z-10",
+                                "flex-1 md:flex-none relative px-2 sm:px-4 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-[20px] text-[10px] md:text-xs font-black uppercase tracking-widest transition-all duration-300 z-10",
                                 activeTab === tab ? "text-foreground" : "text-muted hover:text-foreground/70"
                             )}
                         >
                             {activeTab === tab && (
                                 <motion.div
                                     layoutId="active-tab-bg"
-                                    className="absolute inset-0 bg-surface-light border border-surface-light/50 shadow-xl rounded-[20px] -z-10"
+                                    className="absolute inset-0 bg-surface-light border border-surface-light/50 shadow-xl rounded-xl md:rounded-[20px] -z-10"
                                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                 />
                             )}
-                            <div className="flex items-center gap-2">
-                                {tab === 'active' ? <Truck className="w-4 h-4" /> : <History className="w-4 h-4" />}
-                                {tab === 'active' ? "Fleet Monitor" : "Log History"}
+                            <div className="flex items-center justify-center gap-1.5 md:gap-2">
+                                {tab === 'active' ? <Truck className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" /> : <History className="w-3.5 h-3.5 md:w-4 md:h-4 shrink-0" />}
+                                <span className="whitespace-nowrap">{tab === 'active' ? "Fleet Monitor" : "Log History"}</span>
                             </div>
                         </button>
                     ))}
