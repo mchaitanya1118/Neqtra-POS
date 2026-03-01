@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useMenuStore } from "@/store/useMenuStore";
+import apiClient from "@/lib/api";
 
 interface AIMenuModalProps {
     isOpen: boolean;
@@ -38,7 +39,7 @@ export function AIMenuModal({ isOpen, onClose }: AIMenuModalProps) {
         formData.append('file', selectedFile);
 
         try {
-            const res = await (await import('@/lib/api')).default.post('/menu/ai-import', formData, {
+            const res = await apiClient.post('/menu/ai-import', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             setImportResult(res.data);
