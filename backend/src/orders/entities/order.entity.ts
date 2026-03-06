@@ -11,8 +11,13 @@ import { OrderItem } from './order-item.entity';
 import { Payment } from '../../payments/entities/payment.entity';
 import { Delivery } from '../../delivery/entities/delivery.entity';
 import { OrderEvent } from './order-event.entity';
+import { Index } from 'typeorm';
+import { Exclude } from 'class-transformer';
 
 @Entity('orders')
+@Index(['status', 'createdAt'])
+@Index(['createdAt'])
+@Index(['type']) // Index delivery vs dine-in queries
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;
@@ -41,9 +46,11 @@ export class Order {
   @OneToMany(() => OrderItem, (item) => item.order, { cascade: true })
   items: OrderItem[];
 
+  @Exclude()
   @CreateDateColumn()
   createdAt: Date;
 
+  @Exclude()
   @UpdateDateColumn()
   updatedAt: Date;
 
@@ -53,6 +60,7 @@ export class Order {
   @OneToMany(() => Payment, (payment) => payment.order, { cascade: true })
   payments: Payment[];
 
+  @Exclude()
   @OneToMany(() => OrderEvent, (event) => event.order, { cascade: true })
   events: OrderEvent[];
 }

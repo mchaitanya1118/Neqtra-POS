@@ -49,23 +49,25 @@ export const useAuthStore = create<AuthState>()(
                     // Temporarily set token to allow device registration call to succeed
                     set({ user: data.user, token: data.access_token });
 
-                    // Register device
-                    try {
-                        const deviceId = getDeviceId();
-                        const deviceName = typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 30) : 'Web Terminal';
-                        await apiClient.post('/devices/register', {
-                            name: deviceName,
-                            identifier: deviceId,
-                            branchId: data.user.branchId
-                        });
-                    } catch (deviceError: any) {
-                        // If device registration fails (e.g. limit reached), undo login
-                        set({ user: null, token: null });
-                        console.error('Device registration failed:', deviceError);
-                        return {
-                            success: false,
-                            error: deviceError.response?.data?.message || 'Device limit reached for your subscription plan.'
-                        };
+                    // Register device (skip for SuperAdmin — they have no tenant)
+                    const isSuperAdmin = data.user.role === 'SuperAdmin' || data.user.roleRel?.name === 'SuperAdmin';
+                    if (!isSuperAdmin && data.user.tenantId) {
+                        try {
+                            const deviceId = getDeviceId();
+                            const deviceName = typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 30) : 'Web Terminal';
+                            await apiClient.post('/devices/register', {
+                                name: deviceName,
+                                identifier: deviceId,
+                                branchId: data.user.branchId
+                            });
+                        } catch (deviceError: any) {
+                            set({ user: null, token: null });
+                            console.error('Device registration failed:', deviceError);
+                            return {
+                                success: false,
+                                error: deviceError.response?.data?.message || 'Device limit reached for your subscription plan.'
+                            };
+                        }
                     }
 
                     return { success: true, user: data.user };

@@ -1,4 +1,4 @@
-import { DynamicModule, Provider, Global, Module, Scope } from '@nestjs/common';
+import { DynamicModule, Provider, Global, Module, Scope, ForbiddenException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ClsService } from 'nestjs-cls';
 import { TenancyService } from './tenancy.service';
@@ -16,8 +16,15 @@ export class TenantOrmModule {
                 if (!tenantId) {
                     throw new Error('Tenant ID not found in current execution context. Ensure this is called with a valid tenant token.');
                 }
-                const dataSource = await tenancyService.getTenantDataSource(tenantId);
-                return dataSource.getRepository(entity);
+                try {
+                    const dataSource = await tenancyService.getTenantDataSource(tenantId);
+                    return dataSource.getRepository(entity);
+                } catch (error: any) {
+                    if (error.message?.startsWith('TENANT_DB_NOT_FOUND')) {
+                        throw new ForbiddenException('Tenant access revoked or database not provisioned.');
+                    }
+                    throw error;
+                }
             },
         }));
 

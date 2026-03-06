@@ -19,6 +19,7 @@ export interface SignupDto {
   password: string;
   businessName: string;
   businessType: string;
+  subscriptionPlan?: string;
 }
 
 @Injectable()
@@ -75,9 +76,9 @@ export class AuthService implements OnModuleInit {
         this.logger.log('Default Branch seeded.');
       }
 
-      const count = await this.usersRepository.count();
-      if (count === 0) {
-        this.logger.log('No users found. Seeding default admin user...');
+      const existingAdmin = await this.usersRepository.findOne({ where: { username: 'admin' } });
+      if (!existingAdmin) {
+        this.logger.log('No admin user found. Seeding default admin user...');
         const salt = await bcrypt.genSalt();
         const hashedPassword = await bcrypt.hash('password', salt);
 
@@ -88,7 +89,6 @@ export class AuthService implements OnModuleInit {
           username: 'admin',
           password: hashedPassword,
           passcode: '1234',
-          // role: 'Admin', // Deprecated
           roleRel: adminRole || undefined,
           tenant: tenant,
           branch: branch,
@@ -147,13 +147,17 @@ export class AuthService implements OnModuleInit {
     const trialExpiry = new Date();
     trialExpiry.setDate(trialExpiry.getDate() + 14);
 
+    const plan = signupDto.subscriptionPlan || 'TRIAL';
+    const quotas = this.tenantsService.getPlanQuotas(plan);
+
     const tenant = await this.tenantsService.create({
       name: businessName,
       subdomain,
       status: 'ACTIVE',
-      subscriptionPlan: 'TRIAL',
+      subscriptionPlan: plan,
       trialEndsAt: trialExpiry,
       subscriptionExpiry: trialExpiry,
+      ...quotas,
     });
 
     // 3.5 Automate Coolify SSL Domain Provisioning (Option 2)

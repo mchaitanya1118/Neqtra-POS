@@ -4,8 +4,6 @@ import { memo, useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import {
     Search,
-    Grid,
-    LayoutGrid,
     Clock,
     Edit2,
     Trash2,
@@ -34,6 +32,8 @@ import { SplitBillModal } from "@/features/pos/components/SplitBillModal";
 import { Receipt } from "@/features/pos/components/Receipt";
 import apiClient from "@/lib/api";
 import { Suspense } from "react";
+import { FixedSizeGrid as VirtualGrid } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 
 interface OrderItem {
     menuItem: { title: string; price: number };
@@ -82,8 +82,8 @@ function OrdersContent() {
 
     const fetchOrders = async () => {
         try {
-            const res = await apiClient.get('/orders');
-            const data = res.data;
+            const res = await apiClient.get('/orders?status=active&limit=100');
+            const data = res.data.data || res.data; // Handle new paginated format
             const active = data.filter((o: any) =>
                 ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'PARTIAL', 'DUE'].includes(o.status)
             );
@@ -219,8 +219,8 @@ function OrdersContent() {
             </header>
 
             {/* Content Area */}
-            <main className="flex-1 overflow-y-auto px-6 py-8 relative z-10 custom-scrollbar">
-                <div className="max-w-full mx-auto space-y-8 pb-20">
+            <main className="flex-1 overflow-hidden px-6 pt-6 relative z-10 flex flex-col">
+                <div className="w-full mx-auto space-y-6 flex-1 flex flex-col h-full min-h-0">
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -231,25 +231,61 @@ function OrdersContent() {
                     </div>
 
                     {/* Orders Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                        {filtered.map(order => (
-                            <OrderCard
-                                key={order.id}
-                                order={order}
-                                onPayment={setActiveOrder}
-                                onDelete={handleDeleteOrder}
-                                onEdit={handleEditOrder}
-                                onUpdateStatus={handleUpdateStatus}
-                            />
-                        ))}
-                        {filtered.length === 0 && !loading && (
-                            <div className="col-span-full h-96 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
+                    <div className="flex-1 w-full h-full min-h-0 relative -mx-2">
+                        {filtered.length === 0 && !loading ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-500">
                                 <div className="w-24 h-24 bg-surface/30 rounded-full flex items-center justify-center mb-6">
                                     <Box className="w-10 h-10 text-muted/50" />
                                 </div>
                                 <h3 className="text-2xl font-bold font-serif italic text-foreground mb-2">No Active Orders</h3>
                                 <p className="text-muted max-w-sm mx-auto">All tables seem clear. New orders will appear here automatically.</p>
                             </div>
+                        ) : (
+                            <AutoSizer>
+                                {({ height, width }: { height: number; width: number }) => {
+                                    if (!width || !height) return null;
+
+                                    let columnCount = 1;
+                                    if (width >= 1536) columnCount = 5; // 2xl
+                                    else if (width >= 1280) columnCount = 4; // xl
+                                    else if (width >= 1024) columnCount = 3; // lg
+                                    else if (width >= 768) columnCount = 2; // md
+
+                                    const rowCount = Math.ceil(filtered.length / columnCount);
+                                    const columnWidth = width / columnCount;
+
+                                    return (
+                                        <VirtualGrid
+                                            columnCount={columnCount}
+                                            columnWidth={columnWidth}
+                                            height={height}
+                                            rowCount={rowCount}
+                                            rowHeight={550} // 520 Card + 30 Gap
+                                            width={width}
+                                            className="custom-scrollbar"
+                                            style={{ overflowX: 'hidden' }}
+                                        >
+                                            {({ columnIndex, rowIndex, style }: any) => {
+                                                const index = rowIndex * columnCount + columnIndex;
+                                                if (index >= filtered.length) return null;
+                                                const order = filtered[index];
+
+                                                return (
+                                                    <div style={{ ...style, padding: '12px' }} key={order.id}>
+                                                        <OrderCard
+                                                            order={order}
+                                                            onPayment={setActiveOrder}
+                                                            onDelete={handleDeleteOrder}
+                                                            onEdit={handleEditOrder}
+                                                            onUpdateStatus={handleUpdateStatus}
+                                                        />
+                                                    </div>
+                                                );
+                                            }}
+                                        </VirtualGrid>
+                                    );
+                                }}
+                            </AutoSizer>
                         )}
                     </div>
                 </div>

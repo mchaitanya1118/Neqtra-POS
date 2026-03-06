@@ -13,13 +13,15 @@ import { Table } from '../entities/table.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { Customer } from '../customers/entities/customer.entity';
 import { Delivery } from '../delivery/entities/delivery.entity';
+import { InventoryItem } from '../inventory/entities/inventory.entity';
 import { CreateOrderDto } from './dto/create-order.dto';
 import Razorpay from 'razorpay';
 import * as crypto from 'crypto';
 
-import { KitchenGateway } from './kitchen.gateway';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/entities/notification.entity';
+import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class OrdersService {
@@ -41,8 +43,11 @@ export class OrdersService {
     private customerRepo: Repository<Customer>,
     @InjectRepository(Delivery)
     private deliveryRepo: Repository<Delivery>,
-    private kitchenGateway: KitchenGateway,
+    @InjectRepository(InventoryItem)
+    private inventoryRepo: Repository<InventoryItem>,
+    private readonly notificationsGateway: NotificationsGateway,
     private readonly notificationsService: NotificationsService,
+    private readonly cls: ClsService,
   ) {
     this.razorpay = new Razorpay({
       key_id: 'rzp_test_S8BPowIgENgSYn',
@@ -112,11 +117,13 @@ export class OrdersService {
       let additionalTotal = 0;
 
       for (const itemDto of createOrderDto.items) {
-        const menuItem = await this.menuItemRepo.findOneBy({
-          id: itemDto.menuItemId,
+        const menuItem = await this.menuItemRepo.findOne({
+          where: { id: itemDto.menuItemId },
+          relations: ['ingredients', 'ingredients.inventoryItem'],
         });
+
         if (menuItem) {
-          // Check Stock
+          // 1. Deduct from MenuItem itself if stock is managed
           if (menuItem.isStockManaged) {
             if (menuItem.stock < itemDto.quantity) {
               throw new BadRequestException(
@@ -125,6 +132,32 @@ export class OrdersService {
             }
             menuItem.stock -= itemDto.quantity;
             await this.menuItemRepo.save(menuItem);
+          }
+
+          // 2. Deduct from Ingredients (Recipe)
+          if (menuItem.ingredients && menuItem.ingredients.length > 0) {
+            for (const ingredient of menuItem.ingredients) {
+              const inventoryItem = ingredient.inventoryItem;
+              if (inventoryItem) {
+                const totalDeduction = ingredient.quantity * itemDto.quantity;
+                if (inventoryItem.quantity < totalDeduction) {
+                  throw new BadRequestException(
+                    `Insufficient ${inventoryItem.name} in inventory. Available: ${inventoryItem.quantity} ${inventoryItem.unit}`,
+                  );
+                }
+                inventoryItem.quantity -= totalDeduction;
+                await this.inventoryRepo.save(inventoryItem);
+
+                // 3. Low Stock Alert
+                if (inventoryItem.quantity <= inventoryItem.threshold) {
+                  this.notificationsService.create({
+                    title: 'Low Stock Alert',
+                    message: `Item "${inventoryItem.name}" is low on stock (${inventoryItem.quantity} ${inventoryItem.unit} remaining).`,
+                    type: NotificationType.WARNING,
+                  });
+                }
+              }
+            }
           }
 
           const orderItem = new OrderItem();
@@ -186,9 +219,10 @@ export class OrdersService {
         relations: ['items', 'items.menuItem'],
       });
 
-      // Broadcast to Kitchen
+      // Broadcast to Kitchen (and other terminals)
       if (finalOrder) {
-        this.kitchenGateway.broadcastNewOrder(finalOrder);
+        const tenantId = this.cls.get('tenantId');
+        this.notificationsGateway.emitToTenant(tenantId, 'new_order', finalOrder);
 
         // Create a system notification
         this.notificationsService.create({
@@ -205,11 +239,33 @@ export class OrdersService {
     }
   }
 
-  findAll() {
-    return this.orderRepo.find({
+  async findAll(page = 1, limit = 50, status?: string) {
+    const skip = (page - 1) * limit;
+
+    let whereClause: any = {};
+    if (status === 'active') {
+      whereClause.status = In(['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'SERVED', 'PARTIAL', 'DUE']);
+    } else if (status) {
+      whereClause.status = status;
+    }
+
+    const [orders, total] = await this.orderRepo.findAndCount({
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
       relations: ['items', 'items.menuItem'],
       order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      }
+    };
   }
 
   async getActiveOrder(tableId: number) {
@@ -401,7 +457,8 @@ export class OrdersService {
     });
 
     if (updatedOrder) {
-      this.kitchenGateway.broadcastNewOrder(updatedOrder);
+      const tenantId = this.cls.get('tenantId');
+      this.notificationsGateway.emitToTenant(tenantId, 'new_order', updatedOrder);
     }
 
     return { message: 'Order marked as SERVED' };
@@ -655,7 +712,8 @@ export class OrdersService {
     });
 
     if (updatedOrder) {
-      this.kitchenGateway.broadcastNewOrder(updatedOrder);
+      const tenantId = this.cls.get('tenantId');
+      this.notificationsGateway.emitToTenant(tenantId, 'order_status_updated', updatedOrder);
 
       this.notificationsService.create({
         title: `Order #${orderId} Updated`,

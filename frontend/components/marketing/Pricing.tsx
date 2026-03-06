@@ -1,84 +1,89 @@
 "use client";
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Check } from 'lucide-react';
-import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { motion } from "framer-motion";
+import { CheckCircle2, ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 const plans = [
     {
-        name: "Starter",
-        price: { monthly: 999, yearly: 799 },
-        description: "Perfect for single locations.",
+        name: "Essentials",
+        price: "49",
+        description: "Perfect for single-location shops and rapid checkout.",
         features: [
-            "1 Branch",
-            "2 POS Devices",
-            "Basic Reports",
-            "Email Support"
-        ],
-        cta: "Start Free Trial",
-        popular: false
+            "Unlimited transactions",
+            "Core inventory tracking",
+            "Offline-first sync",
+            "Standard email support",
+            "Basic reporting"
+        ]
     },
     {
-        name: "Pro",
-        price: { monthly: 2999, yearly: 2499 },
-        description: "For growing businesses.",
+        name: "Professional",
+        price: "99",
+        popular: true,
+        description: "Ideal for growing multi-location retail chains.",
         features: [
-            "5 Branches",
-            "Unlimited Devices",
-            "Advanced Reports",
-            "Inventory Management",
-            "Priority Support"
-        ],
-        cta: "Start Free Trial",
-        popular: true
+            "Everything in Essentials",
+            "Multi-branch management",
+            "Advanced granular RBAC",
+            "Priority 24/7 support",
+            "Custom analytics dashboards",
+            "API Access"
+        ]
     },
     {
         name: "Enterprise",
-        price: { monthly: 'Custom', yearly: 'Custom' },
-        description: "Full control for large chains.",
+        price: "Custom",
+        description: "For large scale businesses needing custom isolation.",
         features: [
-            "Unlimited Branches",
-            "Unlimited Devices",
-            "Custom Features",
-            "Dedicated Support"
-        ],
-        cta: "Contact Sales",
-        popular: false
+            "Everything in Professional",
+            "Dedicated isolated tenant database",
+            "Custom integrations",
+            "Dedicated account manager",
+            "On-premise deployment options",
+            "SLA guarantees"
+        ]
     }
 ];
 
 export function Pricing() {
-    const [isYearly, setIsYearly] = useState(true);
+    const [annual, setAnnual] = useState(true);
 
     return (
-        <section className="py-24 relative overflow-hidden">
-            <div className="max-w-7xl mx-auto px-6">
+        <section className="py-24 bg-white border-t border-gray-100 font-sans">
+            <div className="max-w-[1400px] mx-auto px-6">
 
-                <div className="text-center mb-12">
-                    <h2 className="text-3xl md:text-5xl font-bold font-serif italic mb-6">Simple, transparent <span className="text-primary">pricing</span></h2>
-                    <p className="text-muted max-w-2xl mx-auto text-lg mb-8">
-                        Choose the plan that fits your business stage. No hidden fees.
+                <div className="text-center max-w-3xl mx-auto mb-16">
+                    <h2 className="text-[40px] font-bold text-black mb-6">Simple, Transparent Pricing</h2>
+                    <p className="text-gray-600 text-[18px] font-medium leading-relaxed">
+                        Choose the right plan for your retail operations. No hidden fees.
                     </p>
+                </div>
 
-                    {/* Toggle */}
-                    <div className="inline-flex bg-surface border border-surface-light rounded-full p-1 relative">
-                        <div className={cn(
-                            "absolute top-1 bottom-1 w-[50%] bg-primary rounded-full transition-all duration-300",
-                            isYearly ? "left-[50%]" : "left-1"
-                        )} />
+                <div className="flex justify-center mb-16">
+                    <div className="bg-gray-100 p-1.5 rounded-full flex items-center gap-1 border border-gray-200 shadow-inner">
                         <button
-                            onClick={() => setIsYearly(false)}
-                            className={cn("relative z-10 px-6 py-2 text-sm font-bold rounded-full transition-colors", !isYearly ? "text-primary-fg" : "text-muted hover:text-foreground")}
+                            onClick={() => setAnnual(false)}
+                            className={cn(
+                                "px-6 py-2.5 rounded-full text-[15px] font-bold transition-all",
+                                !annual ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-black"
+                            )}
                         >
                             Monthly
                         </button>
                         <button
-                            onClick={() => setIsYearly(true)}
-                            className={cn("relative z-10 px-6 py-2 text-sm font-bold rounded-full transition-colors", isYearly ? "text-primary-fg" : "text-muted hover:text-foreground")}
+                            onClick={() => setAnnual(true)}
+                            className={cn(
+                                "px-6 py-2.5 rounded-full text-[15px] font-bold transition-all flex items-center gap-2",
+                                annual ? "bg-[#6366F1] text-white shadow-md shadow-indigo-500/20" : "text-gray-500 hover:text-black"
+                            )}
                         >
-                            Yearly <span className="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded-full ml-1">-20%</span>
+                            Annually
+                            <span className={cn(
+                                "text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded flex items-center justify-center",
+                                annual ? "bg-white/20 text-white" : "bg-green-100 text-green-700"
+                            )}>Save 20%</span>
                         </button>
                     </div>
                 </div>
@@ -87,63 +92,56 @@ export function Pricing() {
                     {plans.map((plan, index) => (
                         <motion.div
                             key={plan.name}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
                             viewport={{ once: true }}
                             transition={{ delay: index * 0.1 }}
                             className={cn(
-                                "relative p-8 rounded-3xl border flex flex-col",
-                                plan.popular
-                                    ? "bg-surface/50 border-primary shadow-[0_0_30px_rgba(105,215,189,0.15)] scale-105 z-10"
-                                    : "bg-surface/20 border-surface-light"
+                                "relative p-10 rounded-[32px] border flex flex-col bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:border-[#6366F1]/50 transition-colors",
+                                plan.popular ? "border-[#6366F1] shadow-[0_20px_60px_-15px_rgba(99,102,241,0.2)] md:-translate-y-4" : "border-gray-200"
                             )}
                         >
                             {plan.popular && (
-                                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-primary text-primary-fg text-xs font-bold px-4 py-1 rounded-full shadow-lg">
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#0f62fe] text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest shadow-lg">
                                     Most Popular
                                 </div>
                             )}
 
                             <div className="mb-8">
-                                <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                                <p className="text-muted text-sm">{plan.description}</p>
+                                <h3 className="text-2xl font-bold text-black mb-2">{plan.name}</h3>
+                                <p className="text-sm font-medium text-gray-500 h-10">{plan.description}</p>
                             </div>
 
-                            <div className="mb-8">
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl font-bold">{typeof plan.price.monthly === 'number' ? '₹' : ''}{isYearly ? plan.price.yearly : plan.price.monthly}</span>
-                                    {typeof plan.price.monthly === 'number' && <span className="text-muted">/mo</span>}
-                                </div>
-                                {isYearly && (
-                                    <p className="text-xs text-green-500 mt-1 font-bold">Billed annually</p>
-                                )}
+                            <div className="mb-8 flex items-baseline gap-2">
+                                <span className="text-5xl font-extrabold text-black">
+                                    {plan.price !== "Custom" && "$"}
+                                    {plan.price === "Custom" ? "Custom" : annual ? Math.floor(Number(plan.price) * 0.8) : plan.price}
+                                </span>
+                                {plan.price !== "Custom" && <span className="text-gray-500 font-medium">/mo</span>}
                             </div>
 
-                            <div className="flex-1 space-y-4 mb-8">
-                                {plan.features.map((feature) => (
-                                    <div key={feature} className="flex items-center gap-3">
-                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                                            <Check className="w-3 h-3 text-primary" />
-                                        </div>
-                                        <span className="text-sm text-foreground/80">{feature}</span>
+                            <button className={cn(
+                                "w-full py-4 rounded-full font-bold text-[16px] transition-all flex items-center justify-center gap-2 group mb-10",
+                                plan.popular
+                                    ? "bg-[#6366F1] hover:bg-indigo-600 text-white shadow-[0_8px_30px_-4px_rgba(99,102,241,0.4)]"
+                                    : "bg-gray-100 hover:bg-gray-200 text-black"
+                            )}>
+                                Get Started
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                            </button>
+
+                            <div className="flex-1 space-y-4">
+                                <p className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">What's included</p>
+                                {plan.features.map((feature, i) => (
+                                    <div key={i} className="flex items-start gap-3">
+                                        <CheckCircle2 className="w-5 h-5 text-indigo-500 shrink-0" />
+                                        <span className="text-gray-600 font-medium">{feature}</span>
                                     </div>
                                 ))}
                             </div>
-
-                            <Link href="/signup">
-                                <button className={cn(
-                                    "w-full py-3 rounded-full font-bold text-sm transition-all active:scale-95",
-                                    plan.popular
-                                        ? "bg-primary text-primary-fg shadow-lg hover:shadow-primary/30"
-                                        : "bg-surface text-foreground border border-surface-light hover:bg-surface-light"
-                                )}>
-                                    {plan.cta}
-                                </button>
-                            </Link>
                         </motion.div>
                     ))}
                 </div>
-
             </div>
         </section>
     );

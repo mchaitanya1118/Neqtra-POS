@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { db } from '@/lib/db';
 import { useAuthStore } from './useAuthStore';
+import { syncService } from '@/services/sync.service';
 
 export interface CartItem {
     id: number;
@@ -80,6 +81,7 @@ export const useCartStore = create<CartState>()(
                 if (items.length === 0 || !user || !user.tenantId) return;
 
                 await db.orders.add({
+                    tempId: crypto.randomUUID(),
                     items,
                     totalAmount: getTotal(),
                     status: 'PARKED',
@@ -104,20 +106,22 @@ export const useCartStore = create<CartState>()(
                 if (items.length === 0 || !user || !user.tenantId) return;
 
                 // Save to local DB with PENDING status
-                // SyncService will pick this up
                 await db.orders.add({
-                    items,
+                    tempId: crypto.randomUUID(),
+                    items: items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity })),
                     totalAmount: getTotal(),
                     status: 'PENDING',
                     createdAt: new Date(),
                     tenantId: user.tenantId,
+                    branchId: user.branchId,
                     tableName: tableName || 'Quick Order',
                 });
                 clearCart();
 
-                // Trigger sync if online? 
-                // SyncService listens to online event, but we might want to trigger manually.
-                // For now, background sync will handle it or next online event.
+                // Trigger immediate background sync
+                if (navigator.onLine) {
+                    syncService.sync().catch(console.error);
+                }
             }
         }),
         {

@@ -25,9 +25,10 @@ import {
     Receipt as ReceiptIcon,
     RotateCw,
     Truck,
-    ArrowRightLeft
+    ArrowRightLeft,
+    Loader2
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import apiClient from "@/lib/api";
@@ -57,7 +58,7 @@ interface ActiveOrder {
     discountVal?: number;
 }
 
-export function BillingPanel() {
+export const BillingPanel = memo(function BillingPanel() {
     const { items, removeItem, updateQuantity, clearCart, getTotal } = useCartStore();
     const selectedTable = useTableStore(state =>
         Array.isArray(state.tables) && state.selectedTableId
@@ -72,7 +73,14 @@ export function BillingPanel() {
     const { user, hasPermission } = useAuthStore();
     const router = useRouter();
 
-    const { isConnected: printerConnected, print: printToBluetooth } = usePrinterStore();
+    const {
+        isConnected: printerConnected,
+        connect: connectPrinter,
+        disconnect: disconnectPrinter,
+        isConnecting: printerConnecting,
+        error: printerError,
+        print: printToBluetooth
+    } = usePrinterStore();
 
     const [isTableModalOpen, setIsTableModalOpen] = useState(false);
     const [tableModalMode, setTableModalMode] = useState<'SELECT' | 'SHIFT'>('SELECT');
@@ -484,9 +492,40 @@ export function BillingPanel() {
                         </div>
                     )}
 
-                    <div className="text-right">
-                        <span className="text-[9px] font-bold text-muted uppercase tracking-[0.2em]">Grand Total</span>
-                        <div className="text-2xl font-bold text-primary tracking-tighter mt-0.5 font-serif italic">₹{Math.round(grandTotal)}</div>
+                    <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                            <button
+                                onClick={() => printerConnected ? disconnectPrinter() : connectPrinter()}
+                                disabled={printerConnecting}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all duration-300",
+                                    printerConnected
+                                        ? "bg-green-500/10 border-green-500/30 text-green-500"
+                                        : printerError
+                                            ? "bg-red-500/10 border-red-500/30 text-red-500"
+                                            : "bg-surface-light border-surface-light text-muted hover:border-muted/50"
+                                )}
+                            >
+                                {printerConnecting ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                    <Printer className={cn("w-3.5 h-3.5", printerConnected && "fill-current animate-pulse")} />
+                                )}
+                                <span className="text-[9px] font-black uppercase tracking-widest">
+                                    {printerConnecting ? 'Syncing...' : printerConnected ? 'Active' : 'Offline'}
+                                </span>
+                            </button>
+                            {printerError && !printerConnecting && (
+                                <span className="text-[8px] font-bold text-red-400 mt-1 max-w-[120px] truncate text-right">
+                                    {printerError}
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="text-right">
+                            <span className="text-[9px] font-bold text-muted uppercase tracking-[0.2em]">Grand Total</span>
+                            <div className="text-2xl font-bold text-primary tracking-tighter mt-0.5 font-serif italic">₹{Math.round(grandTotal)}</div>
+                        </div>
                     </div>
                 </div>
 
@@ -772,4 +811,4 @@ export function BillingPanel() {
             />
         </div>
     );
-}
+});

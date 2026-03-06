@@ -6,10 +6,15 @@ import { Tenant } from '../tenants/entities/tenant.entity';
 import { BranchesModule } from '../branches/branches.module';
 import { DevicesModule } from '../devices/devices.module';
 
+import { Invoice } from './entities/invoice.entity';
+import { TenantsModule } from '../tenants/tenants.module';
+
+import { PhonePeService } from './phonepe.service';
+
 @Module({
-    imports: [TypeOrmModule.forFeature([Tenant]), BranchesModule, DevicesModule],
+    imports: [TypeOrmModule.forFeature([Tenant, Invoice]), BranchesModule, DevicesModule, TenantsModule],
     controllers: [SubscriptionsController],
-    providers: [SubscriptionsService],
-    exports: [SubscriptionsService],
+    providers: [SubscriptionsService, PhonePeService],
+    exports: [SubscriptionsService, PhonePeService],
 })
 export class SubscriptionsModule { }

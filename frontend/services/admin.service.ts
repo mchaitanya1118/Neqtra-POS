@@ -37,7 +37,7 @@ export const AdminService = {
     },
 
     getStats: async () => {
-        const { data } = await apiClient.get('/admin/stats/overview');
+        const { data } = await apiClient.get('/admin/metrics');
         return data;
     },
 

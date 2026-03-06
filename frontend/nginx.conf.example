@@ -1,0 +1,106 @@
+# Optimized NGINX Configuration for Neqtra POS
+# This configuration assumes Next.js (Frontend) and NestJS (Backend)
+# are running via PM2 or Node Cluster on the same server, or distinct upstream servers.
+
+# Define upstreams
+upstream nextjs_frontend {
+    server 127.0.0.1:3000;
+    keepalive 64;
+}
+
+upstream nestjs_backend {
+    server 127.0.0.1:3001;
+    keepalive 64;
+}
+
+server {
+    listen 80;
+    listen 443 ssl http2;
+    server_name pos.neqtra.com;
+
+    # SSL Configuration (Replace with actual certs)
+    # ssl_certificate /etc/letsencrypt/live/pos.neqtra.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/pos.neqtra.com/privkey.pem;
+
+    # Optimize SSL Caching
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # Enable Gzip Compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml application/json application/javascript application/rss+xml application/atom+xml image/svg+xml;
+
+    # Security Headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    # Next.js Static Assets (Aggressive Caching)
+    location /_next/static {
+        proxy_pass http://nextjs_frontend;
+        proxy_cache_valid 200 365d;
+        proxy_cache_use_stale error timeout http_500 http_502 http_503 http_504;
+        expires max;
+        access_log off;
+    }
+
+    # Public Directory Assets (PWA icons, fonts, etc.)
+    location ~* \.(?:ico|css|js|gif|jpe?g|png|svg|woff2?|eot|ttf|mp4|webm|avif|webp)$ {
+        proxy_pass http://nextjs_frontend;
+        expires 30d;
+        access_log off;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+    }
+
+    # API Proxy to NestJS Backend
+    location /api/ {
+        # Limit connections per IP to prevent basic DDoS
+        # limit_req zone=mylimit burst=20 nodelay;
+        
+        proxy_pass http://nestjs_backend/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_addrs;
+        
+        # Timeout settings for long-running queries
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # WebSockets (Socket.IO for POS Real-time updates)
+    location /socket.io/ {
+        proxy_pass http://nestjs_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # Standard Next.js Client Requests
+    location / {
+        proxy_pass http://nextjs_frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

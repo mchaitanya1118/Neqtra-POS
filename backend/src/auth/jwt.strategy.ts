@@ -32,13 +32,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         // Extract token to check against blacklist
         const authHeader = request.headers.authorization;
         if (!authHeader) {
+            console.error('[JwtStrategy] Validation failed: No Auth Header');
             throw new UnauthorizedException('No authorization header');
         }
 
         const token = authHeader.replace('Bearer ', '');
-        const isBlacklisted = await this.redis.get(`blacklist:${token}`);
-        if (isBlacklisted) {
-            throw new UnauthorizedException('Session expired');
+
+        try {
+            if (this.redis) {
+                const isBlacklisted = await this.redis.get(`blacklist:${token}`);
+                if (isBlacklisted) {
+                    console.error('[JwtStrategy] Validation failed: Session expired (blacklisted)');
+                    throw new UnauthorizedException('Session expired');
+                }
+            }
+        } catch (err: any) {
+            if (err instanceof UnauthorizedException) throw err;
+            // Ignore Redis connection errors so the app still functions without a cache server
+            console.warn('[JwtStrategy] Redis blacklist check bypassed due to connection error:', err.message);
         }
 
         const { sub: userId, tenantId } = payload;
@@ -48,11 +59,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
 
         if (!user) {
+            console.error(`[JwtStrategy] Validation failed: User not found in database for ID ${userId}`);
             throw new UnauthorizedException();
         }
 
         // Enforce tenant isolation if tenantId is present in token
         if (tenantId && user.tenant?.id !== tenantId) {
+            console.error(`[JwtStrategy] Validation failed: Tenant mismatch. Token tenantId: ${tenantId}, User tenantId: ${user.tenant?.id}`);
             throw new UnauthorizedException('Tenant mismatch');
         }
 

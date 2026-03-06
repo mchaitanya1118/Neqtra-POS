@@ -1,62 +1,47 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { TenantsService } from '../tenants/tenants.service';
-
-export const PLAN_HIERARCHY = {
-    FREE: 0,
-    STARTER: 1,
-    PRO: 2,
-    ENTERPRISE: 3,
-    TRIAL: 3, // Trial gets full access
-};
-
-export const Plan = (plan: string) => {
-    return (target: any, key: string, descriptor: PropertyDescriptor) => {
-        Reflector.createDecorator<string>()(plan)(target, key, descriptor);
-    };
-};
-
-import { SetMetadata } from '@nestjs/common';
-export const RequirePlan = (plan: string) => SetMetadata('requirePlan', plan);
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Tenant } from '../tenants/entities/tenant.entity';
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
     constructor(
-        private reflector: Reflector,
-        private tenantsService: TenantsService
+        @InjectRepository(Tenant)
+        private tenantRepository: Repository<Tenant>,
     ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
-        const requiredPlan = this.reflector.get<string>('requirePlan', context.getHandler()) ||
-            this.reflector.get<string>('requirePlan', context.getClass());
-
-        if (!requiredPlan) {
-            return true; // No plan restriction on this route
-        }
-
         const request = context.switchToHttp().getRequest();
         const user = request.user;
 
-        const userRole = user.roleRel?.name || user.role;
-        if (!user || userRole === 'SuperAdmin') {
-            return true; // SuperAdmins bypass limits
+        // SuperAdmin bypasses subscription checks
+        if (user?.role === 'SuperAdmin' || user?.roleRel?.name === 'SuperAdmin') {
+            return true;
         }
 
-        const tenantId = user.tenant?.id || user.tenantId;
-        if (!tenantId) {
-            throw new ForbiddenException('No tenant associated with this user');
+        if (!user || !user.tenantId) {
+            throw new UnauthorizedException('Tenant context missing');
         }
 
-        const tenant = await this.tenantsService.findOne(tenantId);
+        const tenant = await this.tenantRepository.findOne({ where: { id: user.tenantId } });
+
         if (!tenant) {
             throw new ForbiddenException('Tenant not found');
         }
 
-        const currentPlanLevel = PLAN_HIERARCHY[tenant.subscriptionPlan as keyof typeof PLAN_HIERARCHY] || 0;
-        const requiredPlanLevel = PLAN_HIERARCHY[requiredPlan as keyof typeof PLAN_HIERARCHY] || 0;
+        // 1. Check Status
+        if (tenant.status === 'SUSPENDED') {
+            throw new ForbiddenException('Your account has been suspended. Please contact support.');
+        }
 
-        if (currentPlanLevel < requiredPlanLevel) {
-            throw new ForbiddenException(`Access denied. This feature requires the ${requiredPlan} plan or higher.`);
+        if (tenant.status === 'INACTIVE') {
+            throw new ForbiddenException('Your account is inactive.');
+        }
+
+        // 2. Check Subscription Expiry
+        if (tenant.subscriptionExpiry && new Date(tenant.subscriptionExpiry) < new Date()) {
+            // Allow limited access if needed, but for now block
+            throw new ForbiddenException('Your subscription has expired. Please renew to continue.');
         }
 
         return true;

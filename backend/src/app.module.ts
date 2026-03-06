@@ -27,7 +27,10 @@ import { ClsModule } from 'nestjs-cls';
 import { TenancyModule } from './tenancy/tenancy.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { RedisModule } from '@liaoliaots/nestjs-redis';
+import { TenantMiddleware } from './common/middleware/tenant.middleware';
+import { NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { BootstrapModule } from './bootstrap/bootstrap.module';
 
 @Module({
   imports: [
@@ -49,8 +52,13 @@ import { APP_GUARD } from '@nestjs/core';
       }),
     }),
     ThrottlerModule.forRoot([{
+      name: 'short',
+      ttl: 1000,
+      limit: 3,
+    }, {
+      name: 'long',
       ttl: 60000,
-      limit: 100, // Global limit of 100 requests per minute
+      limit: 100,
     }]),
     RedisModule.forRootAsync({
       imports: [ConfigModule],
@@ -65,29 +73,7 @@ import { APP_GUARD } from '@nestjs/core';
     }),
     ClsModule.forRoot({
       global: true,
-      middleware: {
-        mount: true,
-        setup: (cls, req) => {
-          let tenantId = req.headers['x-tenant-id'] as string;
-
-          // Fallback to extracting from JWT token if header is missing
-          if (!tenantId && req.headers.authorization) {
-            try {
-              const token = req.headers.authorization.split(' ')[1];
-              if (token) {
-                const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-                if (payload.tenantId) {
-                  tenantId = payload.tenantId;
-                }
-              }
-            } catch (e) { }
-          }
-
-          if (tenantId) {
-            cls.set('tenantId', tenantId);
-          }
-        },
-      },
+      middleware: { mount: true },
     }),
     TenancyModule,
     MenuModule,
@@ -110,6 +96,7 @@ import { APP_GUARD } from '@nestjs/core';
     AdminModule,
     SubscriptionsModule,
     DevicesModule,
+    BootstrapModule,
   ],
   controllers: [AppController],
   providers: [
@@ -120,4 +107,8 @@ import { APP_GUARD } from '@nestjs/core';
     }
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(TenantMiddleware).forRoutes('*');
+  }
+}

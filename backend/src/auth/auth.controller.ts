@@ -1,4 +1,5 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, Logger, BadRequestException, InternalServerErrorException, UnauthorizedException, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 
@@ -8,6 +9,7 @@ export class AuthController {
 
   constructor(private readonly authService: AuthService) { }
 
+  @Throttle({ short: { limit: 1, ttl: 5000 }, long: { limit: 5, ttl: 60000 } })
   @Post('signup')
   async signup(@Body() signupDto: any) {
     try {
@@ -22,6 +24,7 @@ export class AuthController {
     }
   }
 
+  @Throttle({ short: { limit: 2, ttl: 1000 }, long: { limit: 10, ttl: 60000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {

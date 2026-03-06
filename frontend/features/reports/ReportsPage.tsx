@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { ReportsService, SalesData, TopItem, StaffPerformance, SalesSummary } from '@/services/reports.service';
-import SalesChart from './components/SalesChart';
 import TopItemsTable from './components/TopItemsTable';
 import StaffPerformanceTable from './components/StaffPerformanceTable';
 import { Calendar, DollarSign, ShoppingBag, CreditCard, TrendingUp, Lock, RefreshCcw, Download, Sparkles } from 'lucide-react';
@@ -10,6 +9,12 @@ import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+const SalesChart = dynamic(() => import('./components/SalesChart'), {
+    ssr: false,
+    loading: () => <div className="h-80 w-full bg-surface-light/30 animate-pulse rounded-2xl" />
+});
 
 export default function ReportsPage() {
     const { user, hasPermission } = useAuthStore();

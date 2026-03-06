@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useSubdomain } from '@/hooks/useSubdomain';
 
 // Simple string hash function
 function hashString(str: string) {
@@ -31,22 +32,25 @@ function generateTenantFgColor(tenantId: string) {
 
 export function TenantThemeProvider() {
     const { user } = useAuthStore();
+    const { tenantInfo } = useSubdomain();
 
     useEffect(() => {
-        if (user?.tenantId) {
-            const primaryColor = generateTenantColor(user.tenantId);
-            const primaryFgColor = generateTenantFgColor(user.tenantId);
+        const activeTenantId = user?.tenantId || tenantInfo?.id;
+
+        if (activeTenantId) {
+            const primaryColor = generateTenantColor(activeTenantId);
+            const primaryFgColor = generateTenantFgColor(activeTenantId);
 
             document.documentElement.style.setProperty('--primary', primaryColor);
             document.documentElement.style.setProperty('--primary-fg', primaryFgColor);
             document.documentElement.style.setProperty('--success', primaryColor);
         } else {
-            // Revert to default Zoox Mint if logged out
+            // Revert to default Zoox Mint if logged out and no subdomain
             document.documentElement.style.removeProperty('--primary');
             document.documentElement.style.removeProperty('--primary-fg');
             document.documentElement.style.removeProperty('--success');
         }
-    }, [user?.tenantId]);
+    }, [user?.tenantId, tenantInfo?.id]);
 
     return null;
 }

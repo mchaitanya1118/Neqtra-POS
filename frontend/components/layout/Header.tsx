@@ -19,7 +19,8 @@ import {
     Utensils,
     PieChart,
     Users,
-    Activity
+    Activity,
+    Zap
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -39,6 +40,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     const router = useRouter();
     const { logout, hasPermission } = useAuthStore();
     const cartItems = useCartStore((state) => state.items);
+    const lowLatencyMode = useUIStore((state) => state.lowLatencyMode);
 
     const handleLogout = () => {
         logout();
@@ -138,6 +140,21 @@ export function Header({ onMenuClick }: HeaderProps) {
                 <div className="scale-90 md:scale-100 origin-right">
                     <NotificationCenter />
                 </div>
+
+                {/* Low Latency Toggle */}
+                <button
+                    onClick={() => useUIStore.getState().toggleLowLatencyMode()}
+                    className={cn(
+                        "hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all flex-shrink-0",
+                        lowLatencyMode
+                            ? "bg-amber-500/10 border-amber-500/30 text-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]"
+                            : "bg-surface border-surface-light text-muted hover:text-foreground"
+                    )}
+                    title="Toggle Ultra-Low Latency Mode for slow devices"
+                >
+                    <Zap className={cn("w-4 h-4", lowLatencyMode && "fill-amber-500")} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">Fast Mode</span>
+                </button>
 
                 {/* Help */}
                 <button className="p-2 md:p-2.5 rounded-full hover:bg-surface-light text-muted hover:text-foreground transition-colors flex-shrink-0">

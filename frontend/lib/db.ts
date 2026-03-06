@@ -20,13 +20,16 @@ export interface Category {
 
 export interface Order {
     id?: number; // Auto-incremented local ID
+    tempId: string; // Client-side unique ID
     items: any[];
     totalAmount: number;
     status: 'PENDING' | 'SYNCED' | 'FAILED' | 'PARKED';
     createdAt: Date;
     tenantId: string;
+    branchId?: string;
     tableId?: number;
     tableName?: string;
+    type?: string;
 }
 
 export class OfflineDB extends Dexie {
@@ -36,10 +39,10 @@ export class OfflineDB extends Dexie {
 
     constructor() {
         super('NeqtraPOS_DB');
-        this.version(1).stores({
+        this.version(2).stores({ // Bumped version
             products: 'id, name, categoryId, tenantId',
             categories: 'id, name, tenantId',
-            orders: '++id, status, tenantId, createdAt'
+            orders: '++id, status, tenantId, tempId, createdAt'
         });
     }
 }

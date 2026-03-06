@@ -7,6 +7,10 @@ import { Tenant } from '../tenants/entities/tenant.entity';
 import { BranchesService } from '../branches/branches.service';
 import { DevicesService } from '../devices/devices.service';
 
+import { Invoice } from './entities/invoice.entity';
+import { TenantsService } from '../tenants/tenants.service';
+import { PhonePeService } from './phonepe.service';
+
 @Injectable()
 export class SubscriptionsService {
     private stripe: Stripe;
@@ -15,9 +19,13 @@ export class SubscriptionsService {
     constructor(
         @InjectRepository(Tenant)
         private tenantRepository: Repository<Tenant>,
+        @InjectRepository(Invoice)
+        private invoiceRepository: Repository<Invoice>,
+        private tenantsService: TenantsService,
         private configService: ConfigService,
         private branchesService: BranchesService,
         private devicesService: DevicesService,
+        private phonePeService: PhonePeService,
     ) {
         const stripeKey = this.configService.get<string>('STRIPE_SECRET_KEY') || 'sk_test_placeholder';
         this.stripe = new Stripe(stripeKey, {});
@@ -30,25 +38,7 @@ export class SubscriptionsService {
         const activeBranches = await this.branchesService.countActive(tenantId);
         const activeDevices = await this.devicesService.countActive(tenantId);
 
-        let maxBranches = 1;
-        let maxDevices = Infinity;
-
-        switch (tenant.subscriptionPlan?.toUpperCase()) {
-            case 'FREE':
-            case 'STARTER':
-            case 'TRIAL':
-                maxBranches = 1;
-                maxDevices = 2;
-                break;
-            case 'PRO':
-                maxBranches = 3;
-                maxDevices = Infinity;
-                break;
-            case 'ENTERPRISE':
-                maxBranches = Infinity;
-                maxDevices = Infinity;
-                break;
-        }
+        const { maxBranches, maxDevices, maxUsers } = this.tenantsService.getPlanQuotas(tenant.subscriptionPlan || 'FREE');
 
         return {
             plan: tenant.subscriptionPlan,
@@ -171,5 +161,83 @@ export class SubscriptionsService {
         });
 
         return { url: session.url };
+    }
+
+    // --- PhonePe Integration ---
+
+    async initiatePhonePePayment(tenantId: string, plan: string) {
+        const tenant = await this.tenantRepository.findOne({ where: { id: tenantId } });
+        if (!tenant) throw new NotFoundException('Tenant not found');
+
+        const transactionId = `TX_${tenantId.substring(0, 8)}_${Date.now()}`;
+
+        // Map plan to price in INR (Example values)
+        let amount = 99900; // Starter: ₹999 in paise
+        if (plan === 'PRO' || plan === 'GROWTH') amount = 249900;
+        if (plan === 'ENTERPRISE') amount = 999900;
+
+        const response = await this.phonePeService.createPayment({
+            transactionId,
+            merchantUserId: tenantId,
+            amount,
+            callbackUrl: `${this.configService.get('BACKEND_URL')}/api/subscriptions/phonepe/callback`,
+            redirectUrl: `${this.configService.get('FRONTEND_URL')}/admin/billing?provider=phonepe&txId=${transactionId}`,
+        });
+
+        if (response.success && response.data.instrumentResponse?.redirectInfo?.url) {
+            // Create a pending invoice
+            const invoice = this.invoiceRepository.create({
+                tenantId,
+                amount: amount / 100,
+                currency: 'INR',
+                status: 'UNPAID',
+                provider: 'PHONEPE',
+                providerTransactionId: transactionId,
+                planName: plan,
+            });
+            await this.invoiceRepository.save(invoice);
+
+            return { url: response.data.instrumentResponse.redirectInfo.url };
+        }
+
+        throw new Error('Failed to initiate PhonePe payment');
+    }
+
+    async handlePhonePeCallback(body: any) {
+        // PhonePe sends a base64 encoded response
+        const base64Response = body.response;
+        if (!base64Response) return { success: false };
+
+        const decodedResponse = JSON.parse(Buffer.from(base64Response, 'base64').toString());
+        const { success, code, data } = decodedResponse;
+
+        if (success && code === 'PAYMENT_SUCCESS') {
+            const transactionId = data.merchantTransactionId;
+            const invoice = await this.invoiceRepository.findOne({ where: { providerTransactionId: transactionId } });
+
+            if (invoice && invoice.status !== 'PAID') {
+                invoice.status = 'PAID';
+                await this.invoiceRepository.save(invoice);
+
+                // Update Tenant Plan
+                const tenant = await this.tenantRepository.findOne({ where: { id: invoice.tenantId } });
+                if (tenant) {
+                    tenant.subscriptionPlan = invoice.planName;
+                    tenant.status = 'ACTIVE';
+
+                    // Update quotas automatically
+                    const quotas = this.tenantsService.getPlanQuotas(invoice.planName);
+                    Object.assign(tenant, quotas);
+
+                    const expiry = new Date();
+                    expiry.setMonth(expiry.getMonth() + 1); // 1 month subscription
+                    tenant.subscriptionExpiry = expiry;
+
+                    await this.tenantRepository.save(tenant);
+                }
+            }
+        }
+
+        return { success: true };
     }
 }

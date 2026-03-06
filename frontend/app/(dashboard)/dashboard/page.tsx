@@ -60,6 +60,11 @@ export default function DashboardPage() {
             setMetrics(res.data);
         } catch (e: any) {
             console.error("Failed to fetch dashboard metrics", e);
+            if (Number(e.response?.status) === 401) {
+                // Token expired — api.ts interceptor will handle logout+redirect
+                router.replace('/login');
+                return;
+            }
             if (e.response) {
                 setError(`Server Error: ${e.response.status} ${e.response.statusText} - ${JSON.stringify(e.response.data)}`);
             } else {
@@ -80,46 +85,8 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col">
-            {/* Header */}
-            <header className="sticky top-0 z-20 bg-[#050505]/80 backdrop-blur-md border-b border-[#1A1E21] px-4 md:px-8 py-4 md:py-5 flex flex-wrap gap-4 items-center justify-between shrink-0">
-                <div className="flex items-center gap-3 md:gap-4">
-                    <button
-                        onClick={toggleSidebar}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[#1A1E21] flex items-center justify-center border border-[#2A2E31] group cursor-pointer hover:bg-[#2A2E31] transition-colors shrink-0"
-                    >
-                        <LayoutDashboard className="w-5 h-5 md:w-6 md:h-6 text-primary group-hover:scale-110 transition-transform" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-bold font-serif italic tracking-tighter text-white">Dashboard</h1>
-                        <div className="flex items-center gap-2 mt-0.5 md:mt-1">
-                            <span className="flex h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_8px_var(--primary)] shrink-0" />
-                            <span className="text-[9px] md:text-[10px] font-bold text-primary uppercase tracking-[0.2em] truncate relative top-[1px]">Live System Feed</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2 md:gap-4">
-                    <button
-                        onClick={fetchMetrics}
-                        className="flex items-center justify-center gap-2 w-10 h-10 md:w-auto md:px-5 md:py-2.5 bg-[#1A1E21] hover:bg-[#2A2E31] border border-[#2A2E31] rounded-full text-xs font-bold text-gray-400 hover:text-white transition-all group shrink-0"
-                        title="Refresh Feed"
-                    >
-                        <RefreshCw className={cn("w-4 h-4 md:w-3.5 md:h-3.5 group-hover:rotate-180 transition-transform duration-500", loading && "animate-spin")} />
-                        <span className="hidden md:inline tracking-widest uppercase">Refresh Feed</span>
-                    </button>
-                    <button
-                        onClick={() => router.push('/billing')}
-                        className="flex items-center justify-center gap-2 w-10 h-10 md:w-auto md:px-6 md:py-2.5 bg-primary hover:bg-primary/80 text-primary-fg rounded-full text-xs font-bold shadow-[0_0_20px_color-mix(in_srgb,var(--primary)_20%,transparent)] hover:shadow-[0_0_30px_color-mix(in_srgb,var(--primary)_40%,transparent)] transition-all transform hover:scale-105 active:scale-95 shrink-0"
-                        title="New Order"
-                    >
-                        <Plus className="w-5 h-5 md:w-4 md:h-4" />
-                        <span className="hidden md:inline tracking-widest uppercase">New Order</span>
-                    </button>
-                </div>
-            </header>
-
             {/* Content Area */}
-            <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 custom-scrollbar">
+            <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 custom-scrollbar pt-12">
                 <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8 pb-12">
 
                     {loading && !metrics ? (

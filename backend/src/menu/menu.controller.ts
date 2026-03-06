@@ -13,6 +13,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MenuService } from './menu.service';
 import { AiMenuService } from './ai-menu.service';
+import { RedisCacheInterceptor, CacheTTL } from '../common/interceptors/redis-cache.interceptor';
 
 @Controller('menu')
 export class MenuController {
@@ -22,6 +23,8 @@ export class MenuController {
   ) { }
 
   @Get('categories')
+  @UseInterceptors(RedisCacheInterceptor)
+  @CacheTTL(300) // Cache for 5 minutes
   findAll() {
     return this.menuService.findAllCategories();
   }
@@ -39,6 +42,8 @@ export class MenuController {
   }
 
   @Get('items')
+  @UseInterceptors(RedisCacheInterceptor)
+  @CacheTTL(300) // Cache for 5 minutes
   findAllItems(@Query('categoryId') categoryId?: string) {
     return this.menuService.findAllItems(categoryId ? +categoryId : undefined);
   }

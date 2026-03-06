@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useInventoryStore, InventoryItem } from "@/store/useInventoryStore";
 import { InventoryCard } from "@/components/inventory/InventoryCard";
+import { FixedSizeGrid as VirtualGrid } from "react-window";
+import AutoSizer from "react-virtualized-auto-sizer";
 
 export default function InventoryPage() {
     const { hasPermission } = useAuthStore();
@@ -117,7 +119,7 @@ export default function InventoryPage() {
     const outOfStockCount = items.filter(i => i.quantity === 0).length;
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto space-y-8 relative min-h-screen">
+        <div className="p-8 max-w-[1600px] mx-auto space-y-6 relative h-screen flex flex-col">
             {/* Premium Header */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 <div className="space-y-2">
@@ -219,16 +221,18 @@ export default function InventoryPage() {
             </div>
 
             {/* Inventory Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+            <div className="flex-1 w-full min-h-0 relative -mx-2 pb-6">
                 {isLoading ? (
-                    Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="h-[320px] bg-surface-light/20 animate-pulse rounded-[32px] border border-surface-light" />
-                    ))
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-2">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <div key={i} className="h-[320px] bg-surface-light/20 animate-pulse rounded-[32px] border border-surface-light" />
+                        ))}
+                    </div>
                 ) : filteredItems.length === 0 ? (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="col-span-full py-32 text-center"
+                        className="absolute inset-0 flex flex-col items-center justify-center text-center pb-20"
                     >
                         <div className="w-24 h-24 bg-surface-light/50 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Package className="w-10 h-10 opacity-20" />
@@ -237,18 +241,50 @@ export default function InventoryPage() {
                         <p className="text-muted mt-2">Try adjusting your filters or search query</p>
                     </motion.div>
                 ) : (
-                    <AnimatePresence mode="popLayout">
-                        {filteredItems.map(item => (
-                            <InventoryCard
-                                key={item.id}
-                                item={item}
-                                onEdit={handleEdit}
-                                onDelete={(id) => {
-                                    if (confirm(`Remove ${item.name} from inventory?`)) deleteItem(id);
-                                }}
-                            />
-                        ))}
-                    </AnimatePresence>
+                    <AutoSizer>
+                        {({ height, width }: { height: number; width: number }) => {
+                            if (!width || !height) return null;
+
+                            let columnCount = 1;
+                            if (width >= 1280) columnCount = 4; // xl
+                            else if (width >= 1024) columnCount = 3; // lg
+                            else if (width >= 768) columnCount = 2; // md
+
+                            const rowCount = Math.ceil(filteredItems.length / columnCount);
+                            const columnWidth = width / columnCount;
+
+                            return (
+                                <VirtualGrid
+                                    columnCount={columnCount}
+                                    columnWidth={columnWidth}
+                                    height={height}
+                                    rowCount={rowCount}
+                                    rowHeight={350} // 320 Card + 30 Gap
+                                    width={width}
+                                    className="custom-scrollbar"
+                                    style={{ overflowX: 'hidden' }}
+                                >
+                                    {({ columnIndex, rowIndex, style }: any) => {
+                                        const index = rowIndex * columnCount + columnIndex;
+                                        if (index >= filteredItems.length) return null;
+                                        const item = filteredItems[index];
+
+                                        return (
+                                            <div style={{ ...style, padding: '12px' }} key={item.id}>
+                                                <InventoryCard
+                                                    item={item}
+                                                    onEdit={handleEdit}
+                                                    onDelete={(id: number) => {
+                                                        if (confirm(`Remove ${item.name} from inventory?`)) deleteItem(id);
+                                                    }}
+                                                />
+                                            </div>
+                                        );
+                                    }}
+                                </VirtualGrid>
+                            );
+                        }}
+                    </AutoSizer>
                 )}
             </div>
 

@@ -1,89 +1,95 @@
 "use client";
 
-import { motion } from 'framer-motion';
-import { WifiOff, Layers, Zap, BarChart3, Users, Box } from 'lucide-react';
+import { motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, Building2, Store, Truck, Coffee } from "lucide-react";
 
-const features = [
+const capabilities = [
     {
-        icon: Zap,
-        title: "Lightning Fast Billing",
-        description: "Instant checkout. No delays. Built for high-volume environments."
+        title: "Omnichannel Intelligence",
+        desc: "Connect your POS data, inventory, and supply chain natively. Get a unified view of your entire retail network in real-time.",
+        bgColor: "bg-white",
+        textColor: "text-black",
+        descColor: "text-gray-600"
     },
     {
-        icon: WifiOff,
-        title: "Works Even Without Internet",
-        description: "Continue billing even when internet goes down. Sync automatically later."
+        title: "Store Automations",
+        desc: "Reduce manual effort with automated reconciliation, smart alerts, and seamless integration with delivery platforms.",
+        bgColor: "bg-gray-50",
+        textColor: "text-black",
+        descColor: "text-gray-600"
     },
     {
-        icon: Layers,
-        title: "Multi-Branch Management",
-        description: "Control all branches from one dashboard."
-    },
-    {
-        icon: BarChart3,
-        title: "Real-Time Reports",
-        description: "Track sales, staff performance, and revenue instantly."
-    },
-    {
-        icon: Users,
-        title: "Staff & Role Management",
-        description: "Control permissions and monitor activity."
-    },
-    {
-        icon: Box,
-        title: "Cloud Sync",
-        description: "Access your business data from anywhere."
+        title: "Compliance & Auditing",
+        desc: "Stay ahead of regulatory changes with automated digital trails, instant tax calculations, and secure data storage.",
+        bgColor: "bg-white",
+        textColor: "text-black",
+        descColor: "text-gray-600"
     }
-];
-
-const industries = [
-    "Restaurants", "Cafés", "Retail Stores", "Supermarkets", "Cloud Kitchens", "Franchise Chains"
 ];
 
 export function Features() {
     return (
-        <section className="py-24 bg-surface/10 relative">
-            <div className="max-w-7xl mx-auto px-6">
+        <section className="bg-[#fcfcfc] py-20 font-sans border-t border-gray-100 relative z-20">
+            <div className="max-w-[1400px] mx-auto px-6 mb-16">
 
-                <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-5xl font-bold font-serif italic mb-6">Everything you need to <span className="text-primary">scale</span></h2>
-                    <p className="text-muted max-w-2xl mx-auto text-lg">
-                        Built for speed, reliability, and growth. Neqtra provides the tools enterprise brands use, accessible to everyone.
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {features.map((feature, index) => (
-                        <motion.div
-                            key={index}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: index * 0.1 }}
-                            className="p-8 rounded-3xl bg-surface/40 border border-surface-light hover:border-primary/30 hover:bg-surface/60 transition-all group"
+                {/* Horizontal Carousel Area */}
+                <div className="flex gap-8 overflow-x-auto pb-12 snap-x no-scrollbar">
+                    {capabilities.map((cap, idx) => (
+                        <div
+                            key={idx}
+                            className={`min-w-[85vw] md:min-w-[800px] flex-shrink-0 ${cap.bgColor} rounded-[32px] p-12 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 flex flex-col md:flex-row items-center gap-12 snap-center`}
                         >
-                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:scale-110 transition-transform">
-                                <feature.icon className="w-6 h-6" />
+                            <div className="flex-1">
+                                <h3 className={`text-[36px] font-bold ${cap.textColor} mb-6 leading-tight`}>
+                                    {cap.title}
+                                </h3>
+                                <p className={`text-[18px] ${cap.descColor} leading-relaxed font-medium mb-8`}>
+                                    {cap.desc}
+                                </p>
+                                <button className="text-[#6366F1] font-bold text-[17px] flex items-center gap-2 hover:gap-3 transition-all border-b-2 border-[#6366F1] pb-1 w-fit">
+                                    Learn More <ArrowRight className="w-5 h-5" />
+                                </button>
                             </div>
-                            <h3 className="text-xl font-bold mb-3">{feature.title}</h3>
-                            <p className="text-muted leading-relaxed">
-                                {feature.description}
-                            </p>
-                        </motion.div>
+
+                            {/* Graphic Placeholder */}
+                            <div className="flex-1 w-full bg-gray-100 rounded-2xl aspect-[4/3] border border-gray-200 flex items-center justify-center relative overflow-hidden">
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-50 opacity-50" />
+                                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 z-10 font-medium text-gray-500 flex items-center gap-3">
+                                    <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                                    Data Visualization Flow
+                                </div>
+                            </div>
+                        </div>
                     ))}
                 </div>
 
-                <div className="mt-32 text-center max-w-4xl mx-auto">
-                    <h2 className="text-2xl font-bold font-serif italic mb-8">Perfect for</h2>
-                    <div className="flex flex-wrap justify-center gap-4">
-                        {industries.map((industry) => (
-                            <span key={industry} className="px-6 py-3 rounded-full bg-background border border-surface-light text-foreground font-medium shadow-sm">
-                                {industry}
-                            </span>
-                        ))}
+                {/* Carousel Controls */}
+                <div className="flex items-center justify-center gap-6 mt-4">
+                    <button className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-black hover:bg-gray-50 transition-colors shadow-sm">
+                        <ArrowLeft className="w-5 h-5" />
+                    </button>
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-2.5 rounded-full bg-black" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-gray-300" />
+                    </div>
+                    <button className="w-12 h-12 rounded-full border border-gray-200 flex items-center justify-center text-black hover:bg-gray-50 transition-colors shadow-sm">
+                        <ArrowRight className="w-5 h-5" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Trusted By Banner */}
+            <div className="bg-[#0a1120] py-16 mt-24">
+                <div className="max-w-[1400px] mx-auto px-6 text-center">
+                    <h4 className="text-gray-400 font-medium text-sm tracking-widest uppercase mb-10">Trusted by fast-growing brands globally</h4>
+                    <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                        <div className="flex items-center gap-2 text-white font-bold text-2xl"><Coffee className="w-8 h-8" /> BrewCo</div>
+                        <div className="flex items-center gap-2 text-white font-bold text-2xl"><Building2 className="w-8 h-8" /> UrbanRetail</div>
+                        <div className="flex items-center gap-2 text-white font-bold text-2xl"><Store className="w-8 h-8" /> FreshMarket</div>
+                        <div className="flex items-center gap-2 text-white font-bold text-2xl"><Truck className="w-8 h-8" /> SwiftLogistics</div>
                     </div>
                 </div>
-
             </div>
         </section>
     );

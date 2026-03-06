@@ -1,15 +1,18 @@
 "use client";
 
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
-import { OfflineSync } from "@/components/shared/OfflineSync";
+import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
+
+const Sidebar = dynamic(() => import("@/components/layout/Sidebar").then(mod => mod.Sidebar), { ssr: false });
+const Header = dynamic(() => import("@/components/layout/Header").then(mod => mod.Header), { ssr: false });
+const OfflineSync = dynamic(() => import("@/components/shared/OfflineSync").then(mod => mod.OfflineSync), { ssr: false });
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { PermissionGuard } from "@/components/auth/PermissionGuard";
 import { useUIStore } from "@/store/useUIStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
+import { MotionConfig } from "framer-motion";
 
 const ROUTE_PERMISSIONS: Record<string, string> = {
     "/dashboard": "Dashboard",
@@ -45,6 +48,7 @@ export default function DashboardLayout({
     const { user } = useAuthStore();
     const isSuperAdmin = user?.role === 'SuperAdmin' || user?.roleRel?.name === 'SuperAdmin';
     const isWaiter = user?.role === 'Waiter' || user?.roleRel?.name === 'Waiter';
+    const isLowLatency = useUIStore((state) => state.lowLatencyMode);
 
     let redirectPath = "/billing"; // Default fallback
     if (isSuperAdmin) redirectPath = "/admin";
@@ -55,30 +59,32 @@ export default function DashboardLayout({
     return (
         <AuthGuard>
             <PermissionGuard permission={requiredPermission} redirect={redirectPath}>
-                {isDashboard ? (
-                    <>
-                        <Sidebar />
-                        <OfflineSync />
-                        {children}
-                    </>
-                ) : (
-                    <div className="flex flex-col h-screen overflow-hidden bg-background">
-                        {/* Header - Still useful for Title/Search/User, but standard Menu button might be redundant. */}
-                        <Header onMenuClick={() => { }} />
+                <MotionConfig reducedMotion={isLowLatency ? "always" : "user"}>
+                    {isDashboard ? (
+                        <>
+                            <Sidebar />
+                            <OfflineSync />
+                            {children}
+                        </>
+                    ) : (
+                        <div className="flex flex-col h-screen overflow-hidden bg-background">
+                            {/* Header - Still useful for Title/Search/User, but standard Menu button might be redundant. */}
+                            <Header onMenuClick={() => { }} />
 
-                        {/* Mobile/Overlay Navigation */}
-                        <Sidebar />
+                            {/* Mobile/Overlay Navigation */}
+                            <Sidebar />
 
-                        <OfflineSync />
+                            <OfflineSync />
 
-                        {/* Main Content Area - Full width now */}
-                        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-                            <main className="flex-1 overflow-y-auto relative custom-scrollbar">
-                                {children}
-                            </main>
+                            {/* Main Content Area - Full width now */}
+                            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                                <main className="flex-1 overflow-y-auto relative custom-scrollbar">
+                                    {children}
+                                </main>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </MotionConfig>
             </PermissionGuard>
         </AuthGuard>
     );

@@ -3,16 +3,20 @@ import { persist } from 'zustand/middleware';
 
 interface UIState {
     isSidebarOpen: boolean;
+    lowLatencyMode: boolean;
     toggleSidebar: () => void;
     setSidebarOpen: (isOpen: boolean) => void;
+    toggleLowLatencyMode: () => void;
 }
 
 export const useUIStore = create<UIState>()(
     persist(
         (set) => ({
             isSidebarOpen: false,
+            lowLatencyMode: false,
             toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
             setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
+            toggleLowLatencyMode: () => set((state) => ({ lowLatencyMode: !state.lowLatencyMode })),
         }),
         {
             name: 'ui-storage',

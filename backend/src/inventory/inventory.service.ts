@@ -20,8 +20,23 @@ export class InventoryService {
     return this.repo.save(item);
   }
 
-  findAll() {
-    return this.repo.find({ order: { name: 'ASC' } });
+  async findAll(page = 1, limit = 50) {
+    const skip = (page - 1) * limit;
+    const [data, total] = await this.repo.findAndCount({
+      order: { name: 'ASC' },
+      skip,
+      take: limit,
+    });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   findOne(id: number) {

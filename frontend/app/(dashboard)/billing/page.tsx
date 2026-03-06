@@ -4,10 +4,20 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useMenuStore } from "@/store/useMenuStore";
 import { useCartStore } from "@/store/useCartStore";
 import { useTableStore } from "@/store/useTableStore";
+import { useBootstrapStore } from "@/store/useBootstrapStore";
 import { useSearchParams } from "next/navigation";
-import { BillingPanel } from "@/features/pos/components/BillingPanel";
-import { VirtualProductGrid } from "@/features/pos/components/VirtualProductGrid";
+import dynamic from "next/dynamic";
 import { OfflineIndicator } from "@/components/ui/OfflineIndicator";
+
+const BillingPanel = dynamic(
+  () => import("@/features/pos/components/BillingPanel").then((mod) => mod.BillingPanel),
+  { ssr: false }
+);
+
+const VirtualProductGrid = dynamic(
+  () => import("@/features/pos/components/VirtualProductGrid").then((mod) => mod.VirtualProductGrid),
+  { ssr: false }
+);
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -22,16 +32,17 @@ import { cn } from "@/lib/utils";
 import { Suspense } from "react";
 
 function BillingContent() {
-  const { categories, fetchMenu } = useMenuStore();
+  const { categories } = useMenuStore();
   const { items: cartItems, addItem, removeItem } = useCartStore();
+  const { bootstrap, isLoading: isBootstrapping } = useBootstrapStore();
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Auto-select first category
+  // Auto-select first category and bootstrap POS data
   useEffect(() => {
-    fetchMenu();
-  }, []);
+    bootstrap();
+  }, [bootstrap]);
 
   // Derive active category object from ID
   const activeCategory = useMemo(() => {
@@ -111,8 +122,8 @@ function BillingContent() {
               <LayoutGrid className="w-3 h-3" />
               Registry
             </h2>
-            <button onClick={() => fetchMenu()} className="text-muted hover:text-primary transition-colors">
-              <RotateCw className="w-3.5 h-3.5" />
+            <button onClick={() => bootstrap()} disabled={isBootstrapping} className="text-muted hover:text-primary transition-colors disabled:opacity-50">
+              <RotateCw className={cn("w-3.5 h-3.5", isBootstrapping && "animate-spin")} />
             </button>
           </div>
 

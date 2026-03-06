@@ -12,6 +12,16 @@ export class AdminController {
         private readonly auditService: AdminAuditService,
     ) { }
 
+    @Get('metrics')
+    getMetrics() {
+        return this.adminService.getGlobalMetrics();
+    }
+
+    @Get('tenants/:id/metrics')
+    getTenantMetrics(@Param('id') id: string) {
+        return this.adminService.getTenantMetrics(id);
+    }
+
     @Post('tenants')
     createTenant(@Body() body: { name: string; plan?: string }, @Req() req: any) {
         return this.adminService.createTenant(body.name, body.plan, req.user);
@@ -45,5 +55,15 @@ export class AdminController {
     @Get('audit-logs')
     getAuditLogs() {
         return this.auditService.getLogs();
+    }
+
+    @Get('health')
+    getHealth() {
+        return this.adminService.getPlatformHealth();
+    }
+
+    @Get('telemetry')
+    getTelemetry() {
+        return this.adminService.getTelemetry();
     }
 }

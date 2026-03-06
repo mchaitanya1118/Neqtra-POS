@@ -6,10 +6,16 @@ import {
   ManyToMany,
   JoinTable,
   DeleteDateColumn,
+  OneToMany,
+  Index,
 } from 'typeorm';
 import { Category } from './category.entity';
+import { MenuItemIngredient } from './menu-item-ingredient.entity';
+import { Exclude } from 'class-transformer';
 
 @Entity('menu_items')
+@Index(['category'])
+@Index(['isAvailable'])
 export class MenuItem {
   @PrimaryGeneratedColumn()
   id: number;
@@ -54,6 +60,10 @@ export class MenuItem {
   })
   upsellItems: MenuItem[];
 
+  @OneToMany(() => MenuItemIngredient, (ingredient) => ingredient.menuItem)
+  ingredients: MenuItemIngredient[];
+
+  @Exclude()
   @DeleteDateColumn()
   deletedAt?: Date;
 }

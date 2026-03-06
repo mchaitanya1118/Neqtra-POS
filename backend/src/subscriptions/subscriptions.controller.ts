@@ -33,4 +33,17 @@ export class SubscriptionsController {
         await this.subscriptionsService.handleWebhook(signature, req.rawBody as Buffer);
         return { received: true };
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('phonepe/initiate')
+    async initiatePhonePe(@Body('plan') plan: string, @Request() req) {
+        const tenantId = req.user.tenantId;
+        return this.subscriptionsService.initiatePhonePePayment(tenantId, plan);
+    }
+
+    @Post('phonepe/callback')
+    @HttpCode(HttpStatus.OK)
+    async phonePeCallback(@Body() body: any) {
+        return this.subscriptionsService.handlePhonePeCallback(body);
+    }
 }

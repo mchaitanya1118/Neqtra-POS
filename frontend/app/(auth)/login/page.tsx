@@ -1,249 +1,196 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Delete, ArrowLeft, KeyRound } from 'lucide-react';
+import { Eye, EyeOff, User, KeyRound, ChevronRight, Delete, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useSubdomain } from '@/hooks/useSubdomain';
+
+const NUM_KEYS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 export default function LoginPage() {
-    const [passcode, setPasscode] = useState('');
-    const [activeTab, setActiveTab] = useState<'login' | 'passcode'>('passcode');
     const router = useRouter();
-
     const { login, user, hasHydrated } = useAuthStore();
+    const { tenantInfo } = useSubdomain();
+
+    const [tab, setTab] = useState<'passcode' | 'credentials'>('passcode');
+    const [passcode, setPasscode] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    const [isLoggingIn, setIsLoggingIn] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [tenantName, setTenantName] = useState<string | null>(null);
 
+    // Auto-redirect if already logged in
     useEffect(() => {
         if (hasHydrated && user) {
-            let target = '/billing';
-            if (user.role === 'Waiter') target = '/tables';
-            if (user.role === 'SuperAdmin' || user.roleRel?.name === 'SuperAdmin') target = '/admin';
+            const target = user.role === 'Waiter' ? '/tables'
+                : (user.role === 'SuperAdmin' || user.roleRel?.name === 'SuperAdmin') ? '/admin'
+                    : '/billing';
             router.replace(target);
         }
     }, [user, hasHydrated, router]);
 
+    // Use tenant info from hook
     useEffect(() => {
-        const fetchTenantContext = async () => {
-            if (typeof window === 'undefined') return;
+        if (tenantInfo?.name) {
+            setTenantName(tenantInfo.name);
+        }
+    }, [tenantInfo]);
 
-            const hostname = window.location.hostname;
-            const parts = hostname.split('.');
+    const redirectAfterLogin = (u: any) => {
+        const target = u.role === 'Waiter' ? '/tables'
+            : (u.role === 'SuperAdmin' || u.roleRel?.name === 'SuperAdmin') ? '/admin'
+                : '/billing';
+        router.push(target);
+    };
 
-            // Handle nested subdomains like tenant.pos.neqtra.com
-            const baseDomain = 'pos.neqtra.com';
-            let subdomain = null;
-
-            if (hostname.endsWith(baseDomain) && hostname !== baseDomain) {
-                subdomain = hostname.replace(`.${baseDomain}`, '');
-            } else if (parts.length > 2 || (parts.length === 2 && parts[0] !== 'localhost' && parts[1].includes('localhost'))) {
-                // Fallback for general localhost/other domain testing
-                subdomain = parts[0];
-            }
-
-            if (subdomain && subdomain !== 'www') {
-                try {
-                    // We use the full API_URL base URL logic in apiClient
-                    const { default: apiClient } = await import('@/lib/api');
-                    const response = await apiClient.get(`/tenants/lookup/${subdomain}`);
-                    if (response.data && response.data.name) {
-                        setTenantName(response.data.name);
-                    }
-                } catch (error) {
-                    console.error('Failed to resolve tenant subdomain:', error);
-                    // Optionally set an error state here if strict routing is desired
-                }
-            }
-        };
-
-        fetchTenantContext();
-    }, []);
-
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    // Passcode logic
+    const handleNumClick = (n: string) => {
+        if (loading) return;
+        if (passcode.length < 4) {
+            const next = passcode + n;
+            setPasscode(next);
+            setError('');
+            if (next.length === 4) submitPasscode(next);
+        }
+    };
 
     const submitPasscode = async (code: string) => {
-        if (isLoggingIn) return;
-        setIsLoggingIn(true);
-        setError('');
-
-        try {
-            const result = await login({ passcode: code });
-            if (result.success && result.user) {
-                let target = '/billing';
-                if (result.user.role === 'Waiter') target = '/tables';
-                if (result.user.role === 'SuperAdmin' || result.user.roleRel?.name === 'SuperAdmin') target = '/admin';
-                router.push(target);
-            } else {
-                console.error("Login failed:", result.error);
-                setError(result.error || 'Invalid Passcode');
-                setPasscode('');
-                setIsLoggingIn(false);
-            }
-        } catch (err) {
-            console.error("Login error:", err);
-            setError('Login failed');
-            setIsLoggingIn(false);
+        setLoading(true);
+        const result = await login({ passcode: code });
+        if (result.success && result.user) {
+            redirectAfterLogin(result.user);
+        } else {
+            setError(result.error || 'Invalid passcode');
+            setPasscode('');
+            setLoading(false);
         }
     };
 
-    const handleNumClick = (num: string) => {
-        if (passcode.length < 4) {
-            const newPasscode = passcode + num;
-            setPasscode(newPasscode);
-            setError('');
-
-            if (newPasscode.length === 4) {
-                submitPasscode(newPasscode);
-            }
-        }
-    };
-
-    const handleBackspace = () => {
-        setPasscode(prev => prev.slice(0, -1));
+    // Credentials login
+    const handleCredentialsSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!username || !password) { setError('Please fill in all fields'); return; }
+        setLoading(true);
         setError('');
-    };
-
-    const handleLoginSubmit = async () => {
-        if (!username || !password) {
-            setError('Please enter both username and password');
-            return;
-        }
-        if (isLoggingIn) return;
-
-        setIsLoggingIn(true);
-        setError('');
-
-        try {
-            const result = await login({ username, password });
-            if (result.success && result.user) {
-                let target = '/billing';
-                if (result.user.role === 'Waiter') target = '/tables';
-                if (result.user.role === 'SuperAdmin' || result.user.roleRel?.name === 'SuperAdmin') target = '/admin';
-                router.push(target);
-            } else {
-                console.error("Login failed:", result.error);
-                setError(result.error || 'Invalid credentials');
-                setIsLoggingIn(false);
-            }
-        } catch (err) {
-            console.error("Login error:", err);
-            setError('Login failed');
-            setIsLoggingIn(false);
+        const result = await login({ username, password });
+        if (result.success && result.user) {
+            redirectAfterLogin(result.user);
+        } else {
+            setError(result.error || 'Invalid credentials');
+            setLoading(false);
         }
     };
 
     return (
-        <div className="flex h-screen w-full bg-background text-foreground font-sans overflow-hidden relative selection:bg-primary/30">
-            {/* Background Ambience */}
-            <div className="absolute inset-0 bg-[url('/login-bg.png')] bg-cover bg-center opacity-20" />
-            <div className="absolute inset-0 bg-gradient-to-br from-background via-background/95 to-background/80" />
+        <div className="min-h-screen bg-[#0D1212] flex overflow-hidden relative">
+            {/* Left decorative panel */}
+            <div className="hidden lg:flex flex-col justify-between w-[46%] bg-[#0A0F0F] border-r border-white/5 p-12 relative overflow-hidden">
+                {/* Ambient glows */}
+                <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-[#69D7BD]/10 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2" />
+                <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-violet-500/10 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2" />
 
-            {/* Animated Orbs/Glows */}
-            <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] animate-pulse" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-[120px] animate-pulse" />
+                {/* Logo */}
+                <Link href="/" className="relative z-10">
+                    <span className="font-serif italic font-bold text-3xl tracking-tighter text-white">Neqtra</span>
+                    <span className="ml-2 text-xs font-bold text-primary uppercase tracking-widest">POS</span>
+                </Link>
 
-            <div className="relative z-10 w-full h-full flex items-center justify-center p-4">
-                <div className="w-full max-w-[420px] bg-surface/30 backdrop-blur-xl border border-surface-light rounded-[32px] p-8 md:p-10 shadow-2xl flex flex-col gap-6 animate-in zoom-in-95 duration-500">
-
-                    {/* Header */}
-                    <div className="flex flex-col items-center gap-2 mb-2">
-                        <div className="text-3xl font-bold font-serif italic tracking-tighter text-foreground mb-1">
-                            {tenantName ? tenantName : 'Neqtra'}
-                        </div>
-                        <p className="text-muted text-sm text-center">
-                            {tenantName ? `Welcome to ${tenantName}. Please sign in to continue.` : 'Welcome back. Please sign in to continue.'}
-                        </p>
+                {/* Feature testimonial */}
+                <div className="relative z-10 space-y-8">
+                    <div className="space-y-6">
+                        {[
+                            { icon: "⚡", title: "Lightning-Fast Billing", desc: "Process any order in under 3 seconds from table to receipt." },
+                            { icon: "🏪", title: "Multi-Branch Control", desc: "Manage all your outlets from one powerful dashboard." },
+                            { icon: "📊", title: "Real-Time Analytics", desc: "Revenue, inventory, and trends updated live across branches." },
+                        ].map(f => (
+                            <div key={f.title} className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-lg shrink-0">
+                                    {f.icon}
+                                </div>
+                                <div>
+                                    <div className="text-sm font-bold text-white">{f.title}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{f.desc}</div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
 
-                    {/* Toggle */}
-                    <div className="flex p-1 bg-background/50 rounded-[16px] border border-surface-light">
-                        <button
-                            onClick={() => setActiveTab('passcode')}
-                            className={`flex-1 py-2.5 text-sm font-semibold rounded-[12px] transition-all duration-300 ${activeTab === 'passcode'
-                                ? 'bg-surface text-foreground shadow-sm'
-                                : 'text-muted hover:text-foreground hover:bg-surface/50'
-                                }`}
-                        >
-                            Passcode
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('login')}
-                            className={`flex-1 py-2.5 text-sm font-semibold rounded-[12px] transition-all duration-300 ${activeTab === 'login'
-                                ? 'bg-surface text-foreground shadow-sm'
-                                : 'text-muted hover:text-foreground hover:bg-surface/50'
-                                }`}
-                        >
-                            Credentials
-                        </button>
+                    <blockquote className="border-l-2 border-primary pl-4">
+                        <p className="text-gray-400 text-sm italic leading-relaxed">
+                            "Neqtra cut our checkout time by 60% and our inventory waste by a third. It's the POS system we always needed."
+                        </p>
+                        <div className="mt-3 text-xs font-bold text-gray-500">— Ravi K., Owner, Brew & Bites</div>
+                    </blockquote>
+                </div>
+
+                <div className="text-xs text-gray-600 relative z-10">
+                    © 2026 Neqtra POS · <Link href="/signup" className="hover:text-gray-400 transition-colors">Create an account</Link>
+                </div>
+            </div>
+
+            {/* Right: Form Panel */}
+            <div className="flex-1 flex flex-col items-center justify-center p-6 relative">
+                <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-violet-500/5 rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3" />
+
+                <div className="w-full max-w-[400px] relative z-10">
+                    {/* Mobile logo */}
+                    <div className="lg:hidden mb-8 text-center">
+                        <span className="font-serif italic font-bold text-3xl tracking-tighter text-white">Neqtra</span>
+                        <span className="ml-2 text-xs font-bold text-primary uppercase tracking-widest">POS</span>
+                    </div>
+
+                    {/* Tenant greeting */}
+                    <div className="mb-8">
+                        <h1 className="text-3xl font-bold text-white tracking-tight">
+                            {tenantName ? `Welcome to ${tenantName}` : 'Welcome back'}
+                        </h1>
+                        <p className="text-gray-500 text-sm mt-2">Sign in to continue to your dashboard.</p>
+                    </div>
+
+                    {/* Tab toggle */}
+                    <div className="flex gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 mb-6">
+                        {(['passcode', 'credentials'] as const).map(t => (
+                            <button
+                                key={t}
+                                onClick={() => { setTab(t); setError(''); setPasscode(''); }}
+                                className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 capitalize ${tab === t ? 'bg-white/10 text-white shadow-sm' : 'text-gray-500 hover:text-gray-300'}`}
+                            >
+                                {t === 'passcode' ? 'Passcode' : 'Credentials'}
+                            </button>
+                        ))}
                     </div>
 
                     {/* Error */}
                     {error && (
-                        <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-xl text-center font-medium animate-in slide-in-from-top-2">
+                        <div className="mb-4 px-4 py-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-sm text-center font-medium">
                             {error}
                         </div>
                     )}
 
-                    {/* Content */}
-                    {activeTab === 'login' ? (
-                        <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold uppercase tracking-wider text-muted ml-1">Username</label>
-                                <div className="relative group">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
-                                    <input
-                                        className="w-full pl-10 pr-4 py-3.5 bg-background/50 border border-surface-light rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm font-medium placeholder:text-muted/50 text-foreground"
-                                        placeholder="Enter username"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold uppercase tracking-wider text-muted ml-1">Password</label>
-                                <div className="relative group">
-                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
-                                    <input
-                                        type="password"
-                                        className="w-full pl-10 pr-4 py-3.5 bg-background/50 border border-surface-light rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all text-sm font-medium placeholder:text-muted/50 text-foreground"
-                                        placeholder="Enter password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                            <button
-                                onClick={handleLoginSubmit}
-                                disabled={isLoggingIn}
-                                className="mt-2 w-full bg-primary hover:bg-primary/90 text-primary-fg py-3.5 rounded-xl font-bold transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(105,215,189,0.2)] hover:shadow-[0_0_30px_rgba(105,215,189,0.4)]"
-                            >
-                                {isLoggingIn ? 'Signing in...' : 'Sign In'}
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300 w-full">
-                            {/* Passcode Visualizer */}
-                            <div className="flex gap-4 mb-2 justify-center w-full">
+                    {/* ─── Passcode Tab ─── */}
+                    {tab === 'passcode' && (
+                        <div className="flex flex-col items-center gap-6">
+                            {/* Dots */}
+                            <div className="flex gap-4">
                                 {[...Array(4)].map((_, i) => (
-                                    <div
-                                        key={i}
-                                        className={`w-4 h-4 rounded-full transition-all duration-300 border-2 ${i < passcode.length
-                                            ? 'bg-primary border-primary scale-110 shadow-[0_0_10px_rgba(105,215,189,0.5)]'
-                                            : 'bg-transparent border-surface-light'
-                                            }`}
-                                    />
+                                    <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${i < passcode.length ? 'bg-primary border-primary scale-125 shadow-[0_0_12px_rgba(105,215,189,0.6)]' : 'bg-transparent border-white/20'}`} />
                                 ))}
                             </div>
 
+                            {loading && <div className="text-primary text-sm animate-pulse font-semibold">Verifying...</div>}
+
                             {/* Keypad */}
                             <div className="grid grid-cols-3 gap-3 w-full max-w-[280px]">
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                                {NUM_KEYS.map(n => (
                                     <button
                                         key={n}
                                         onClick={() => handleNumClick(n.toString())}
-                                        className="w-full aspect-square rounded-[20px] bg-background/50 hover:bg-surface border border-surface-light hover:border-primary/30 flex items-center justify-center text-2xl font-medium transition-all duration-200 active:scale-90 text-foreground"
+                                        disabled={loading}
+                                        className="aspect-square rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/30 text-white text-2xl font-semibold transition-all active:scale-90 disabled:opacity-50"
                                     >
                                         {n}
                                     </button>
@@ -251,19 +198,80 @@ export default function LoginPage() {
                                 <div />
                                 <button
                                     onClick={() => handleNumClick('0')}
-                                    className="w-full aspect-square rounded-[20px] bg-background/50 hover:bg-surface border border-surface-light hover:border-primary/30 flex items-center justify-center text-2xl font-medium transition-all duration-200 active:scale-90 text-foreground"
+                                    disabled={loading}
+                                    className="aspect-square rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/30 text-white text-2xl font-semibold transition-all active:scale-90 disabled:opacity-50"
                                 >
                                     0
                                 </button>
                                 <button
-                                    onClick={handleBackspace}
-                                    className="w-full aspect-square rounded-[20px] hover:bg-destructive/10 text-muted hover:text-destructive border border-transparent hover:border-destructive/30 flex items-center justify-center transition-all duration-200 active:scale-90"
+                                    onClick={() => { setPasscode(p => p.slice(0, -1)); setError(''); }}
+                                    className="aspect-square rounded-2xl hover:bg-red-500/10 text-gray-500 hover:text-red-400 border border-transparent hover:border-red-500/20 flex items-center justify-center transition-all active:scale-90"
                                 >
                                     <Delete className="w-6 h-6" />
                                 </button>
                             </div>
                         </div>
                     )}
+
+                    {/* ─── Credentials Tab ─── */}
+                    {tab === 'credentials' && (
+                        <form onSubmit={handleCredentialsSubmit} className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold uppercase tracking-widest text-gray-500 ml-1">Username</label>
+                                <div className="relative group">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors" />
+                                    <input
+                                        type="text"
+                                        value={username}
+                                        onChange={e => { setUsername(e.target.value); setError(''); }}
+                                        placeholder="Enter your username"
+                                        className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all text-sm text-white placeholder:text-gray-600"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold uppercase tracking-widest text-gray-500 ml-1">Password</label>
+                                <div className="relative group">
+                                    <KeyRound className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary transition-colors" />
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        value={password}
+                                        onChange={e => { setPassword(e.target.value); setError(''); }}
+                                        placeholder="Enter your password"
+                                        className="w-full pl-11 pr-12 py-3.5 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all text-sm text-white placeholder:text-gray-600"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(s => !s)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full mt-2 bg-primary hover:bg-primary/90 text-[#0D1212] py-3.5 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(105,215,189,0.2)] hover:shadow-[0_0_30px_rgba(105,215,189,0.35)] active:scale-[0.98]"
+                            >
+                                {loading ? (
+                                    <span className="flex items-center gap-2"><span className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />Signing in...</span>
+                                ) : (
+                                    <span className="flex items-center gap-2">Sign In <ArrowRight className="w-4 h-4" /></span>
+                                )}
+                            </button>
+                        </form>
+                    )}
+
+                    {/* Footer links */}
+                    <div className="mt-8 text-center text-sm text-gray-600">
+                        Don't have an account?{' '}
+                        <Link href="/signup" className="text-primary font-semibold hover:underline underline-offset-4">
+                            Start free trial
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>

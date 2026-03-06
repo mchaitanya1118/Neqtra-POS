@@ -4,9 +4,12 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  Index
 } from 'typeorm';
 
 @Entity('inventory')
+@Index(['name'])
+@Index(['quantity']) // Speeds up low-stock alert queries
 export class InventoryItem {
   @PrimaryGeneratedColumn()
   id: number;

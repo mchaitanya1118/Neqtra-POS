@@ -10,6 +10,6 @@ import { Notification } from './entities/notification.entity';
     imports: [TenantOrmModule.forFeature([Notification])],
     controllers: [NotificationsController],
     providers: [NotificationsService, NotificationsGateway],
-    exports: [NotificationsService],
+    exports: [NotificationsService, NotificationsGateway],
 })
 export class NotificationsModule { }

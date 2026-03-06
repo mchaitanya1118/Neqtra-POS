@@ -1,5 +1,6 @@
 import { Category } from '../entities/category.entity';
 import { MenuItem } from '../entities/menu-item.entity';
+import { MenuItemIngredient } from '../entities/menu-item-ingredient.entity';
 import { Table } from '../entities/table.entity';
 import { Menu } from '../menu/entities/menu.entity';
 import { Order } from '../orders/entities/order.entity';
@@ -18,6 +19,7 @@ import { Delivery } from '../delivery/entities/delivery.entity';
 export const TenantEntities = [
     Category,
     MenuItem,
+    MenuItemIngredient,
     Table,
     Menu,
     Order,

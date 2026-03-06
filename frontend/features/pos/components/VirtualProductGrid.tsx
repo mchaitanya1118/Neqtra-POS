@@ -15,6 +15,12 @@ interface VirtualProductGridProps {
 const ProductCard = memo(({ item, onAddItem, quantity }: any) => {
     return (
         <button
+            onPointerDown={(e) => {
+                // Prevent default to avoid double-firing with onClick on touch devices
+                e.preventDefault();
+                onAddItem(item);
+            }}
+            // Fallback for keyboard accessibility
             onClick={() => onAddItem(item)}
             className={cn(
                 "w-full h-full rounded-[24px] p-0 flex flex-col items-start justify-between transition-all duration-300 relative overflow-hidden group border active:scale-[0.97]",
@@ -73,7 +79,7 @@ const ProductCard = memo(({ item, onAddItem, quantity }: any) => {
 
 ProductCard.displayName = 'ProductCard';
 
-export function VirtualProductGrid({ items, onAddItem }: VirtualProductGridProps) {
+export const VirtualProductGrid = memo(function VirtualProductGrid({ items, onAddItem }: VirtualProductGridProps) {
     const { items: cartItems } = useCartStore();
 
     // Optimize quantity lookup to O(1) in the render loop
@@ -131,4 +137,4 @@ export function VirtualProductGrid({ items, onAddItem }: VirtualProductGridProps
             </AutoSizer>
         </div>
     );
-}
+});

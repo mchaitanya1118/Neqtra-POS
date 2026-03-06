@@ -43,6 +43,21 @@ export class Tenant {
     @Column({ default: 20 })
     maxTables: number;
 
+    @Column({ default: 1 })
+    maxDevices: number;
+
+    @Column({ default: 1 })
+    maxBranches: number;
+
+    @Column({ type: 'jsonb', default: { inventory: true, analytics: false, advancedReports: false } })
+    features: any;
+
+    @Column({ nullable: true })
+    billingEmail: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    nextBillingDate: Date;
+
     @Column({ type: 'timestamp', nullable: true })
     trialEndsAt: Date;
 

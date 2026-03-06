@@ -10,21 +10,18 @@ import { Customer } from '../customers/entities/customer.entity';
 import { MenuItem } from '../entities/menu-item.entity';
 import { Table } from '../entities/table.entity';
 import { Delivery } from '../delivery/entities/delivery.entity';
-import { KitchenGateway } from './kitchen.gateway';
 import { NotificationsModule } from '../notifications/notifications.module';
-
 import { OrderEvent } from './entities/order-event.entity';
-
+import { InventoryItem } from '../inventory/entities/inventory.entity';
 import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
-    TenantOrmModule.forFeature([Order, OrderItem, MenuItem, Table, Payment, Customer, Delivery, OrderEvent]),
+    TenantOrmModule.forFeature([Order, OrderItem, MenuItem, Table, Payment, Customer, Delivery, OrderEvent, InventoryItem]),
     NotificationsModule,
     PaymentsModule,
   ],
   controllers: [OrdersController],
-  providers: [OrdersService, KitchenGateway],
-  exports: [KitchenGateway], // Export if needed by other modules
+  providers: [OrdersService],
 })
 export class OrdersModule { }

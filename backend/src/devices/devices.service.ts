@@ -14,16 +14,31 @@ export class DevicesService {
   ) { }
 
   async registerDevice(tenantId: string, createDeviceDto: CreateDeviceDto) {
-    // 1. Check if device is already registered (if so, just return it / update lastActive)
+    // SuperAdmin users have no tenant — skip device registration
+    if (!tenantId) return null;
+
+    // 1a. Check globally by identifier first (identifier is globally unique)
+    //     If the same browser/device was already registered for any tenant,
+    //     just update its lastActive instead of trying a duplicate insert.
+    const globalDevice = await this.deviceRepo.findOne({
+      where: { identifier: createDeviceDto.identifier },
+    });
+
+    if (globalDevice) {
+      if (globalDevice.status === 'REVOKED') {
+        throw new ForbiddenException('This device access has been revoked.');
+      }
+      globalDevice.lastActive = new Date();
+      return await this.deviceRepo.save(globalDevice);
+    }
+
+    // 1b. Also check within this tenant (belt-and-suspenders)
     const existingDevice = await this.deviceRepo.findOne({
       where: { identifier: createDeviceDto.identifier, tenantId },
     });
 
     if (existingDevice) {
       existingDevice.lastActive = new Date();
-      if (existingDevice.status === 'REVOKED') {
-        throw new ForbiddenException('This device access has been revoked.');
-      }
       return await this.deviceRepo.save(existingDevice);
     }
 
@@ -35,21 +50,7 @@ export class DevicesService {
       where: { tenantId, status: 'ACTIVE' },
     });
 
-    let maxDevices = Infinity;
-    switch (tenant.subscriptionPlan.toUpperCase()) {
-      case 'FREE':
-        maxDevices = 1;
-        break;
-      case 'STARTER':
-        maxDevices = 2;
-        break;
-      case 'PRO':
-      case 'ENTERPRISE':
-      case 'TRIAL':
-      default:
-        maxDevices = Infinity;
-        break;
-    }
+    const maxDevices = tenant.maxDevices || 1;
 
     if (activeDevicesCount >= maxDevices) {
       throw new ForbiddenException(

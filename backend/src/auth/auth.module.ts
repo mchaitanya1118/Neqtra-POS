@@ -7,14 +7,16 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { User } from '../entities/user.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
 import { RolesModule } from '../roles/roles.module';
 import { JwtStrategy } from './jwt.strategy';
+import { SubscriptionGuard } from './subscription.guard';
 import { TenantsModule } from '../tenants/tenants.module';
 import { BranchesModule } from '../branches/branches.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Tenant]),
     RolesModule,
     TenantsModule,
     BranchesModule,
@@ -29,7 +31,7 @@ import { BranchesModule } from '../branches/branches.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, SubscriptionGuard],
+  exports: [AuthService, SubscriptionGuard],
 })
 export class AuthModule { }
