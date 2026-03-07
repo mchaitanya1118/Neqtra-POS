@@ -171,30 +171,41 @@ export class AuthService implements OnModuleInit {
         const newDomain = `https://${subdomain}.neqtra.com`;
         this.logger.log(`Provisioning Coolify SSL for new domain: ${newDomain}`);
 
-        // Get current domains
-        const getServiceResponse = await fetch(`${coolifyApiUrl}/api/v1/applications/${coolifyFrontendUuid}`, {
-          headers: { 'Authorization': `Bearer ${coolifyApiToken}` }
-        });
+        // Define possible endpoints
+        const endpoints = ['applications', 'services'];
+        let matchedEndpoint: string | null = null;
+        let currentDomainsStr = '';
 
-        if (getServiceResponse.ok) {
-          const serviceData = await getServiceResponse.json();
-          const currentDomains = serviceData.domains || '';
+        for (const ep of endpoints) {
+          const res = await fetch(`${coolifyApiUrl}/api/v1/${ep}/${coolifyFrontendUuid}`, {
+            headers: { 'Authorization': `Bearer ${coolifyApiToken}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            // Applications use 'fqdn', Services use 'domains'
+            currentDomainsStr = data.fqdn || data.domains || '';
+            matchedEndpoint = ep;
+            break;
+          }
+        }
 
+        if (matchedEndpoint) {
           // Append the new one (as a separate line/comma entry based on existing format)
-          const updatedDomains = currentDomains ? `${currentDomains},${newDomain}` : newDomain;
+          const updatedDomains = currentDomainsStr ? `${currentDomainsStr},${newDomain}` : newDomain;
+          const payloadField = matchedEndpoint === 'applications' ? 'fqdn' : 'domains';
 
-          // Patch the application with the appended domain list
-          await fetch(`${coolifyApiUrl}/api/v1/applications/${coolifyFrontendUuid}`, {
+          // Patch the resource with the appended domain list
+          await fetch(`${coolifyApiUrl}/api/v1/${matchedEndpoint}/${coolifyFrontendUuid}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${coolifyApiToken}`,
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ domains: updatedDomains })
+            body: JSON.stringify({ [payloadField]: updatedDomains })
           });
-          this.logger.log(`Successfully appended ${newDomain} to Coolify service.`);
+          this.logger.log(`Successfully appended ${newDomain} to Coolify ${matchedEndpoint}.`);
         } else {
-          this.logger.warn(`Failed to fetch Coolify service details for domain automation. Status: ${getServiceResponse.status}`);
+          this.logger.warn(`Failed to fetch Coolify resource details (tried apps and services). Please verify the FRONTEND_UUID.`);
         }
       } catch (err) {
         this.logger.error(`Error automating Coolify domain creation for ${subdomain}`, err);
