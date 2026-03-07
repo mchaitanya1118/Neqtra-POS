@@ -160,8 +160,11 @@ export class AuthService implements OnModuleInit {
       ...quotas,
     });
 
-    // 3.5 Automate Coolify SSL Domain Provisioning (Option 2)
-    // If COOLIFY_API_TOKEN, COOLIFY_API_URL, and COOLIFY_FRONTEND_UUID are set, automatically attach the new subdomain
+    // 3.5 Automate Coolify SSL Domain Provisioning
+    // MIGRATED TO CLOUDFLARE WILDCARD:
+    // With Cloudflare (*.neqtra.com), we no longer need to dynamically inject subdomains
+    // into Coolify via the API. The wildcard SSL certificate covers all new tenants instantly.
+    /*
     const coolifyApiToken = process.env.COOLIFY_API_TOKEN;
     const coolifyApiUrl = process.env.COOLIFY_API_URL;
     const coolifyFrontendUuid = process.env.COOLIFY_FRONTEND_UUID;
@@ -212,6 +215,7 @@ export class AuthService implements OnModuleInit {
         // Do not fail the whole signup if the domain automation hiccups
       }
     }
+    */
 
     // 4. Create Default Branch
     const branch = await this.branchesService.create(tenant.id, {
