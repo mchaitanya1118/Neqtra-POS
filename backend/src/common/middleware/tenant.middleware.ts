@@ -11,24 +11,40 @@ export class TenantMiddleware implements NestMiddleware {
     ) { }
 
     async use(req: Request, res: Response, next: NextFunction) {
-        const host = req.headers.host || '';
-        const subdomain = host.split('.')[0];
+        // 1. Check for explicit header passed by Next.js proxy
+        let tenantSlug = req.headers['x-tenant-slug'] as string;
 
-        // 1. Check if it's a subdomain (not 'www' or the main domain)
-        // For local dev, we might use something like 'restaurant1.localhost:3000'
-        const isSubdomain = subdomain && subdomain !== 'www' && subdomain !== 'localhost' && subdomain !== 'neqtra';
+        // 2. Fallback to extracting from Origin or Host if headers not strictly provided
+        if (!tenantSlug) {
+            const origin = req.headers.origin || '';
+            const host = req.headers.host || '';
+            const url = origin ? new URL(origin).hostname : host.split(':')[0];
+
+            const baseDomain = process.env.BASE_DOMAIN || 'neqtra.com';
+
+            if (url.endsWith(baseDomain) && url !== baseDomain) {
+                tenantSlug = url.replace(`.${baseDomain}`, '');
+            } else if (url.includes('localhost') || url.split('.').length > 2) {
+                const parts = url.split('.');
+                if (parts.length > 2 || (parts.length === 2 && parts[1] === 'localhost')) {
+                    tenantSlug = parts[0];
+                }
+            }
+        }
+
+        const isSubdomain = tenantSlug && tenantSlug !== 'www' && tenantSlug !== 'localhost' && tenantSlug !== 'neqtra' && tenantSlug !== 'app';
 
         let tenantId = req.headers['x-tenant-id'] as string;
 
-        // 2. Subdomain lookup (Requirement #3)
+        // 3. Subdomain lookup
         if (!tenantId && isSubdomain) {
-            const tenant = await this.tenantsService.findBySubdomain(subdomain);
+            const tenant = await this.tenantsService.findBySubdomain(tenantSlug);
             if (tenant) {
                 tenantId = tenant.id;
             }
         }
 
-        // 3. Fallback to JWT if still missing
+        // 4. Fallback to JWT if still missing
         if (!tenantId && req.headers.authorization) {
             try {
                 const token = req.headers.authorization.split(' ')[1];

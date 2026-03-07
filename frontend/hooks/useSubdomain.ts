@@ -8,16 +8,13 @@ export function useSubdomain() {
 
     useEffect(() => {
         const host = window.location.hostname;
-        const base = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'pos.neqtra.com';
+        const base = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'neqtra.com';
 
         let sub: string | null = null;
 
-        // Handle production: tenant.pos.neqtra.com
         if (host.endsWith(base) && host !== base) {
             sub = host.replace(`.${base}`, '');
-        }
-        // Handle local/other: tenant.localhost
-        else {
+        } else if (host.includes('localhost') || host.split('.').length > 2) {
             const parts = host.split('.');
             if (parts.length > 2 || (parts.length === 2 && parts[1] === 'localhost')) {
                 sub = parts[0];

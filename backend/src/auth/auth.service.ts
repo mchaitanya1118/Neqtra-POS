@@ -172,7 +172,7 @@ export class AuthService implements OnModuleInit {
         this.logger.log(`Provisioning Coolify SSL for new domain: ${newDomain}`);
 
         // Get current domains
-        const getServiceResponse = await fetch(`${coolifyApiUrl}/api/v1/services/${coolifyFrontendUuid}`, {
+        const getServiceResponse = await fetch(`${coolifyApiUrl}/api/v1/applications/${coolifyFrontendUuid}`, {
           headers: { 'Authorization': `Bearer ${coolifyApiToken}` }
         });
 
@@ -183,8 +183,8 @@ export class AuthService implements OnModuleInit {
           // Append the new one (as a separate line/comma entry based on existing format)
           const updatedDomains = currentDomains ? `${currentDomains},${newDomain}` : newDomain;
 
-          // Patch the service with the appended domain list
-          await fetch(`${coolifyApiUrl}/api/v1/services/${coolifyFrontendUuid}`, {
+          // Patch the application with the appended domain list
+          await fetch(`${coolifyApiUrl}/api/v1/applications/${coolifyFrontendUuid}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${coolifyApiToken}`,

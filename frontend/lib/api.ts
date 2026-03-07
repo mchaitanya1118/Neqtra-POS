@@ -9,7 +9,7 @@ const apiClient = axios.create({
     },
 });
 
-// Request Interceptor: Attach Token & Tenant ID
+// Request Interceptor: Attach Token & Tenant ID & Tenant Slug
 apiClient.interceptors.request.use(
     (config) => {
         const state = useAuthStore.getState();
@@ -20,23 +20,30 @@ apiClient.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
-        if (user?.roleRel?.name === 'SuperAdmin' && config.headers['x-tenant-override']) {
-            // Allow SuperAdmin to override tenant if needed (future proofing)
-        } else if (user?.roleRel?.id) { // Assuming roleRel contains tenant info in future, but currently User has tenant
-            // We need to access the user's tenant. 
-            // Since useAuthStore user object might not have tenant hydrated fully if deep nested, 
-            // let's rely on what's in the store. 
-            // However, the User type in useAuthStore might need updating to include tenantId if not present.
-            // Let's check useAuthStore again.
-        }
-
-        // For now, let's assume the user object in store has tenantId or we decode it. 
-        // Actually, the login response returns user with tenantId.
-        // Let's cast user to any for now to access tenantId until we update types.
+        // Attach tenant ID from logged in user
         const tenantId = (user as any)?.tenantId;
-
         if (tenantId) {
             config.headers['x-tenant-id'] = tenantId;
+        }
+
+        // Attach tenant slug from URL for the backend middleware (because proxy drops Host header)
+        if (typeof window !== 'undefined') {
+            const host = window.location.hostname;
+            const base = process.env.NEXT_PUBLIC_BASE_DOMAIN || 'neqtra.com';
+            let sub = null;
+
+            if (host.endsWith(base) && host !== base) {
+                sub = host.replace(`.${base}`, '');
+            } else if (host.includes('localhost') || host.split('.').length > 2) {
+                const parts = host.split('.');
+                if (parts.length > 2 || (parts.length === 2 && parts[1] === 'localhost')) {
+                    sub = parts[0];
+                }
+            }
+
+            if (sub && sub !== 'www' && sub !== 'app') {
+                config.headers['x-tenant-slug'] = sub;
+            }
         }
 
         return config;
