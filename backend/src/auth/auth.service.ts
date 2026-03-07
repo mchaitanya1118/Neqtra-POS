@@ -168,11 +168,11 @@ export class AuthService implements OnModuleInit {
 
     if (coolifyApiToken && coolifyApiUrl && coolifyFrontendUuid) {
       try {
-        const newDomain = `https://${subdomain}.pos.neqtra.com`;
+        const newDomain = `https://${subdomain}.neqtra.com`;
         this.logger.log(`Provisioning Coolify SSL for new domain: ${newDomain}`);
 
         // Get current domains
-        const getServiceResponse = await fetch(`${coolifyApiUrl}/api/v1/services/${coolifyFrontendUuid}`, {
+        const getServiceResponse = await fetch(`${coolifyApiUrl}/api/v1/applications/${coolifyFrontendUuid}`, {
           headers: { 'Authorization': `Bearer ${coolifyApiToken}` }
         });
 
@@ -184,7 +184,7 @@ export class AuthService implements OnModuleInit {
           const updatedDomains = currentDomains ? `${currentDomains},${newDomain}` : newDomain;
 
           // Patch the application with the appended domain list
-          await fetch(`${coolifyApiUrl}/api/v1/services/${coolifyFrontendUuid}`, {
+          await fetch(`${coolifyApiUrl}/api/v1/applications/${coolifyFrontendUuid}`, {
             method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${coolifyApiToken}`,
