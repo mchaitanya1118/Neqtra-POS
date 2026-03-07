@@ -65,7 +65,6 @@ services:
       - "traefik.http.routers.frontend.tls.certresolver=cloudflare"
       - "traefik.http.routers.frontend.tls.domains[0].main=neqtra.com"
       - "traefik.http.routers.frontend.tls.domains[0].sans=*.neqtra.com"
-      - "traefik.http.routers.frontend.service=frontend"
 
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
