@@ -63,10 +63,11 @@ services:
       - "traefik.http.routers.frontend.entrypoints=https"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
 
-      # Fallback Wildcard (Captures traffic correctly after Coolify API provisions SSL)
+      # Fallback Wildcard (Using Cloudflare DNS-01 Challenge)
       - "traefik.http.routers.frontend-wildcard.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.neqtra.com`)"
       - "traefik.http.routers.frontend-wildcard.entrypoints=https"
       - "traefik.http.routers.frontend-wildcard.tls=true"
+      - "traefik.http.routers.frontend-wildcard.tls.certresolver=cloudflare"
 
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
