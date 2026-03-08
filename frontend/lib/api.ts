@@ -59,7 +59,11 @@ apiClient.interceptors.response.use(
 
         const status = Number(error.response?.status);
 
-        if ((status === 401 || status === 403) && !originalRequest._retry) {
+        // Skip automatic logout/redirect for authentication or device registration endpoints
+        // because those functions have their own localized try/catch blocks to display custom error messages
+        const isAuthOrDeviceEndpoint = originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/devices/register');
+
+        if ((status === 401 || status === 403) && !originalRequest._retry && !isAuthOrDeviceEndpoint) {
             originalRequest._retry = true;
 
             // Session has expired or access is revoked (e.g. tenant DB missing)
