@@ -252,7 +252,7 @@ export class AuthService implements OnModuleInit {
     return {
       success: true,
       tenant: tenant.subdomain,
-      login_url: `https://${tenant.subdomain}.neqtra.com`,
+      login_url: `https://${tenant.subdomain}.neqtra.com/login?tab=credentials`,
       access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
