@@ -1,20 +1,35 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Eye, EyeOff, User, KeyRound, ChevronRight, Delete, ArrowRight } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useSubdomain } from '@/hooks/useSubdomain';
 
 const NUM_KEYS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-export default function LoginPage() {
+function LoginContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { login, user, hasHydrated } = useAuthStore();
     const { tenantInfo } = useSubdomain();
 
-    const [tab, setTab] = useState<'passcode' | 'credentials'>('passcode');
+    // Intercept deviceId parameter from signup redirect to persist identity across subdomains
+    useEffect(() => {
+        const deviceId = searchParams.get('deviceId');
+        if (deviceId) {
+            localStorage.setItem('neqtra_device_id', deviceId);
+
+            // Clean up the URL quietly without reloading the page
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('deviceId');
+            window.history.replaceState({}, '', newUrl.toString());
+        }
+    }, [searchParams]);
+
+    const initialTab = searchParams.get('tab') === 'credentials' ? 'credentials' : 'passcode';
+    const [tab, setTab] = useState<'passcode' | 'credentials'>(initialTab);
     const [passcode, setPasscode] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -275,5 +290,13 @@ export default function LoginPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-[#0D1212]" />}>
+            <LoginContent />
+        </Suspense>
     );
 }

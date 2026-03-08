@@ -9,6 +9,7 @@ import {
     ArrowRight, Check, Loader2, Store, UtensilsCrossed, ShoppingBag, Truck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getDeviceId } from '@/lib/deviceId';
 
 const STEPS = [
     { label: 'Your Details', desc: 'Create your account credentials' },
@@ -142,7 +143,8 @@ export default function SignupPage() {
             });
             if (result.success) {
                 if (result.login_url && window.location.hostname !== 'localhost') {
-                    window.location.href = result.login_url;
+                    const devId = getDeviceId();
+                    window.location.href = `${result.login_url}&deviceId=${devId}`;
                 } else {
                     router.push('/billing');
                 }
