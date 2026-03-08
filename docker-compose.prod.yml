@@ -59,7 +59,7 @@ services:
       - "traefik.docker.network=coolify"
 
       # Unified Cloudflare Traefik Routing Rule
-      - "traefik.http.routers.pos-frontend.rule=Host(`neqtra.com`) || HostRegexp(`{subdomain:[a-z0-9-]+}.neqtra.com`)"
+      - "traefik.http.routers.pos-frontend.rule=Host(`neqtra.com`) || Host(`thebox.neqtra.com`) || Host(`box.neqtra.com`) || HostRegexp(`{subdomain:[a-z0-9-]+}.neqtra.com`)"
       - "traefik.http.routers.pos-frontend.entrypoints=https"
       - "traefik.http.routers.pos-frontend.tls=true"
       - "traefik.http.routers.pos-frontend.tls.certresolver=cloudflare"
