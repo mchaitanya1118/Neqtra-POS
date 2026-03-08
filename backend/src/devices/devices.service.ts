@@ -42,7 +42,7 @@ export class DevicesService {
       return await this.deviceRepo.save(existingDevice);
     }
 
-    // 2. It's a new device, check limits
+    // 2. It's a new device, so we must check if we have room under the limit
     const tenant = await this.tenantsService.findOne(tenantId);
     if (!tenant) throw new NotFoundException('Tenant not found');
 
