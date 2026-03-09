@@ -15,15 +15,42 @@ function LoginContent() {
     const { login, user, hasHydrated } = useAuthStore();
     const { tenantInfo } = useSubdomain();
 
-    // Intercept deviceId parameter from signup redirect to persist identity across subdomains
+    // Intercept deviceId parameter and `#auth=` hash from signup redirect to persist identity across subdomains
     useEffect(() => {
+        let shouldCleanUrl = false;
+
         const deviceId = searchParams.get('deviceId');
         if (deviceId) {
             localStorage.setItem('neqtra_device_id', deviceId);
+            shouldCleanUrl = true;
+        }
 
+        // Check for cross-domain auth state passed via hash
+        const hash = window.location.hash;
+        if (hash && hash.startsWith('#auth=')) {
+            try {
+                const payloadBase64 = hash.replace('#auth=', '');
+                const authState = JSON.parse(atob(payloadBase64));
+
+                if (authState.token && authState.user) {
+                    // Instantly hydrate the auth store with the session from the main domain
+                    useAuthStore.setState({
+                        token: authState.token,
+                        user: authState.user,
+                        hasHydrated: true
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to parse cross-domain auth payload", err);
+            }
+            shouldCleanUrl = true;
+        }
+
+        if (shouldCleanUrl) {
             // Clean up the URL quietly without reloading the page
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.delete('deviceId');
+            newUrl.hash = ''; // Remove the auth payload from the address bar
             window.history.replaceState({}, '', newUrl.toString());
         }
     }, [searchParams]);

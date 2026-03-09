@@ -58,7 +58,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     const filteredNavItems = navItems.filter(item => !item.permission || hasPermission(item.permission));
 
     return (
-        <header className="h-16 md:h-20 bg-background/80 backdrop-blur-md border-b border-surface-light flex items-center px-4 md:px-6 justify-between shrink-0 sticky top-0 z-40">
+        <header className="h-16 md:h-20 bg-background/80 backdrop-blur-md border-b border-surface-light flex items-center px-4 md:px-6 justify-between shrink-0 sticky top-0 z-[50]">
             {/* Left Section */}
             <div className="flex items-center gap-3 md:gap-6">
                 {/* Menu functionality moved to floating Sidebar toggle */}

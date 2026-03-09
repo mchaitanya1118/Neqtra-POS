@@ -22,7 +22,7 @@ type AuthState = {
     token: string | null;
     hasHydrated: boolean;
     login: (credentials: { passcode?: string; username?: string; password?: string }) => Promise<{ success: boolean; error?: string; user?: User }>;
-    signup: (data: any) => Promise<{ success: boolean; error?: string; user?: User; login_url?: string }>;
+    signup: (data: any) => Promise<{ success: boolean; error?: string; user?: User; login_url?: string; token?: string }>;
     logout: () => void;
     setHasHydrated: (state: boolean) => void;
     hasPermission: (permission: string) => boolean;
@@ -112,7 +112,7 @@ export const useAuthStore = create<AuthState>()(
                         };
                     }
 
-                    return { success: true, user: responseData.user, login_url: responseData.login_url };
+                    return { success: true, user: responseData.user, login_url: responseData.login_url, token: responseData.access_token };
                 } catch (error: any) {
                     console.error('Signup error:', error);
                     return {

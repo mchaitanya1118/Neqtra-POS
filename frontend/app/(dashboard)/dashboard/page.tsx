@@ -84,9 +84,9 @@ export default function DashboardPage() {
     if (!hasPermission('Dashboard')) return null;
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans overflow-hidden relative flex flex-col">
+        <div className="bg-[#050505] text-white font-sans flex flex-col min-h-full">
             {/* Content Area */}
-            <main className="flex-1 overflow-y-auto px-4 md:px-8 py-6 md:py-8 custom-scrollbar pt-12">
+            <main className="flex-1 px-4 md:px-8 py-6 md:py-8 pt-6">
                 <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-8 pb-12">
 
                     {loading && !metrics ? (

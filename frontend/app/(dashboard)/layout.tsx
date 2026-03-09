@@ -60,30 +60,22 @@ export default function DashboardLayout({
         <AuthGuard>
             <PermissionGuard permission={requiredPermission} redirect={redirectPath}>
                 <MotionConfig reducedMotion={isLowLatency ? "always" : "user"}>
-                    {isDashboard ? (
-                        <>
-                            <Sidebar />
-                            <OfflineSync />
-                            {children}
-                        </>
-                    ) : (
-                        <div className="flex flex-col h-screen overflow-hidden bg-background">
-                            {/* Header - Still useful for Title/Search/User, but standard Menu button might be redundant. */}
-                            <Header onMenuClick={() => { }} />
+                    <div className="flex flex-col h-screen overflow-hidden bg-background">
+                        {/* Header incorporates Menu, Search, Actions, etc. */}
+                        <Header onMenuClick={() => { }} />
 
-                            {/* Mobile/Overlay Navigation */}
-                            <Sidebar />
+                        {/* Mobile/Overlay Navigation Sidebar */}
+                        <Sidebar />
 
-                            <OfflineSync />
+                        <OfflineSync />
 
-                            {/* Main Content Area - Full width now */}
-                            <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-                                <main className="flex-1 overflow-y-auto relative custom-scrollbar">
-                                    {children}
-                                </main>
-                            </div>
+                        {/* Main Content Area */}
+                        <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                            <main className="flex-1 overflow-y-auto relative custom-scrollbar">
+                                {children}
+                            </main>
                         </div>
-                    )}
+                    </div>
                 </MotionConfig>
             </PermissionGuard>
         </AuthGuard>

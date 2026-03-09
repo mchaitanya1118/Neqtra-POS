@@ -144,7 +144,13 @@ export default function SignupPage() {
             if (result.success) {
                 if (result.login_url && window.location.hostname !== 'localhost') {
                     const devId = getDeviceId();
-                    window.location.href = `${result.login_url}&deviceId=${devId}`;
+                    // Pass the authenticated session state securely via URL hash fragment
+                    // This allows the subdomain's localStorage to be hydrated instantly
+                    const authPayload = btoa(JSON.stringify({
+                        token: result.token || useAuthStore.getState().token,
+                        user: result.user || useAuthStore.getState().user
+                    }));
+                    window.location.href = `${result.login_url}&deviceId=${devId}#auth=${authPayload}`;
                 } else {
                     router.push('/billing');
                 }
