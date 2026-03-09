@@ -65,6 +65,7 @@ apiClient.interceptors.response.use(
 
         if ((status === 401 || status === 403) && !originalRequest._retry && !isAuthOrDeviceEndpoint) {
             originalRequest._retry = true;
+            console.error(`[Interceptor] Triggering logout because request to ${originalRequest.url} failed with status ${status}`);
 
             // Session has expired or access is revoked (e.g. tenant DB missing)
             useAuthStore.getState().logout();

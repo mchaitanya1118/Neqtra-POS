@@ -23,4 +23,10 @@ export class ReportsController {
   async getInventoryPdf(@Res() res: Response) {
     return this.reportsService.generateInventoryPdf(res);
   }
+
+  @Get('pnl')
+  async getPnlData(@Query('year') year: string, @Query('month') month: string) {
+    // Stub implementation to fix 404 on frontend PnLCalendar
+    return [];
+  }
 }

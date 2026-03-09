@@ -258,7 +258,7 @@ export class AuthService implements OnModuleInit {
         id: user.id,
         name: user.name,
         username: user.username,
-        role: user.roleRel?.name,
+        role: user.roleRel?.name || 'Admin',
         tenantId: tenant.id,
         branchId: branch.id,
         subscriptionPlan: tenant.subscriptionPlan
@@ -327,7 +327,7 @@ export class AuthService implements OnModuleInit {
         id: user.id,
         name: user.name,
         username: user.username,
-        role: user.roleRel?.name,
+        role: user.roleRel?.name || 'Staff',
         tenantId: user.tenant?.id,
         branchId: user.branch?.id,
         subscriptionPlan: user.tenant?.subscriptionPlan
