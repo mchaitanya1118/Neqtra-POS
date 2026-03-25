@@ -18,16 +18,24 @@ services:
       - PHONEPE_SALT_KEY=${PHONEPE_SALT_KEY}
       - PHONEPE_SALT_INDEX=${PHONEPE_SALT_INDEX}
       - PHONEPE_HOST_URL=${PHONEPE_HOST_URL}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       - postgres
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - redis
+    # Removed bind mounts and volumes to test actual image build without stale code
+    # volumes:
+    #   - ./backend:/app
+    #   - /app/node_modules
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - BACKEND_URL=http://backend:3001
+        - NEXT_PUBLIC_API_URL=http://localhost:3001
     ports:
       - "3000:3000"
     environment:
@@ -58,9 +66,16 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
     volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - redis_data:/data
 
 volumes:
   postgres_data:
   pgadmin_data:
+  redis_data:

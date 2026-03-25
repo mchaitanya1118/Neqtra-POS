@@ -10,27 +10,27 @@ export class RolesController {
     constructor(private readonly rolesService: RolesService) { }
 
     @Post()
-    create(@Request() req, @Body() createRoleDto: CreateRoleDto) {
-        return this.rolesService.create(req.user.tenantId, createRoleDto);
+    create(@Body() createRoleDto: CreateRoleDto) {
+        return this.rolesService.create(createRoleDto);
     }
 
     @Get()
-    findAll(@Request() req) {
-        return this.rolesService.findAll(req.user.tenantId);
+    findAll() {
+        return this.rolesService.findAll();
     }
 
     @Get(':id')
-    findOne(@Request() req, @Param('id', ParseIntPipe) id: number) {
-        return this.rolesService.findOne(req.user.tenantId, id);
+    findOne(@Param('id', ParseIntPipe) id: number) {
+        return this.rolesService.findOne(id);
     }
 
     @Patch(':id')
-    update(@Request() req, @Param('id', ParseIntPipe) id: number, @Body() updateRoleDto: UpdateRoleDto) {
-        return this.rolesService.update(req.user.tenantId, id, updateRoleDto);
+    update(@Param('id', ParseIntPipe) id: number, @Body() updateRoleDto: UpdateRoleDto) {
+        return this.rolesService.update(id, updateRoleDto);
     }
 
     @Delete(':id')
-    remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
-        return this.rolesService.remove(req.user.tenantId, id);
+    remove(@Param('id', ParseIntPipe) id: number) {
+        return this.rolesService.remove(id);
     }
 }

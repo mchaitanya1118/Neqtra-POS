@@ -1,5 +1,6 @@
 import { DynamicModule, Provider, Global, Module, Scope, ForbiddenException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { ClsService } from 'nestjs-cls';
 import { TenancyService } from './tenancy.service';
 
@@ -10,11 +11,12 @@ export class TenantOrmModule {
         const providers: Provider[] = entities.map((entity) => ({
             provide: getRepositoryToken(entity),
             scope: Scope.REQUEST,
-            inject: [ClsService, TenancyService],
-            useFactory: async (cls: ClsService, tenancyService: TenancyService) => {
+            inject: [ClsService, TenancyService, DataSource],
+            useFactory: async (cls: ClsService, tenancyService: TenancyService, defaultDataSource: DataSource) => {
                 const tenantId = cls.get('tenantId');
                 if (!tenantId) {
-                    throw new Error('Tenant ID not found in current execution context. Ensure this is called with a valid tenant token.');
+                    // Fallback to master DB for superadmin login or pre-tenant requests
+                    return defaultDataSource.getRepository(entity);
                 }
                 try {
                     const dataSource = await tenancyService.getTenantDataSource(tenantId);

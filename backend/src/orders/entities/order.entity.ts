@@ -16,8 +16,9 @@ import { Exclude } from 'class-transformer';
 
 @Entity('orders')
 @Index(['status', 'createdAt'])
+@Index(['tableName', 'status'])
 @Index(['createdAt'])
-@Index(['type']) // Index delivery vs dine-in queries
+@Index(['type'])
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;

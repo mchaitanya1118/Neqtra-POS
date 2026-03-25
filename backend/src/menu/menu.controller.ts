@@ -92,4 +92,13 @@ export class MenuController {
   removeItem(@Param('id') id: string) {
     return this.menuService.removeItem(+id);
   }
+
+  @Post('items/:id/image')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.menuService.updateItemImage(+id, file);
+  }
 }

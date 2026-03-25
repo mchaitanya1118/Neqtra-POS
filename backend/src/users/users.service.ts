@@ -14,25 +14,18 @@ export class UsersService {
         private usersRepository: Repository<User>,
     ) { }
 
-    async create(tenantId: string, createUserDto: CreateUserDto) {
-        console.log('UsersService.create called with:', createUserDto);
+    async create(createUserDto: CreateUserDto) {
         const { password, roleId, ...userData } = createUserDto;
 
         // Find Role if roleId is provided
         let roleRel: Role | null = null;
         if (roleId) {
-            console.log('Finding role with ID:', roleId);
             roleRel = await this.usersRepository.manager.getRepository(Role).findOne({ where: { id: roleId } });
-            console.log('Found Role:', roleRel);
         }
 
-        const user = this.usersRepository.create({
-            ...userData,
-            tenant: { id: tenantId } as any
-        });
+        const user = this.usersRepository.create(userData);
 
         if (roleRel) {
-            user.roleRel = roleRel;
             user.role = roleRel.name;
         }
 
@@ -41,27 +34,46 @@ export class UsersService {
             user.password = await bcrypt.hash(password, salt);
         }
 
-        console.log('Saving user:', user);
-
-        return this.usersRepository.save(user);
+        const savedUser = await this.usersRepository.save(user);
+        if (roleRel) {
+            (savedUser as any).roleRel = roleRel;
+        }
+        return savedUser;
     }
 
-    findAll(tenantId: string) {
-        return this.usersRepository.find({
-            where: { tenant: { id: tenantId } },
-            relations: ['roleRel']
+    async findAll() {
+        const users = await this.usersRepository.find();
+        
+        // Fetch and attach roles for all users
+        const roleRepository = this.usersRepository.manager.getRepository(Role);
+        const roles = await roleRepository.find();
+        const roleMap = new Map(roles.map(r => [r.name, r]));
+        
+        return users.map(user => {
+            if (user.role && roleMap.has(user.role)) {
+                (user as any).roleRel = roleMap.get(user.role);
+            }
+            return user;
         });
     }
 
-    findOne(tenantId: string, id: number) {
-        return this.usersRepository.findOne({
-            where: { id, tenant: { id: tenantId } },
-            relations: ['roleRel']
+    async findOne(id: number) {
+        const user = await this.usersRepository.findOne({
+            where: { id }
         });
+        
+        if (user && user.role) {
+            const roleRel = await this.usersRepository.manager.getRepository(Role).findOne({ where: { name: user.role } });
+            if (roleRel) {
+                (user as any).roleRel = roleRel;
+            }
+        }
+        
+        return user;
     }
 
-    async update(tenantId: string, id: number, updateUserDto: UpdateUserDto) {
-        const user = await this.findOne(tenantId, id);
+    async update(id: number, updateUserDto: UpdateUserDto) {
+        const user = await this.findOne(id);
         if (!user) {
             throw new NotFoundException(`User with ID ${id} not found`);
         }
@@ -72,7 +84,6 @@ export class UsersService {
         if (roleId) {
             const roleRel = await this.usersRepository.manager.getRepository(Role).findOne({ where: { id: roleId } });
             if (roleRel) {
-                user.roleRel = roleRel;
                 user.role = roleRel.name;
             }
         }
@@ -84,14 +95,28 @@ export class UsersService {
             user.password = await bcrypt.hash(password, salt);
         }
 
-        return this.usersRepository.save(user);
+        const savedUser = await this.usersRepository.save(user);
+        
+        if (roleId) {
+            const roleRel = await this.usersRepository.manager.getRepository(Role).findOne({ where: { id: roleId } });
+            if (roleRel) {
+                (savedUser as any).roleRel = roleRel;
+            }
+        } else if (savedUser.role) {
+            const roleRel = await this.usersRepository.manager.getRepository(Role).findOne({ where: { name: savedUser.role } });
+            if (roleRel) {
+                (savedUser as any).roleRel = roleRel;
+            }
+        }
+        
+        return savedUser;
     }
 
-    async remove(tenantId: string, id: number) {
-        const user = await this.findOne(tenantId, id);
+    async remove(id: number) {
+        const user = await this.findOne(id);
         if (!user) {
             throw new NotFoundException(`User with ID ${id} not found`);
         }
-        await this.usersRepository.delete({ id, tenant: { id: tenantId } });
+        await this.usersRepository.delete(id);
     }
 }

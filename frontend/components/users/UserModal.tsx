@@ -1,7 +1,7 @@
 "use client";
 
 import { useUserStore, User } from "@/store/useUserStore";
-import { X, Eye, EyeOff, User as UserIcon, Lock, Key, Shield, UserCircle } from "lucide-react";
+import { X, Eye, EyeOff, User as UserIcon, Lock, Key, Shield, UserCircle, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,9 @@ export function UserModal({ isOpen, onClose, user }: UserModalProps) {
     const [password, setPassword] = useState("");
     const [passcode, setPasscode] = useState("");
     const [roleId, setRoleId] = useState<number | "">("");
+    const [hourlyRate, setHourlyRate] = useState<number | string>("");
+    const [fixedSalary, setFixedSalary] = useState<number | string>("");
+    const [shift, setShift] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -36,12 +39,18 @@ export function UserModal({ isOpen, onClose, user }: UserModalProps) {
                 if (foundRole) setRoleId(foundRole.id);
             }
             setPassword("");
+            setHourlyRate(user.hourlyRate ?? "");
+            setFixedSalary(user.fixedSalary ?? "");
+            setShift(user.shift || "");
         } else {
             setName("");
             setUsername("");
             setPassword("");
             setPasscode("");
             setRoleId("");
+            setHourlyRate("");
+            setFixedSalary("");
+            setShift("");
         }
         setError(null);
     }, [user, isOpen, roles]);
@@ -67,6 +76,9 @@ export function UserModal({ isOpen, onClose, user }: UserModalProps) {
             const userData = {
                 name, username, passcode,
                 roleId: Number(roleId),
+                hourlyRate: hourlyRate === "" ? undefined : Number(hourlyRate),
+                fixedSalary: fixedSalary === "" ? undefined : Number(fixedSalary),
+                shift: shift || undefined
             };
 
             if (user) {
@@ -192,21 +204,75 @@ export function UserModal({ isOpen, onClose, user }: UserModalProps) {
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted ml-1">Hourly Rate</label>
+                                    <div className="relative group">
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary font-bold transition-colors">$</div>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={hourlyRate}
+                                            onChange={(e) => setHourlyRate(e.target.value)}
+                                            className="w-full pl-11 pr-4 py-3.5 bg-surface-light/30 border border-surface-light/50 rounded-2xl focus:outline-none focus:ring-2 ring-primary/20 focus:border-primary transition-all dark:text-white"
+                                            placeholder="15.00"
+                                        />
+                                    </div>
+                                </div>
 
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted ml-1">Assigned Role</label>
-                                <div className="relative group">
-                                    <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
-                                    <select
-                                        value={roleId}
-                                        onChange={(e) => setRoleId(Number(e.target.value))}
-                                        className="w-full pl-11 pr-4 py-3.5 bg-surface-light/30 border border-surface-light/50 rounded-2xl focus:outline-none focus:ring-2 ring-primary/20 focus:border-primary transition-all dark:text-white appearance-none"
-                                    >
-                                        <option value="">Select a role...</option>
-                                        {roles.map((r) => (
-                                            <option key={r.id} value={r.id}>{r.name}</option>
-                                        ))}
-                                    </select>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted ml-1">Fixed Salary (Monthly/Yearly)</label>
+                                    <div className="relative group">
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-primary font-bold transition-colors">$</div>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={fixedSalary}
+                                            onChange={(e) => setFixedSalary(e.target.value)}
+                                            className="w-full pl-11 pr-4 py-3.5 bg-surface-light/30 border border-surface-light/50 rounded-2xl focus:outline-none focus:ring-2 ring-primary/20 focus:border-primary transition-all dark:text-white"
+                                            placeholder="5000.00"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted ml-1">Shift</label>
+                                    <div className="relative group">
+                                        <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors pointer-events-none" />
+                                        <select
+                                            value={shift}
+                                            onChange={(e) => setShift(e.target.value)}
+                                            className="w-full pl-11 pr-10 py-3.5 bg-surface-light/30 border border-surface-light/50 rounded-2xl focus:outline-none focus:ring-2 ring-primary/20 focus:border-primary transition-all dark:text-white appearance-none cursor-pointer"
+                                        >
+                                            <option value="">No Shift</option>
+                                            <option value="Morning">Morning</option>
+                                            <option value="Evening">Evening</option>
+                                            <option value="Night">Night</option>
+                                            <option value="Flexible">Flexible</option>
+                                        </select>
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted ml-1">Assigned Role</label>
+                                    <div className="relative group">
+                                        <Shield className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors pointer-events-none" />
+                                        <select
+                                            value={roleId}
+                                            onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}
+                                            className="w-full pl-11 pr-10 py-3.5 bg-surface-light/30 border border-surface-light/50 rounded-2xl focus:outline-none focus:ring-2 ring-primary/20 focus:border-primary transition-all dark:text-white appearance-none cursor-pointer"
+                                        >
+                                            <option value="">Select a role...</option>
+                                            {roles.map((r) => (
+                                                <option key={r.id} value={r.id}>{r.name}</option>
+                                            ))}
+                                        </select>
+                                        <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted pointer-events-none" />
+                                    </div>
                                 </div>
                             </div>
 

@@ -10,7 +10,7 @@ export class SuperAdminGuard implements CanActivate {
             throw new ForbiddenException('User not authenticated');
         }
 
-        const userRole = user.roleRel?.name || user.role;
+        const userRole = user.role;
         if (userRole !== 'SuperAdmin') {
             throw new ForbiddenException('Restricted to SuperAdmin');
         }

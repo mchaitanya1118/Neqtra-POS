@@ -15,13 +15,19 @@ import { OrderEvent } from './entities/order-event.entity';
 import { InventoryItem } from '../inventory/entities/inventory.entity';
 import { PaymentsModule } from '../payments/payments.module';
 
+import { BullModule } from '@nestjs/bullmq';
+import { OrdersProcessor } from './orders.processor';
+
 @Module({
   imports: [
     TenantOrmModule.forFeature([Order, OrderItem, MenuItem, Table, Payment, Customer, Delivery, OrderEvent, InventoryItem]),
     NotificationsModule,
     PaymentsModule,
+    BullModule.registerQueue({
+      name: 'orders',
+    }),
   ],
   controllers: [OrdersController],
-  providers: [OrdersService],
+  providers: [OrdersService, OrdersProcessor],
 })
 export class OrdersModule { }

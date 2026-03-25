@@ -1,50 +1,38 @@
-
-import Dexie, { Table } from 'dexie';
-
-export interface Product {
-    id: number;
-    name: string;
-    price: number;
-    categoryId: number;
-    tenantId: string;
-    image?: string;
-    description?: string;
-    isVeg?: boolean;
-}
-
-export interface Category {
-    id: number;
-    name: string;
-    tenantId: string;
-}
+import Dexie, { type Table } from 'dexie';
 
 export interface Order {
-    id?: number; // Auto-incremented local ID
-    tempId: string; // Client-side unique ID
+    id?: number;
+    tempId: string;
     items: any[];
     totalAmount: number;
-    status: 'PENDING' | 'SYNCED' | 'FAILED' | 'PARKED';
+    status: 'PARKED' | 'PENDING' | 'SYNCED' | 'FAILED';
     createdAt: Date;
     tenantId: string;
     branchId?: string;
-    tableId?: number;
     tableName?: string;
-    type?: string;
 }
 
-export class OfflineDB extends Dexie {
-    products!: Table<Product>;
-    categories!: Table<Category>;
+export interface CachedData {
+    key: string;
+    data: any;
+    updatedAt: number;
+}
+
+export class NeqtraDB extends Dexie {
     orders!: Table<Order>;
+    categories!: Table<any>;
+    products!: Table<any>;
+    cache!: Table<CachedData>;
 
     constructor() {
-        super('NeqtraPOS_DB');
-        this.version(2).stores({ // Bumped version
-            products: 'id, name, categoryId, tenantId',
-            categories: 'id, name, tenantId',
-            orders: '++id, status, tenantId, tempId, createdAt'
+        super('NeqtraPOS');
+        this.version(2).stores({
+            orders: '++id, tempId, status, createdAt, tenantId',
+            categories: 'id, tenantId',
+            products: 'id, categoryId, tenantId',
+            cache: 'key'
         });
     }
 }
 
-export const db = new OfflineDB();
+export const db = new NeqtraDB();

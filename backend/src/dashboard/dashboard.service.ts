@@ -8,6 +8,7 @@ import { Table } from '../entities/table.entity';
 import { Customer } from '../customers/entities/customer.entity';
 
 import { Payment } from '../payments/entities/payment.entity';
+import { Salary } from '../entities/salary.entity';
 
 @Injectable()
 export class DashboardService {
@@ -20,6 +21,7 @@ export class DashboardService {
     @InjectRepository(Table) private tableRepo: Repository<Table>,
     @InjectRepository(Customer) private customerRepo: Repository<Customer>,
     @InjectRepository(Payment) private paymentRepo: Repository<Payment>,
+    @InjectRepository(Salary) private salaryRepo: Repository<Salary>,
   ) { }
 
   async getMetrics() {
@@ -30,88 +32,120 @@ export class DashboardService {
       console.log("[DashboardService] Date set to:", today);
 
       // 1. Daily Sales
-      console.log("[DashboardService] Fetching today's orders...");
-      const todayOrders = await this.orderRepo
-        .createQueryBuilder('order')
-        .where('order.createdAt >= :today', { today })
-        .leftJoinAndSelect('order.items', 'items')
-        .leftJoinAndSelect('items.menuItem', 'menuItem')
-        .getMany();
-      console.log(`[DashboardService] Found ${todayOrders.length} orders today.`);
-
-      const revenue = todayOrders.reduce((sum, order) => {
-        if (!order.items) return sum;
-        const orderTotal = order.items.reduce((acc, item) => {
-          // Safety check: if menuItem is null (e.g. deleted), use 0 or fallback
-          const price = item.menuItem ? Number(item.menuItem.price) : 0;
-          return acc + price * item.quantity;
+      let revenue = 0;
+      let orderCount = 0;
+      try {
+        console.log("[DashboardService] Fetching today's orders...");
+        const todayOrders = await this.orderRepo
+          .createQueryBuilder('order')
+          .where('order.createdAt >= :today', { today })
+          .leftJoinAndSelect('order.items', 'items')
+          .leftJoinAndSelect('items.menuItem', 'menuItem')
+          .getMany();
+        orderCount = todayOrders.length;
+        revenue = todayOrders.reduce((sum, order) => {
+          if (!order.items) return sum;
+          const orderTotal = order.items.reduce((acc, item) => {
+            const price = item.menuItem ? Number(item.menuItem.price) : 0;
+            return acc + price * item.quantity;
+          }, 0);
+          return sum + orderTotal;
         }, 0);
-        return sum + orderTotal;
-      }, 0);
-      console.log(`[DashboardService] Calculated revenue: ${revenue}`);
+      } catch (e: any) { console.warn("[DashboardService] Orders error:", e.message); }
 
       // 2. Low Stock Items
-      console.log("[DashboardService] Fetching low stock items...");
-      const lowStockItems = await this.inventoryRepo
-        .createQueryBuilder('item')
-        .where('item.quantity <= item.threshold')
-        .getMany();
-      console.log(`[DashboardService] Found ${lowStockItems.length} low stock items.`);
+      let lowStockCount = 0;
+      let lowStockItems: any[] = [];
+      try {
+        console.log("[DashboardService] Fetching low stock items...");
+        const items = await this.inventoryRepo
+          .createQueryBuilder('item')
+          .where('item.quantity <= item.threshold')
+          .getMany();
+        lowStockItems = items.map((i) => ({ id: i.id, name: i.name, quantity: i.quantity }));
+        lowStockCount = items.length;
+      } catch (e: any) { console.warn("[DashboardService] Inventory error:", e.message); }
 
       // 3. Today's Reservations
-      console.log("[DashboardService] Fetching upcoming reservations...");
-      const upcomingReservations = await this.reservationRepo
-        .createQueryBuilder('res')
-        .where('res.date >= :today', { today })
-        .andWhere('res.status = :status', { status: 'PENDING' })
-        .getMany();
-      console.log(`[DashboardService] Found ${upcomingReservations.length} upcoming reservations.`);
+      let reservationCount = 0;
+      try {
+        console.log("[DashboardService] Fetching upcoming reservations...");
+        const upcomingReservations = await this.reservationRepo
+          .createQueryBuilder('res')
+          .where('res.date >= :today', { today })
+          .andWhere('res.status = :status', { status: 'PENDING' })
+          .getMany();
+        reservationCount = upcomingReservations.length;
+      } catch (e: any) { console.warn("[DashboardService] Reservations error:", e.message); }
 
       // 4. Occupied Tables
-      console.log("[DashboardService] Fetching occupied tables...");
-      const occupiedTables = await this.tableRepo.findBy({ status: 'OCCUPIED' });
-      console.log(`[DashboardService] Found ${occupiedTables.length} occupied tables.`);
+      let occupiedTables = 0;
+      try {
+        console.log("[DashboardService] Fetching occupied tables...");
+        const tables = await this.tableRepo.findBy({ status: 'OCCUPIED' });
+        occupiedTables = tables.length;
+      } catch (e: any) { console.warn("[DashboardService] Tables error:", e.message); }
 
       // 5. Total Outstanding Dues
-      console.log("[DashboardService] Fetching total dues...");
-      const customers = await this.customerRepo.find();
-      const totalDues = customers.reduce((sum, c) => sum + (c.totalDue || 0), 0);
-      console.log(`[DashboardService] Total dues calculated: ${totalDues}`);
+      let totalDues = 0;
+      try {
+        console.log("[DashboardService] Fetching total dues...");
+        const customers = await this.customerRepo.find();
+        totalDues = customers.reduce((sum, c) => sum + (c.totalDue || 0), 0);
+      } catch (e: any) { console.warn("[DashboardService] Customers error:", e.message); }
 
       // 6. Payment Breakdown (Today)
-      console.log("[DashboardService] Fetching payment stats...");
-      const paymentStats = await this.paymentRepo
-        .createQueryBuilder('p')
-        .select('p.method', 'method')
-        .addSelect('SUM(p.amount)', 'total')
-        .where('p.createdAt >= :today', { today })
-        .groupBy('p.method')
-        .getRawMany();
-      console.log(`[DashboardService] Payment stats fetched:`, paymentStats);
+      let paymentStats: any[] = [];
+      try {
+        console.log("[DashboardService] Fetching payment stats...");
+        const stats = await this.paymentRepo
+          .createQueryBuilder('p')
+          .select('p.method', 'method')
+          .addSelect('SUM(p.amount)', 'total')
+          .where('p.createdAt >= :today', { today })
+          .groupBy('p.method')
+          .getRawMany();
+        paymentStats = stats.map((s) => ({ method: s.method, total: Number(s.total) }));
+      } catch (e: any) { console.warn("[DashboardService] Payments error:", e.message); }
+
+      // 7. Salaries (Current Month)
+      let totalSalariesPaid = 0;
+      let totalAdvancesPaid = 0;
+      try {
+        console.log("[DashboardService] Fetching salaries for this month...");
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        const currentMonthStr = `${monthNames[today.getMonth()]} ${today.getFullYear()}`;
+        
+        const salariesThisMonth = await this.salaryRepo.findBy({ paymentMonth: currentMonthStr });
+        
+        // Summing up by type
+        totalSalariesPaid = salariesThisMonth
+          .filter(s => s.type === 'REGULAR')
+          .reduce((sum, s) => sum + Number(s.amount), 0);
+          
+        totalAdvancesPaid = salariesThisMonth
+          .filter(s => s.type === 'ADVANCE')
+          .reduce((sum, s) => sum + Number(s.amount), 0);
+          
+      } catch (e: any) { console.warn("[DashboardService] Salaries error:", e.message); }
 
       const result = {
         dailyRevenue: revenue,
-        orderCount: todayOrders.length,
-        lowStockCount: lowStockItems.length,
-        lowStockItems: lowStockItems.map((i) => ({
-          id: i.id,
-          name: i.name,
-          quantity: i.quantity,
-        })),
-        reservationCount: upcomingReservations.length,
-        occupiedTables: occupiedTables.length,
-        totalDues: totalDues,
-        paymentStats: paymentStats.map((s) => ({
-          method: s.method,
-          total: Number(s.total),
-        })),
+        orderCount,
+        lowStockCount,
+        lowStockItems,
+        reservationCount,
+        occupiedTables,
+        totalDues,
+        totalSalariesPaid,
+        totalAdvancesPaid,
+        paymentStats,
       };
 
       console.log("[DashboardService] Metrics compilation successful.");
       return result;
     } catch (error) {
       console.error("[DashboardService] FATAL ERROR in getMetrics:", error);
-      // Return zeroed/safe data instead of crashing the request
       return {
         dailyRevenue: 0,
         orderCount: 0,
@@ -120,6 +154,8 @@ export class DashboardService {
         reservationCount: 0,
         occupiedTables: 0,
         totalDues: 0,
+        totalSalariesPaid: 0,
+        totalAdvancesPaid: 0,
         paymentStats: [],
       };
     }

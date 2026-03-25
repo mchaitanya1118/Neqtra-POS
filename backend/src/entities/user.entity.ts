@@ -1,12 +1,15 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
 import { Role } from './role.entity';
-import { Tenant } from '../tenants/entities/tenant.entity';
 import { Branch } from '../branches/entities/branch.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
 
 @Entity('users')
 export class User {
     @PrimaryGeneratedColumn()
     id: number;
+
+    @Column({ nullable: true })
+    tenantId: string;
 
     @Column()
     name: string;
@@ -21,16 +24,25 @@ export class User {
     passcode: string;
 
     @Column({ nullable: true })
-    role: string; // Deprecated, use roleRel
+    role: string;
 
-    @ManyToOne(() => Role, (role) => role.users, { nullable: true, eager: true }) // Eager load role to get permissions
-    roleRel: Role;
+    // Transient property populated in services
+    roleRel?: Role;
 
-    @ManyToOne(() => Tenant, (tenant) => tenant.users, { nullable: true, onDelete: 'CASCADE' })
-    tenant: Tenant;
+    // @ManyToOne(() => Branch, (branch) => branch.users, { nullable: true })
+    // branch: Branch;
 
-    @ManyToOne(() => Branch, (branch) => branch.users, { nullable: true })
-    branch: Branch;
+    @Column({ nullable: true })
+    branchId: string;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    hourlyRate: number;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    fixedSalary: number;
+
+    @Column({ nullable: true })
+    shift: string;
 
     @Column({ nullable: true, select: false })
     refreshToken: string;

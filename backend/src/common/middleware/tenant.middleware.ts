@@ -45,6 +45,7 @@ export class TenantMiddleware implements NestMiddleware {
         }
 
         // 4. Fallback to JWT if still missing
+        let isSystemUser = false;
         if (!tenantId && req.headers.authorization) {
             try {
                 const token = req.headers.authorization.split(' ')[1];
@@ -52,13 +53,33 @@ export class TenantMiddleware implements NestMiddleware {
                     const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
                     if (payload.tenantId) {
                         tenantId = payload.tenantId;
+                    } else {
+                        isSystemUser = true;
                     }
                 }
             } catch (e) { }
         }
 
+        // 5. Development Fallback: If still missing and on localhost, default to the first active tenant
+        const isControlPlane = req.url.startsWith('/auth') || req.url.startsWith('/admin') || req.url.startsWith('/tenants');
+        
+        if (!tenantId && !isSystemUser && !isControlPlane && (req.headers.host?.includes('localhost') || !process.env.NODE_ENV || process.env.NODE_ENV === 'development')) {
+            try {
+                const tenants = await this.tenantsService.findAll();
+                if (tenants.length > 0) {
+                    tenantId = tenants[0].id;
+                    console.log(`[TenantMiddleware] Defaulting to latest tenant for localhost: ${tenants[0].name} (${tenantId})`);
+                }
+            } catch (e) {
+                // Ignore errors during fallback lookup
+            }
+        }
+
         if (tenantId) {
             this.cls.set('tenantId', tenantId);
+            console.log(`[TenantMiddleware] Resolved Tenant ID for ${req.url}: ${tenantId}`);
+        } else {
+            console.log(`[TenantMiddleware] No Tenant ID resolved for ${req.url}`);
         }
 
         next();

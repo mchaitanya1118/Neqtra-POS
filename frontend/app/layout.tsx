@@ -30,6 +30,7 @@ export const viewport = {
 
 import { TenantThemeProvider } from "@/components/shared/TenantThemeProvider";
 import { WebVitals } from "@/components/shared/WebVitals";
+import QueryProvider from "@/components/providers/query-provider";
 
 export default function RootLayout({
   children,
@@ -39,9 +40,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} bg-background text-foreground antialiased`} suppressHydrationWarning>
-        <WebVitals />
-        <TenantThemeProvider />
-        {children}
+        <QueryProvider>
+          <WebVitals />
+          <TenantThemeProvider />
+          {children}
+        </QueryProvider>
       </body>
     </html>
   );

@@ -10,27 +10,27 @@ export class UsersController {
     constructor(private readonly usersService: UsersService) { }
 
     @Post()
-    create(@Request() req, @Body() createUserDto: CreateUserDto) {
-        return this.usersService.create(req.user.tenantId, createUserDto);
+    create(@Body() createUserDto: CreateUserDto) {
+        return this.usersService.create(createUserDto);
     }
 
     @Get()
-    findAll(@Request() req) {
-        return this.usersService.findAll(req.user.tenantId);
+    findAll() {
+        return this.usersService.findAll();
     }
 
     @Get(':id')
-    findOne(@Request() req, @Param('id', ParseIntPipe) id: number) {
-        return this.usersService.findOne(req.user.tenantId, id);
+    findOne(@Param('id', ParseIntPipe) id: number) {
+        return this.usersService.findOne(id);
     }
 
     @Patch(':id')
-    update(@Request() req, @Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
-        return this.usersService.update(req.user.tenantId, id, updateUserDto);
+    update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
+        return this.usersService.update(id, updateUserDto);
     }
 
     @Delete(':id')
-    remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
-        return this.usersService.remove(req.user.tenantId, id);
+    remove(@Param('id', ParseIntPipe) id: number) {
+        return this.usersService.remove(id);
     }
 }

@@ -1,10 +1,11 @@
-import { Injectable, UnauthorizedException, OnModuleInit, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { User } from '../entities/user.entity';
+import { Role } from '../entities/role.entity';
 import { RolesService } from '../roles/roles.service';
 import { Tenant } from '../tenants/entities/tenant.entity';
 import { Branch } from '../branches/entities/branch.entity';
@@ -12,6 +13,8 @@ import { TenantsService } from '../tenants/tenants.service';
 import { BranchesService } from '../branches/branches.service';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
+import { ProvisioningService } from '../tenants/provisioning.service';
+import { ClsService } from 'nestjs-cls';
 
 export interface SignupDto {
   name: string;
@@ -23,7 +26,7 @@ export interface SignupDto {
 }
 
 @Injectable()
-export class AuthService implements OnModuleInit {
+export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly redis: Redis;
 
@@ -39,88 +42,12 @@ export class AuthService implements OnModuleInit {
     private tenantsService: TenantsService,
     private branchesService: BranchesService,
     private redisService: RedisService,
+    private provisioningService: ProvisioningService,
+    private readonly cls: ClsService,
   ) {
     this.redis = this.redisService.getOrThrow();
   }
 
-  async onModuleInit() {
-    // Only seed if no tenants exist
-    try {
-      // Check for default tenant
-      const existingTenant = await this.tenantsRepository.findOne({ where: { name: 'Default Tenant' } });
-      let tenant = existingTenant;
-
-      if (!tenant) {
-        this.logger.log('No default tenant found. Seeding...');
-        tenant = await this.tenantsService.create({
-          name: 'Default Tenant',
-          status: 'ACTIVE',
-          subscriptionPlan: 'ENTERPRISE',
-        });
-        this.logger.log('Default Tenant Database provisioned successfully.');
-        this.logger.log('Default Tenant seeded.');
-      }
-
-      // Check for default branch
-      const existingBranch = await this.branchesRepository.findOne({ where: { name: 'Main Branch', tenant: { id: tenant.id } } });
-      let branch = existingBranch;
-
-      if (!branch) {
-        this.logger.log('No default branch found. Seeding...');
-        branch = this.branchesRepository.create({
-          name: 'Main Branch',
-          address: 'Default Address',
-          tenant: tenant,
-        });
-        await this.branchesRepository.save(branch);
-        this.logger.log('Default Branch seeded.');
-      }
-
-      const existingAdmin = await this.usersRepository.findOne({ where: { username: 'admin' } });
-      if (!existingAdmin) {
-        this.logger.log('No admin user found. Seeding default admin user...');
-        const salt = await bcrypt.genSalt();
-        const hashedPassword = await bcrypt.hash('password', salt);
-
-        const adminRole = await this.rolesService.findByName('Admin');
-
-        const admin = this.usersRepository.create({
-          name: 'Admin User',
-          username: 'admin',
-          password: hashedPassword,
-          passcode: '1234',
-          roleRel: adminRole || undefined,
-          tenant: tenant,
-          branch: branch,
-        });
-        await this.usersRepository.save(admin);
-        this.logger.log('Default admin user seeded. Username: admin, Passcode: 1234');
-      }
-
-      const superAdminRole = await this.rolesService.findByName('SuperAdmin');
-      const existingSuperAdmin = await this.usersRepository.findOne({ where: { username: 'superadmin' } });
-
-      if (!existingSuperAdmin && superAdminRole) {
-        this.logger.log('No superadmin found. Seeding...');
-        const salt = await bcrypt.genSalt();
-        const pased = await bcrypt.hash('superadmin', salt);
-
-        const sAdmin = this.usersRepository.create({
-          name: 'System Admin',
-          username: 'superadmin',
-          password: pased,
-          passcode: '0000',
-          roleRel: superAdminRole,
-          tenant: tenant,
-          branch: branch,
-        });
-        await this.usersRepository.save(sAdmin);
-        this.logger.log('Superadmin seeded. Username: superadmin, Passcode: 0000');
-      }
-    } catch (error) {
-      this.logger.error(`Failed to seed database: ${error.message}`, error.stack);
-    }
-  }
 
   async signup(signupDto: SignupDto) {
     const { name, email, password, businessName, businessType } = signupDto;
@@ -143,110 +70,38 @@ export class AuthService implements OnModuleInit {
       counter++;
     }
 
-    // 3. Create Tenant with 14-day trial
-    const trialExpiry = new Date();
-    trialExpiry.setDate(trialExpiry.getDate() + 14);
-
-    const plan = signupDto.subscriptionPlan || 'TRIAL';
-    const quotas = this.tenantsService.getPlanQuotas(plan);
-
+    // 3. Create Tenant in Master DB (Sets status to PENDING)
     const tenant = await this.tenantsService.create({
       name: businessName,
       subdomain,
       status: 'ACTIVE',
-      subscriptionPlan: plan,
-      trialEndsAt: trialExpiry,
-      subscriptionExpiry: trialExpiry,
-      ...quotas,
     });
 
-    // 3.5 Automate Coolify SSL Domain Provisioning
-    // MIGRATED TO CLOUDFLARE WILDCARD:
-    // With Cloudflare (*.neqtra.com), we no longer need to dynamically inject subdomains
-    // into Coolify via the API. The wildcard SSL certificate covers all new tenants instantly.
-    /*
-    const coolifyApiToken = process.env.COOLIFY_API_TOKEN;
-    const coolifyApiUrl = process.env.COOLIFY_API_URL;
-    const coolifyFrontendUuid = process.env.COOLIFY_FRONTEND_UUID;
+    // 4. Assign Subscription Plan
+    await this.tenantsService.assignPlan(tenant.id, signupDto.subscriptionPlan || 'FREE');
 
-    if (coolifyApiToken && coolifyApiUrl && coolifyFrontendUuid) {
-      try {
-        const newDomain = `https://${subdomain}.neqtra.com`;
-        this.logger.log(`Provisioning Coolify SSL for new domain: ${newDomain}`);
-
-        // Define possible endpoints
-        const endpoints = ['applications', 'services'];
-        let matchedEndpoint: string | null = null;
-        let currentDomainsStr = '';
-
-        for (const ep of endpoints) {
-          const res = await fetch(`${coolifyApiUrl}/api/v1/${ep}/${coolifyFrontendUuid}`, {
-            headers: { 'Authorization': `Bearer ${coolifyApiToken}` }
-          });
-          if (res.ok) {
-            const data = await res.json();
-            // Applications use 'fqdn', Services use 'domains'
-            currentDomainsStr = data.fqdn || data.domains || '';
-            matchedEndpoint = ep;
-            break;
-          }
-        }
-
-        if (matchedEndpoint) {
-          // Append the new one (as a separate line/comma entry based on existing format)
-          const updatedDomains = currentDomainsStr ? `${currentDomainsStr},${newDomain}` : newDomain;
-          const payloadField = matchedEndpoint === 'applications' ? 'fqdn' : 'domains';
-
-          // Patch the resource with the appended domain list
-          await fetch(`${coolifyApiUrl}/api/v1/${matchedEndpoint}/${coolifyFrontendUuid}`, {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${coolifyApiToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ [payloadField]: updatedDomains })
-          });
-          this.logger.log(`Successfully appended ${newDomain} to Coolify ${matchedEndpoint}.`);
-        } else {
-          this.logger.warn(`Failed to fetch Coolify resource details (tried apps and services). Please verify the FRONTEND_UUID.`);
-        }
-      } catch (err) {
-        this.logger.error(`Error automating Coolify domain creation for ${subdomain}`, err);
-        // Do not fail the whole signup if the domain automation hiccups
-      }
-    }
-    */
-
-    // 4. Create Default Branch
-    const branch = await this.branchesService.create(tenant.id, {
-      name: 'Main Branch',
-      address: 'Headquarters',
-      tenant: tenant,
-    });
-
-    // 4. Create Admin User
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const adminRole = await this.rolesService.findByName('Admin');
-
-    const user = this.usersRepository.create({
+    // 5. Provision Tenant Database (IN_PROGRESS -> COMPLETED)
+    await this.provisioningService.provisionTenant(tenant.id, {
       name,
-      username: email,
-      password: hashedPassword,
-      roleRel: adminRole || undefined,
-      tenant,
-      branch,
+      email,
+      password,
     });
 
-    await this.usersRepository.save(user);
+    // 5. Generate Initial Token (Note: The user won't exist in master DB, so we return payload for first login)
+    const tenantDataSource = await this.tenantsService.getTenantDataSource(tenant.id);
+    const userRepository = tenantDataSource.getRepository(User);
+    const user = await userRepository.findOne({ where: { username: email } });
 
-    // 5. Generate Token
+    if (!user) {
+      throw new InternalServerErrorException('Failed to retrieve provisioned user');
+    }
+
     const payload = {
       username: user.username,
       sub: user.id,
-      role: user.roleRel?.name || 'Admin',
+      role: user.role || 'Admin',
       tenantId: tenant.id,
-      branchId: branch.id
+      branchId: user.branchId
     };
 
     return {
@@ -258,82 +113,96 @@ export class AuthService implements OnModuleInit {
         id: user.id,
         name: user.name,
         username: user.username,
-        role: user.roleRel?.name || 'Admin',
+        role: user.role || 'Admin',
         tenantId: tenant.id,
-        branchId: branch.id,
-        subscriptionPlan: tenant.subscriptionPlan
+        branchId: user.branchId,
       }
     };
   }
 
   async login(loginDto: LoginDto) {
-    let user: User | null = null;
+    try {
+      this.logger.log(`Login attempt for: ${loginDto.username || 'passcode'}`);
+      let user: User | null = null;
+      const tenantId = this.cls.get('tenantId');
 
-    if (loginDto?.passcode) {
-      user = await this.usersRepository.findOne({
-        where: { passcode: loginDto.passcode },
-        relations: ['roleRel', 'tenant', 'branch']
-      });
-    } else if (loginDto?.username && loginDto?.password) {
-      user = await this.usersRepository.findOne({
-        where: { username: loginDto.username },
-        relations: ['roleRel', 'tenant', 'branch']
-      });
-
-      if (user) {
-        const isMatch = await bcrypt.compare(loginDto.password, user.password);
-        if (!isMatch) user = null;
-      }
-    }
-
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    if (user.username !== 'superadmin' && user.tenant) {
-      if (user.tenant.status === 'SUSPENDED') {
-        throw new UnauthorizedException('Tenant account is suspended. Please contact support.');
+      if (!tenantId && loginDto.username !== 'superadmin') {
+        throw new BadRequestException('Tenant context missing. Please use your specific subdomain.');
       }
 
-      if (user.tenant.subscriptionExpiry && new Date(user.tenant.subscriptionExpiry) < new Date()) {
-        throw new UnauthorizedException('Subscription Expired. Please renew to continue.');
-      }
-    }
+      if (loginDto?.passcode) {
+        console.log('2a. Finding user by passcode');
+        user = await this.usersRepository.findOne({
+          where: { passcode: loginDto.passcode },
+          relations: []
+        });
+      } else if (loginDto?.username && loginDto?.password) {
+        console.log('2b. Finding user by username:', loginDto.username);
+        user = await this.usersRepository.findOne({
+          where: { username: loginDto.username },
+          relations: []
+        });
 
-    // Self-heal default admin account if local postgres wiped relations
-    if (user.username === 'admin' && !user.tenant) {
-      const defaultTenant = await this.tenantsRepository.findOne({ where: { name: 'Default Tenant' } });
-      const defaultBranch = await this.branchesRepository.findOne({ where: { name: 'Main Branch' } });
-      if (defaultTenant) {
-        user.tenant = defaultTenant;
-        if (defaultBranch) {
-          user.branch = defaultBranch;
+        if (user) {
+          const isMatch = await bcrypt.compare(loginDto.password, user.password);
+          if (!isMatch) {
+            this.logger.warn(`Password mismatch for user: ${loginDto.username}`);
+            user = null;
+          }
         }
-        await this.usersRepository.save(user);
       }
-    }
 
-    const payload = {
-      username: user.username,
-      sub: user.id,
-      role: user.roleRel?.name || 'Staff',
-      tenantId: user.tenant?.id,
-      branchId: user.branch?.id
-    };
+      if (!user) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
 
-    return {
-      access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.id,
-        name: user.name,
+      // Check Tenant Status from Master DB
+      if (tenantId) {
+        const tenant = await this.tenantsService.findOne(tenantId);
+        if (!tenant) {
+          throw new UnauthorizedException('Tenant not found');
+        }
+
+        if (tenant.status === 'SUSPENDED') {
+          throw new UnauthorizedException('Tenant account is suspended. Please contact support.');
+        }
+      }
+
+      const payload = {
         username: user.username,
-        role: user.roleRel?.name || 'Staff',
-        tenantId: user.tenant?.id,
-        branchId: user.branch?.id,
-        subscriptionPlan: user.tenant?.subscriptionPlan
-      },
-      // Return refresh token if needed in future, currently just access token
-    };
+        sub: user.id,
+        role: user.role || 'Staff',
+        tenantId: tenantId,
+        branchId: user.branchId
+      };
+
+      // Fetch Role
+      let roleRel: Role | null = null;
+      if (user.role) {
+         try {
+           roleRel = await this.usersRepository.manager.getRepository(Role).findOne({ where: { name: user.role } });
+         } catch(e) {
+           this.logger.warn(`Could not fetch role permissions for role: ${user.role}`);
+         }
+      }
+
+      const result = {
+        access_token: this.jwtService.sign(payload),
+        user: {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          role: user.role || 'Staff',
+          roleRel: roleRel,
+          tenantId: tenantId,
+          branchId: user.branchId
+        },
+      };
+      return result;
+    } catch (error) {
+      this.logger.error(`Error during login for ${loginDto.username || 'passcode'}:`, error.stack);
+      throw error;
+    }
   }
 
   async logout(token: string) {

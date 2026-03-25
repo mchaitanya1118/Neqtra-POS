@@ -8,6 +8,7 @@ import { User } from '../entities/user.entity';
 import { RedisService } from '@liaoliaots/nestjs-redis';
 import Redis from 'ioredis';
 import { Request } from 'express';
+import { TenancyService } from '../tenancy/tenancy.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -18,6 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         @InjectRepository(User)
         private usersRepository: Repository<User>,
         private redisService: RedisService,
+        private tenancyService: TenancyService,
     ) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -53,9 +55,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         }
 
         const { sub: userId, tenantId } = payload;
-        const user = await this.usersRepository.findOne({
+        
+        // Fetch user from correct DB
+        let userRepo = this.usersRepository;
+        if (tenantId) {
+            try {
+                const tenantDataSource = await this.tenancyService.getTenantDataSource(tenantId);
+                userRepo = tenantDataSource.getRepository(User);
+            } catch (e) {
+                console.error(`[JwtStrategy] Failed to get tenant DB for user ${userId}:`, e.message);
+                throw new UnauthorizedException('Tenant database not available');
+            }
+        }
+
+        const user = await userRepo.findOne({
             where: { id: userId },
-            relations: ['roleRel', 'tenant', 'branch']
+            relations: []
         });
 
         if (!user) {
@@ -64,8 +79,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         }
 
         // Enforce tenant isolation if tenantId is present in token
-        if (tenantId && user.tenant?.id !== tenantId) {
-            console.error(`[JwtStrategy] Validation failed: Tenant mismatch. Token tenantId: ${tenantId}, User tenantId: ${user.tenant?.id}`);
+        if (tenantId && user.tenantId !== tenantId) {
+            console.error(`[JwtStrategy] Validation failed: Tenant mismatch. Token tenantId: ${tenantId}, User tenantId: ${user.tenantId}`);
             throw new UnauthorizedException('Tenant mismatch');
         }
 

@@ -8,6 +8,9 @@ export interface User {
     passcode?: string;
     role: string;
     roleRel?: Role;
+    hourlyRate?: number;
+    fixedSalary?: number;
+    shift?: string;
     createdAt: string;
     // password is never returned
 }
@@ -25,8 +28,8 @@ interface UserStore {
     isLoading: boolean;
     error: string | null;
     fetchUsers: () => Promise<void>;
-    addUser: (userData: Partial<User> & { password?: string, roleId?: number }) => Promise<void>;
-    updateUser: (id: number, userData: Partial<User> & { password?: string, roleId?: number }) => Promise<void>;
+    addUser: (userData: Partial<User> & { password?: string, roleId?: number, hourlyRate?: number, fixedSalary?: number, shift?: string }) => Promise<void>;
+    updateUser: (id: number, userData: Partial<User> & { password?: string, roleId?: number, hourlyRate?: number, fixedSalary?: number, shift?: string }) => Promise<void>;
     deleteUser: (id: number) => Promise<void>;
 
     // Role Actions

@@ -15,7 +15,8 @@ import {
     ChevronRight,
     Activity,
     Clock,
-    LayoutDashboard
+    LayoutDashboard,
+    Banknote
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { API_URL } from "@/lib/config";
@@ -34,6 +35,8 @@ interface DashboardMetrics {
     reservationCount: number;
     occupiedTables: number;
     totalDues: number;
+    totalSalariesPaid: number;
+    totalAdvancesPaid: number;
     paymentStats: { method: string, total: number }[];
 }
 
@@ -98,7 +101,7 @@ export default function DashboardPage() {
                     ) : metrics ? (
                         <>
                             {/* Metrics Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
                                 {hasPermission('Reports') && (
                                     <MetricCard
                                         title="Daily Revenue"
@@ -142,6 +145,28 @@ export default function DashboardPage() {
                                         iconBg="bg-red-500/10"
                                         onClick={() => router.push('/dues')}
                                     />
+                                )}
+                                {hasPermission('Users') && (
+                                    <>
+                                        <MetricCard
+                                            title="Monthly Payroll"
+                                            value={`$${metrics.totalSalariesPaid ? metrics.totalSalariesPaid.toFixed(2) : '0.00'}`}
+                                            icon={Banknote}
+                                            trend="NET DISBURSED"
+                                            iconColor="text-emerald-400"
+                                            iconBg="bg-emerald-500/10"
+                                            onClick={() => router.push('/users')}
+                                        />
+                                        <MetricCard
+                                            title="Monthly Advances"
+                                            value={`$${metrics.totalAdvancesPaid ? metrics.totalAdvancesPaid.toFixed(2) : '0.00'}`}
+                                            icon={Wallet}
+                                            trend="AWAITING SETTLEMENT"
+                                            iconColor="text-orange-400"
+                                            iconBg="bg-orange-500/10"
+                                            onClick={() => router.push('/users')}
+                                        />
+                                    </>
                                 )}
                             </div>
 

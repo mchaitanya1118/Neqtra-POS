@@ -2,7 +2,6 @@ import { Category } from '../entities/category.entity';
 import { MenuItem } from '../entities/menu-item.entity';
 import { MenuItemIngredient } from '../entities/menu-item-ingredient.entity';
 import { Table } from '../entities/table.entity';
-import { Menu } from '../menu/entities/menu.entity';
 import { Order } from '../orders/entities/order.entity';
 import { OrderItem } from '../orders/entities/order-item.entity';
 import { OrderEvent } from '../orders/entities/order-event.entity';
@@ -14,6 +13,10 @@ import { Customer } from '../customers/entities/customer.entity';
 import { DuesPayment } from '../customers/entities/dues-payment.entity';
 import { Payment } from '../payments/entities/payment.entity';
 import { Delivery } from '../delivery/entities/delivery.entity';
+import { User } from '../entities/user.entity';
+import { Role } from '../entities/role.entity';
+import { Branch } from '../branches/entities/branch.entity';
+import { Salary } from '../entities/salary.entity';
 
 // Entities that belong inside the Tenant's isolated database
 export const TenantEntities = [
@@ -21,7 +24,6 @@ export const TenantEntities = [
     MenuItem,
     MenuItemIngredient,
     Table,
-    Menu,
     Order,
     OrderItem,
     OrderEvent,
@@ -32,5 +34,9 @@ export const TenantEntities = [
     Customer,
     DuesPayment,
     Payment,
-    Delivery
+    Delivery,
+    User,
+    Role,
+    Branch,
+    Salary
 ];

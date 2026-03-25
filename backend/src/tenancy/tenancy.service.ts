@@ -11,13 +11,13 @@ export class TenancyService implements OnModuleDestroy {
 
     constructor(private configService: ConfigService) { }
 
-    async getTenantDataSource(tenantId: string): Promise<DataSource> {
+    async getTenantDataSource(tenantId: string, sync: boolean = false): Promise<DataSource> {
         if (this.tenantDataSources.has(tenantId)) {
             return this.tenantDataSources.get(tenantId)!;
         }
 
         const dbName = `tenant_${tenantId.replace(/-/g, '_')}`;
-        this.logger.log(`Initializing new connection pool for: ${dbName}`);
+        this.logger.log(`Initializing new connection pool for: ${dbName} (sync: ${sync})`);
 
         const dataSource = new DataSource({
             type: 'postgres',
@@ -27,7 +27,7 @@ export class TenancyService implements OnModuleDestroy {
             password: this.configService.get<string>('DB_PASSWORD'),
             database: dbName,
             entities: TenantEntities,
-            synchronize: process.env.NODE_ENV !== 'production' || process.env.DB_SYNCHRONIZE === 'true',
+            synchronize: sync,
             extra: {
                 max: 2, // Prevent PostgreSQL 'too many clients' max_connections limit error across multiple tenants
             }

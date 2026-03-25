@@ -105,9 +105,11 @@ export const useCartStore = create<CartState>()(
                 const user = useAuthStore.getState().user;
                 if (items.length === 0 || !user || !user.tenantId) return;
 
-                // Save to local DB with PENDING status
+                const tempId = crypto.randomUUID();
+
+                // 1. Optimistic Update: Save to local DB with PENDING status
                 await db.orders.add({
-                    tempId: crypto.randomUUID(),
+                    tempId,
                     items: items.map(i => ({ menuItemId: i.menuItemId, quantity: i.quantity })),
                     totalAmount: getTotal(),
                     status: 'PENDING',
@@ -116,9 +118,10 @@ export const useCartStore = create<CartState>()(
                     branchId: user.branchId,
                     tableName: tableName || 'Quick Order',
                 });
+
                 clearCart();
 
-                // Trigger immediate background sync
+                // 2. Trigger immediate background sync
                 if (navigator.onLine) {
                     syncService.sync().catch(console.error);
                 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Image as ImageIcon, Sparkles, Flame, Leaf, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import apiClient from "@/lib/api";
 
 interface MenuItemModalProps {
     isOpen: boolean;
@@ -23,6 +24,7 @@ export function MenuItemModal({ isOpen, onClose, onSubmit, initialData, title }:
         isAvailable: true
     });
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         if (isOpen && initialData) {
@@ -61,6 +63,39 @@ export function MenuItemModal({ isOpen, onClose, onSubmit, initialData, title }:
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // If we have an existing item, we can upload immediately
+        if (initialData?.id) {
+            setUploading(true);
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await apiClient.post(`/menu/items/${initialData.id}/image`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                setFormData(prev => ({ ...prev, imageUrl: response.data.imageUrl }));
+            } catch (error) {
+                console.error("Image upload failed:", error);
+                alert("Failed to upload image. Please try again.");
+            } finally {
+                setUploading(false);
+            }
+        } else {
+            // For new items, we'll use a local preview and could upload later 
+            // but for now, let's keep it simple: tell user to save first or use a URL.
+            // Actually, let's just show a preview and allow URL.
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, imageUrl: reader.result as string }));
+            };
+            reader.readAsDataURL(file);
         }
     };
 
@@ -118,27 +153,52 @@ export function MenuItemModal({ isOpen, onClose, onSubmit, initialData, title }:
 
                         {/* Image Preview / URL */}
                         <div>
-                            <label className="block text-[10px] font-black text-muted uppercase tracking-[0.2em] mb-2 ml-1">Visual Identity (URL)</label>
+                            <label className="block text-[10px] font-black text-muted uppercase tracking-[0.2em] mb-2 ml-1">Visual Identity</label>
+                            <div className="flex gap-4 mb-4">
+                                <label className="flex-1">
+                                    <div className={cn(
+                                        "w-full px-6 py-4 rounded-[20px] border border-surface-light bg-surface-light/30 hover:bg-surface-light/50 transition-all font-bold text-foreground flex items-center justify-center gap-3 cursor-pointer",
+                                        uploading && "opacity-50 cursor-not-allowed"
+                                    )}>
+                                        {uploading ? <Sparkles className="w-5 h-5 animate-spin" /> : <ImageIcon className="w-5 h-5" />}
+                                        <span className="text-xs uppercase tracking-widest">{uploading ? "Uploading..." : "Upload Photo"}</span>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                            disabled={uploading}
+                                        />
+                                    </div>
+                                </label>
+                            </div>
+
                             <div className="relative group">
                                 <input
                                     type="url"
-                                    value={formData.imageUrl}
+                                    value={formData.imageUrl.startsWith('data:') ? '' : formData.imageUrl}
                                     onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                                    placeholder="https://images.unsplash.com/..."
-                                    className="w-full px-6 py-4 pr-14 rounded-[20px] border border-surface-light bg-surface-light/30 focus:bg-surface-light/50 focus:ring-4 ring-primary/10 outline-none transition-all font-bold text-foreground placeholder:text-muted/40"
+                                    placeholder="Or paste image URL..."
+                                    className="w-full px-6 py-3 pr-14 rounded-[20px] border border-surface-light bg-surface-light/30 focus:bg-surface-light/50 outline-none transition-all font-bold text-foreground text-xs placeholder:text-muted/40"
                                 />
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-muted/40">
-                                    <ImageIcon className="w-5 h-5" />
-                                </div>
                             </div>
 
-                            <div className="mt-4 h-32 rounded-[24px] border border-surface-light/50 border-dashed flex items-center justify-center overflow-hidden bg-surface-light/20">
+                            <div className="mt-4 h-40 rounded-[24px] border border-surface-light/50 border-dashed flex items-center justify-center overflow-hidden bg-surface-light/20 relative group">
                                 {formData.imageUrl ? (
-                                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover animate-in fade-in duration-500" />
+                                    <>
+                                        <img 
+                                            src={formData.imageUrl.startsWith('/') ? `http://localhost:3001${formData.imageUrl}` : formData.imageUrl} 
+                                            alt="Preview" 
+                                            className="w-full h-full object-cover animate-in fade-in duration-500" 
+                                        />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <p className="text-[10px] font-black text-white uppercase tracking-widest">Image Preview</p>
+                                        </div>
+                                    </>
                                 ) : (
                                     <div className="flex flex-col items-center gap-2 text-muted/20">
                                         <ImageIcon className="w-8 h-8" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Preview Preview</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">No Image Selected</span>
                                     </div>
                                 )}
                             </div>

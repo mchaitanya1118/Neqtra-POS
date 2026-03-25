@@ -25,7 +25,8 @@ export class BootstrapService {
     async getBootstrapData() {
         const tenantId = this.cls.get('tenantId');
         if (!tenantId) {
-            throw new Error('Tenant ID not found in context.');
+            this.logger.warn('Bootstrap requested but no Tenant ID found in context.');
+            return { categories: [], tables: [] };
         }
 
         const cacheKey = `bootstrap:tenant:${tenantId}`;

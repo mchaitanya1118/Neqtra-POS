@@ -31,6 +31,17 @@ export class TenantsController {
         }
     }
 
+    @Get(':id/status')
+    async getStatus(@Param('id') id: string) {
+        const tenant = await this.tenantsService.findOne(id);
+        if (!tenant) throw new NotFoundException('Tenant not found');
+        return {
+            status: tenant.provisioningStatus,
+            error: tenant.errorLog,
+            subdomain: tenant.subdomain
+        };
+    }
+
     @UseGuards(JwtAuthGuard)
     @Patch('profile')
     async updateProfile(@Request() req, @Body() updateData: any) {

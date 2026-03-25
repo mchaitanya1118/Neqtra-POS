@@ -1,7 +1,7 @@
 "use client";
 
 import { User } from "@/store/useUserStore";
-import { Edit, Trash2, Shield, User as UserIcon, Mail, Key } from "lucide-react";
+import { Edit, Trash2, Shield, User as UserIcon, Mail, Key, DollarSign, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
@@ -92,6 +92,31 @@ export function UserCard({ user, onEdit, onDelete }: UserCardProps) {
                     </div>
                 </div>
             </div>
+
+            {(user.hourlyRate || user.fixedSalary || user.shift) && (
+                <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {(user.hourlyRate || user.fixedSalary) && (
+                        <div className="bg-surface-light/30 border border-surface-light/20 p-3 rounded-2xl flex items-center gap-3">
+                            <DollarSign className="w-4 h-4 text-green-500/80" />
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-muted uppercase tracking-tighter">Compensation</p>
+                                <p className="text-xs font-semibold truncate dark:text-zinc-300">
+                                    {user.hourlyRate ? `$${user.hourlyRate}/hr` : `$${user.fixedSalary}/mo`}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+                    {user.shift && (
+                        <div className="bg-surface-light/30 border border-surface-light/20 p-3 rounded-2xl flex items-center gap-3">
+                            <Clock className="w-4 h-4 text-orange-500/80" />
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-muted uppercase tracking-tighter">Shift</p>
+                                <p className="text-xs font-semibold truncate dark:text-zinc-300">{user.shift}</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
         </motion.div>
     );
 }

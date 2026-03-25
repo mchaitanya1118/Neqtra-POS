@@ -22,6 +22,8 @@ import { NotificationsGateway } from '../notifications/notifications.gateway';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../notifications/entities/notification.entity';
 import { ClsService } from 'nestjs-cls';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class OrdersService {
@@ -48,6 +50,8 @@ export class OrdersService {
     private readonly notificationsGateway: NotificationsGateway,
     private readonly notificationsService: NotificationsService,
     private readonly cls: ClsService,
+    @InjectQueue('orders')
+    private readonly ordersQueue: Queue,
   ) {
     this.razorpay = new Razorpay({
       key_id: 'rzp_test_S8BPowIgENgSYn',
@@ -57,10 +61,7 @@ export class OrdersService {
 
   async create(createOrderDto: CreateOrderDto) {
     try {
-      console.log(
-        `[OrdersService.create] Received DTO:`,
-        JSON.stringify(createOrderDto),
-      );
+      const tenantId = this.cls.get('tenantId');
 
       // Validation: Table Name required unless Delivery
       if (createOrderDto.type !== 'DELIVERY' && !createOrderDto.tableName) {
@@ -70,7 +71,7 @@ export class OrdersService {
       let order: Order | null = null;
       let isNewOrder = false;
 
-      // Check for existing active order for this table (only if table is provided)
+      // Check for existing active order for this table
       if (createOrderDto.tableName) {
         order = await this.orderRepo.findOne({
           where: [
@@ -85,157 +86,120 @@ export class OrdersService {
 
       if (!order) {
         order = new Order();
-        if (createOrderDto.tableName) {
-          order.tableName = createOrderDto.tableName;
-        }
+        if (createOrderDto.tableName) order.tableName = createOrderDto.tableName;
         order.items = [];
-        if (createOrderDto.customerId) {
-          order.customerId = createOrderDto.customerId;
-        }
         isNewOrder = true;
       }
 
-      // Always update customerId if provided
-      if (createOrderDto.customerId) {
-        order.customerId = createOrderDto.customerId;
-      }
-
-      if (createOrderDto.type) {
-        order.type = createOrderDto.type;
-      }
-
-      // If delivery, ensure we have delivery details (though logic might be handled in specific delivery creation, 
-      // but here we just create the order. The Delivery entity creation might happen via DeliveryService or here if DTO supports it. 
-      // For now, we'll assume the frontend calls this to create the base order.)
-
-      // Update discount info if provided (always updateable in PENDING state)
+      if (createOrderDto.customerId) order.customerId = createOrderDto.customerId;
+      if (createOrderDto.type) order.type = createOrderDto.type;
       if (createOrderDto.discount !== undefined) {
         order.discount = createOrderDto.discount;
         order.discountType = createOrderDto.discountType || 'FIXED';
       }
 
       let additionalTotal = 0;
+      const orderItems: OrderItem[] = [];
+
+      // FAST PATH: Get MenuItems in bulk to minimize latency
+      const menuItemIds = createOrderDto.items.map(i => i.menuItemId);
+      const menuItems = await this.menuItemRepo.find({
+        where: { id: In(menuItemIds) }
+      });
 
       for (const itemDto of createOrderDto.items) {
-        const menuItem = await this.menuItemRepo.findOne({
-          where: { id: itemDto.menuItemId },
-          relations: ['ingredients', 'ingredients.inventoryItem'],
-        });
-
+        const menuItem = menuItems.find(mi => mi.id === itemDto.menuItemId);
         if (menuItem) {
-          // 1. Deduct from MenuItem itself if stock is managed
-          if (menuItem.isStockManaged) {
-            if (menuItem.stock < itemDto.quantity) {
-              throw new BadRequestException(
-                `Insufficient stock for ${menuItem.title}. Available: ${menuItem.stock}`,
-              );
-            }
-            menuItem.stock -= itemDto.quantity;
-            await this.menuItemRepo.save(menuItem);
-          }
-
-          // 2. Deduct from Ingredients (Recipe)
-          if (menuItem.ingredients && menuItem.ingredients.length > 0) {
-            for (const ingredient of menuItem.ingredients) {
-              const inventoryItem = ingredient.inventoryItem;
-              if (inventoryItem) {
-                const totalDeduction = ingredient.quantity * itemDto.quantity;
-                if (inventoryItem.quantity < totalDeduction) {
-                  throw new BadRequestException(
-                    `Insufficient ${inventoryItem.name} in inventory. Available: ${inventoryItem.quantity} ${inventoryItem.unit}`,
-                  );
-                }
-                inventoryItem.quantity -= totalDeduction;
-                await this.inventoryRepo.save(inventoryItem);
-
-                // 3. Low Stock Alert
-                if (inventoryItem.quantity <= inventoryItem.threshold) {
-                  this.notificationsService.create({
-                    title: 'Low Stock Alert',
-                    message: `Item "${inventoryItem.name}" is low on stock (${inventoryItem.quantity} ${inventoryItem.unit} remaining).`,
-                    type: NotificationType.WARNING,
-                  });
-                }
-              }
-            }
-          }
-
           const orderItem = new OrderItem();
           orderItem.menuItem = menuItem;
           orderItem.quantity = itemDto.quantity;
-
-          // Link to existing order if not new (TypeORM handles this via relations if we push to items and save parent)
-          // Manual assignment causing circular ref in memory for WebSocket. TypeORM cascade handles the DB link.
-          // if (!isNewOrder) {
-          //   orderItem.order = order;
-          // }
-
-          // If order.items is undefined for some reason (though likely initialized empty or loaded via relations)
-          if (!order.items) order.items = [];
-
-          order.items.push(orderItem);
+          orderItems.push(orderItem);
           additionalTotal += Number(menuItem.price) * itemDto.quantity;
-        } else {
-          console.warn(
-            `[OrdersService.create] MenuItem ID ${itemDto.menuItemId} not found, skipping.`,
-          );
         }
       }
 
-      if (isNewOrder) {
-        order.totalAmount = additionalTotal;
-      } else {
-        order.totalAmount = Number(order.totalAmount) + additionalTotal;
-      }
+      order.items = [...(order.items || []), ...orderItems];
+      order.totalAmount = isNewOrder ? additionalTotal : Number(order.totalAmount) + additionalTotal;
 
-      console.log(`[OrdersService.create] Saving Order:`, order);
       const savedOrder = await this.orderRepo.save(order);
-      console.log(`[OrdersService.create] Order Saved ID:`, savedOrder.id);
 
-      // Handle Delivery Creation
-      if (createOrderDto.type === 'DELIVERY' && createOrderDto.deliveryDetails) {
-        const delivery = this.deliveryRepo.create({
-          ...createOrderDto.deliveryDetails,
-          orderId: savedOrder.id,
-          status: 'PENDING'
-        });
-        await this.deliveryRepo.save(delivery);
-      }
-
+      // Handle Table status immediately
       if (isNewOrder && createOrderDto.tableName) {
-        // Update Table to OCCUPIED only if new and table exists
-        const table = await this.tableRepo.findOneBy({
-          label: order.tableName,
-        });
-        if (table) {
-          table.status = 'OCCUPIED';
-          await this.tableRepo.save(table);
-        }
+        await this.tableRepo.update({ label: order.tableName }, { status: 'OCCUPIED' });
       }
 
-      // Refresh order to ensure clean structure and full data (including generated IDs) without circular refs in memory
-      const finalOrder = await this.orderRepo.findOne({
-        where: { id: savedOrder.id },
-        relations: ['items', 'items.menuItem'],
+      // ASYNC PATH: Offload Stock, Notifications, Delivery creation to BullMQ
+      await this.ordersQueue.add('process-order-details', {
+        orderId: savedOrder.id,
+        items: createOrderDto.items,
+        type: createOrderDto.type,
+        deliveryDetails: createOrderDto.deliveryDetails,
+        tenantId
       });
 
-      // Broadcast to Kitchen (and other terminals)
-      if (finalOrder) {
-        const tenantId = this.cls.get('tenantId');
-        this.notificationsGateway.emitToTenant(tenantId, 'new_order', finalOrder);
-
-        // Create a system notification
-        this.notificationsService.create({
-          title: 'New Order Created',
-          message: `Order #${finalOrder.id} for Table ${finalOrder.tableName || 'Delivery'} has been placed.`,
-          type: NotificationType.INFO,
-        });
-      }
-
-      return finalOrder;
+      return savedOrder;
     } catch (e) {
       console.error(`[OrdersService.create] FATAL ERROR:`, e);
-      throw e; // Rethrow so NestJS sends 500
+      throw e;
+    }
+  }
+
+  async handlePostOrderProcessing(data: { orderId: number, items: any[], type: string, deliveryDetails: any, tenantId: string }) {
+    // Manually set tenant context for repository scoping
+    await this.cls.set('tenantId', data.tenantId);
+
+    const { orderId, items, type, deliveryDetails, tenantId } = data;
+
+    // Logic: Stock Deduction after returning to client for speed
+    for (const itemDto of items) {
+      const menuItem = await this.menuItemRepo.findOne({
+        where: { id: itemDto.menuItemId },
+        relations: ['ingredients', 'ingredients.inventoryItem'],
+      });
+
+      if (menuItem) {
+        if (menuItem.isStockManaged) {
+          menuItem.stock -= itemDto.quantity;
+          await this.menuItemRepo.save(menuItem);
+        }
+
+        if (menuItem.ingredients && menuItem.ingredients.length > 0) {
+          for (const ingredient of menuItem.ingredients) {
+            const inventoryItem = ingredient.inventoryItem;
+            if (inventoryItem) {
+              inventoryItem.quantity -= ingredient.quantity * itemDto.quantity;
+              await this.inventoryRepo.save(inventoryItem);
+
+              if (inventoryItem.quantity <= inventoryItem.threshold) {
+                this.notificationsService.create({
+                  title: 'Low Stock Alert',
+                  message: `Item "${inventoryItem.name}" is low on stock (${inventoryItem.quantity} ${inventoryItem.unit} remaining).`,
+                  type: NotificationType.WARNING,
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    if (type === 'DELIVERY' && deliveryDetails) {
+      const delivery = this.deliveryRepo.create({ ...deliveryDetails, orderId, status: 'PENDING' });
+      await this.deliveryRepo.save(delivery);
+    }
+
+    const finalOrder = await this.orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['items', 'items.menuItem'],
+    });
+
+    if (finalOrder) {
+      this.notificationsGateway.emitToTenant(tenantId, 'new_order', finalOrder);
+      this.notificationsService.create({
+        title: 'New Order Created',
+        message: `Order #${finalOrder.id} has been placed.`,
+        type: NotificationType.INFO,
+      });
     }
   }
 

@@ -1,6 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { Branch } from '../../branches/entities/branch.entity';
-import { User } from '../../entities/user.entity';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToMany, OneToOne } from 'typeorm';
+import { Subscription } from './subscription.entity';
+import { TenantSetting } from './tenant-setting.entity';
 
 @Entity('tenants')
 export class Tenant {
@@ -13,11 +13,8 @@ export class Tenant {
     @Column({ unique: true, nullable: true })
     subdomain: string;
 
-    @Column({ default: 'ACTIVE' }) // ACTIVE, INACTIVE, SUSPENDED
+    @Column({ default: 'ACTIVE' }) // ACTIVE, INACTIVE, SUSPENDED, DELETED
     status: string;
-
-    @Column({ default: 'FREE' }) // FREE, STARTER, PRO, ENTERPRISE
-    subscriptionPlan: string;
 
     @Column({ nullable: true })
     email: string;
@@ -25,17 +22,20 @@ export class Tenant {
     @Column({ nullable: true })
     phone: string;
 
-    @Column({ default: 'USD' })
-    currency: string;
-
-    @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
-    taxRate: number;
-
     @Column({ nullable: true })
     stripeCustomerId: string;
 
-    @Column({ nullable: true })
-    stripeSubscriptionId: string;
+    @Column({ default: 'FREE' })
+    subscriptionPlan: string;
+
+    @Column({ type: 'timestamp', nullable: true })
+    subscriptionExpiry: Date;
+
+    @Column({ default: 1 })
+    maxDevices: number;
+
+    @Column({ default: 3 })
+    maxBranches: number;
 
     @Column({ default: 10 })
     maxUsers: number;
@@ -43,35 +43,23 @@ export class Tenant {
     @Column({ default: 20 })
     maxTables: number;
 
-    @Column({ default: 1 })
-    maxDevices: number;
-
-    @Column({ default: 1 })
-    maxBranches: number;
-
-    @Column({ type: 'jsonb', default: { inventory: true, analytics: false, advancedReports: false } })
+    @Column({ type: 'jsonb', nullable: true })
     features: any;
 
     @Column({ nullable: true })
-    billingEmail: string;
+    stripeSubscriptionId: string;
 
-    @Column({ type: 'timestamp', nullable: true })
-    nextBillingDate: Date;
+    @OneToMany(() => Subscription, (subscription) => subscription.tenant)
+    subscriptions: Subscription[];
 
-    @Column({ type: 'timestamp', nullable: true })
-    trialEndsAt: Date;
+    @Column({ default: 'PENDING' }) // PENDING, IN_PROGRESS, COMPLETED, FAILED
+    provisioningStatus: string;
 
-    @Column({ type: 'timestamp', nullable: true })
-    subscriptionExpiry: Date;
+    @Column({ type: 'text', nullable: true })
+    errorLog: string;
 
-    @Column({ type: 'jsonb', nullable: true })
-    metadata: any;
-
-    @OneToMany(() => Branch, (branch) => branch.tenant)
-    branches: Branch[];
-
-    @OneToMany(() => User, (user) => user.tenant)
-    users: User[];
+    @OneToOne(() => TenantSetting, (setting) => setting.tenant, { cascade: true })
+    settings: TenantSetting;
 
     @CreateDateColumn()
     createdAt: Date;

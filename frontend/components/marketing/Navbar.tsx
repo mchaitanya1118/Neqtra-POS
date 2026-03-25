@@ -51,6 +51,13 @@ export function Navbar() {
                         Sign In
                     </Link>
                     <Link
+                        href="/signup"
+                        className="text-[17px] font-bold text-gray-800 border-b-[3px] border-transparent pb-1 hover:border-gray-800 transition-all"
+                    >
+                        Sign Up
+                    </Link>
+
+                    <Link
                         href="/login"
                         className="group flex items-center gap-3 bg-[#6366F1] hover:bg-indigo-600 text-white px-5 py-3 rounded-[34px] font-semibold text-[17px] transition-all shadow-[0_8px_30px_-4px_rgba(99,102,241,0.4)]"
                     >

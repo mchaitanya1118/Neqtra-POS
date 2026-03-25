@@ -1,5 +1,5 @@
 
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -13,22 +13,28 @@ import { JwtStrategy } from './jwt.strategy';
 import { SubscriptionGuard } from './subscription.guard';
 import { TenantsModule } from '../tenants/tenants.module';
 import { BranchesModule } from '../branches/branches.module';
+import { TenantOrmModule } from '../tenancy/tenant-orm.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Tenant]),
     RolesModule,
-    TenantsModule,
-    BranchesModule,
+    forwardRef(() => TenantsModule),
+    forwardRef(() => BranchesModule),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') || 'dev_secret_key_123',
-        signOptions: { expiresIn: '12h' },
+        global: true,
+        secret: process.env.JWT_SECRET || 'dev_secret_key_123',
+        signOptions: { expiresIn: '7d' },
       }),
     }),
+    TypeOrmModule.forFeature([Tenant, User]),
+    UsersModule,
+
+    TenantsModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, SubscriptionGuard],

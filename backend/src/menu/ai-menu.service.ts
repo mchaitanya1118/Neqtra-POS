@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,7 +6,7 @@ import { Category } from '../entities/category.entity';
 import { MenuItem } from '../entities/menu-item.entity';
 import Groq from 'groq-sdk';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class AiMenuService {
   private groq: Groq;
 

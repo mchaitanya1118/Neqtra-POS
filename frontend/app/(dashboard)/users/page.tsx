@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Plus, Users, Shield, Search, Download, Trash2, Box } from "lucide-react";
+import { Plus, Users, Shield, Search, Download, Trash2, Box, DollarSign } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useUserStore, User, Role } from "@/store/useUserStore";
+import { useSalaryStore } from "@/store/useSalaryStore";
 import { UserList } from "@/components/users/UserList";
 import { UserModal } from "@/components/users/UserModal";
 import { RoleList } from "@/components/users/RoleList";
 import { RoleModal } from "@/components/users/RoleModal";
+import { SalaryList } from "@/components/users/SalaryList";
+import { SalaryModal } from "@/components/users/SalaryModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -17,8 +20,9 @@ export default function UsersPage() {
         users, roles, isLoading, error,
         fetchUsers, fetchRoles, deleteUser
     } = useUserStore();
+    const { fetchSalaries, salaries } = useSalaryStore();
 
-    const [activeTab, setActiveTab] = useState<'users' | 'roles'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'roles' | 'salaries'>('users');
     const [search, setSearch] = useState("");
 
     // Modal States
@@ -28,18 +32,22 @@ export default function UsersPage() {
     const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
     const [editingRole, setEditingRole] = useState<Role | null>(null);
 
+    const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
+    const [selectedUserForSalary, setSelectedUserForSalary] = useState<User | null>(null);
+
     useEffect(() => {
         fetchUsers();
         fetchRoles();
-    }, [fetchUsers, fetchRoles]);
+        fetchSalaries();
+    }, [fetchUsers, fetchRoles, fetchSalaries]);
 
     const filteredUsers = useMemo(() =>
         users.filter(u =>
-            u.name.toLowerCase().includes(search.toLowerCase()) ||
-            u.username?.toLowerCase().includes(search.toLowerCase()) ||
-            u.roleRel?.name.toLowerCase().includes(search.toLowerCase()) ||
-            u.role.toLowerCase().includes(search.toLowerCase())
-        ).sort((a, b) => a.name.localeCompare(b.name))
+            (u.name?.toLowerCase() || "").includes(search.toLowerCase()) ||
+            (u.username?.toLowerCase() || "").includes(search.toLowerCase()) ||
+            (u.roleRel?.name?.toLowerCase() || "").includes(search.toLowerCase()) ||
+            (u.role?.toLowerCase() || "").includes(search.toLowerCase())
+        ).sort((a, b) => (a.name || "").localeCompare(b.name || ""))
         , [users, search]);
 
     // User Handlers
@@ -70,17 +78,38 @@ export default function UsersPage() {
         setIsRoleModalOpen(true);
     };
 
+    const handlePaySalary = (user: User) => {
+        setSelectedUserForSalary(user);
+        setIsSalaryModalOpen(true);
+    };
+
     const handleExport = () => {
-        const data = activeTab === 'users' ? filteredUsers : roles;
-        const csv = activeTab === 'users'
-            ? ["Name,Username,Role", ...filteredUsers.map(u => `${u.name},${u.username},${u.roleRel?.name || u.role}`)].join("\n")
-            : ["Role Name,Permissions", ...roles.map(r => `${r.name},"${r.permissions.join(", ")}"`)].join("\n");
+        let csv = "";
+        let filename = `${activeTab}_export_${new Date().toISOString().split('T')[0]}.csv`;
+
+        if (activeTab === 'users') {
+            csv = ["Name,Username,Role", ...filteredUsers.map(u => `${u.name},${u.username},${u.roleRel?.name || u.role}`)].join("\n");
+        } else if (activeTab === 'roles') {
+            csv = ["Role Name,Permissions", ...roles.map(r => `${r.name},"${r.permissions.join(", ")}"`)].join("\n");
+        } else if (activeTab === 'salaries') {
+            csv = [
+                "Date,Staff Member,Payment Type,Salary Month,Amount,Payment Method,Reference Notes",
+                ...salaries.map(s => {
+                    const user = users.find(u => u.id === s.userId);
+                    const userName = user?.name || 'Unknown';
+                    const date = new Date(s.paymentDate).toLocaleDateString();
+                    const note = s.referenceNote ? `"${s.referenceNote.replace(/"/g, '""')}"` : "";
+                    return `${date},${userName},${s.type},${s.paymentMonth},${s.amount},${s.paymentMethod},${note}`;
+                })
+            ].join("\n");
+            filename = `salaries_report_${new Date().toISOString().split('T')[0]}.csv`;
+        }
 
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${activeTab}_export_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = filename;
         a.click();
     };
 
@@ -114,11 +143,16 @@ export default function UsersPage() {
                     </button>
 
                     <button
-                        onClick={activeTab === 'users' ? handleCreateUser : handleCreateRole}
-                        disabled={!hasPermission('Admin')}
-                        className="w-full sm:w-auto justify-center bg-primary hover:bg-primary/90 disabled:opacity-50 text-black px-5 md:px-6 py-3 rounded-2xl md:rounded-full text-sm font-bold shadow-lg shadow-primary/25 transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
+                        onClick={activeTab === 'users' ? handleCreateUser : activeTab === 'roles' ? handleCreateRole : () => {}}
+                        disabled={!hasPermission('Admin') || activeTab === 'salaries'}
+                        className={cn(
+                            "w-full sm:w-auto justify-center px-5 md:px-6 py-3 rounded-2xl md:rounded-full text-sm font-bold shadow-lg transition-all flex items-center gap-2",
+                            activeTab === 'salaries'
+                                ? "bg-surface-light text-muted opacity-50 cursor-not-allowed"
+                                : "bg-primary hover:bg-primary/90 text-black shadow-primary/25 hover:scale-105 active:scale-95"
+                        )}
                     >
-                        <Plus className="w-5 h-5 shrink-0" /> <span className="whitespace-nowrap">{activeTab === 'users' ? "Add Member" : "Add Role"}</span>
+                        <Plus className="w-5 h-5 shrink-0" /> <span className="whitespace-nowrap">{activeTab === 'users' ? "Add Member" : activeTab === 'roles' ? "Add Role" : "Pay Salary"}</span>
                     </button>
                 </div>
             </div>
@@ -145,21 +179,29 @@ export default function UsersPage() {
                     >
                         <Shield className="w-4 h-4 shrink-0" /> Roles
                     </button>
+                    <button
+                        onClick={() => setActiveTab('salaries')}
+                        className={cn(
+                            "flex-1 md:flex-none relative z-10 px-4 md:px-8 py-2.5 text-sm font-bold transition-all rounded-xl flex items-center justify-center md:justify-start gap-2",
+                            activeTab === 'salaries' ? "text-black" : "text-muted hover:text-foreground"
+                        )}
+                    >
+                        <DollarSign className="w-4 h-4 shrink-0" /> Salaries
+                    </button>
                     <motion.div
                         layoutId="activeTab"
                         className="absolute inset-y-1 bg-primary rounded-xl shadow-md"
                         initial={false}
                         animate={{
-                            left: activeTab === 'users' ? 4 : 'auto',
-                            right: activeTab === 'roles' ? 4 : 'auto',
-                            width: 'calc(50% - 4px)'
+                            left: activeTab === 'users' ? 4 : activeTab === 'roles' ? 'calc(33.33% + 2px)' : 'calc(66.66% + 0px)',
+                            width: 'calc(33.33% - 4px)'
                         }}
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                 </div>
 
-                {/* Search (only for users) */}
-                {activeTab === 'users' && (
+                {/* Search (only for users and salaries) */}
+                {(activeTab === 'users' || activeTab === 'salaries') && (
                     <div className="flex items-center gap-3 bg-surface border border-surface-light px-4 md:px-5 py-2.5 md:py-3 rounded-2xl flex-1 focus-within:ring-2 ring-primary/20 transition-all group w-full">
                         <Search className="w-4 h-4 md:w-5 md:h-5 text-muted group-focus-within:text-primary transition-colors shrink-0" />
                         <input
@@ -211,9 +253,14 @@ export default function UsersPage() {
                                     onEdit={handleEditUser}
                                     onDelete={handleDeleteUser}
                                 />
-                            ) : (
+                            ) : activeTab === 'roles' ? (
                                 <RoleList
                                     onEdit={handleEditRole}
+                                />
+                            ) : (
+                                <SalaryList
+                                    users={filteredUsers}
+                                    onPaySalary={handlePaySalary}
                                 />
                             )}
                         </motion.div>
@@ -232,6 +279,12 @@ export default function UsersPage() {
                 isOpen={isRoleModalOpen}
                 onClose={() => setIsRoleModalOpen(false)}
                 role={editingRole || undefined}
+            />
+
+            <SalaryModal
+                isOpen={isSalaryModalOpen}
+                onClose={() => setIsSalaryModalOpen(false)}
+                user={selectedUserForSalary}
             />
         </div>
     );

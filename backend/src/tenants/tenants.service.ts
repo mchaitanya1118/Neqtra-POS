@@ -2,6 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Tenant } from './entities/tenant.entity';
+import { Plan } from './entities/plan.entity';
+import { Subscription } from './entities/subscription.entity';
 import { TenancyService } from '../tenancy/tenancy.service';
 
 @Injectable()
@@ -11,46 +13,75 @@ export class TenantsService {
     constructor(
         @InjectRepository(Tenant)
         private tenantsRepository: Repository<Tenant>,
+        @InjectRepository(Plan)
+        private planRepository: Repository<Plan>,
+        @InjectRepository(Subscription)
+        private subscriptionRepository: Repository<Subscription>,
         private dataSource: DataSource,
         private tenancyService: TenancyService,
     ) { }
 
-    async create(createTenantDto: Partial<Tenant>): Promise<Tenant> {
-        const tenant = this.tenantsRepository.create(createTenantDto);
-        const savedTenant = await this.tenantsRepository.save(tenant);
+    async assignPlan(tenantId: string, planName: string = 'FREE'): Promise<Subscription> {
+        let plan = await this.planRepository.findOne({ where: { name: planName } });
 
-        // Provision dynamic database
-        const dbName = `tenant_${savedTenant.id.replace(/-/g, '_')}`;
-        this.logger.log(`Provisioning physical database isolated for tenant: ${dbName}`);
-
-        try {
-            await this.dataSource.query(`CREATE DATABASE "${dbName}"`);
-            this.logger.log(`Successfully created database ${dbName}`);
-        } catch (error: any) {
-            // Error code 42P04 means database already exists
-            if (error.code !== '42P04') {
-                this.logger.error(`Failed to create database ${dbName}`, error);
-                throw error;
-            } else {
-                this.logger.warn(`Database ${dbName} already exists, proceeding to schema sync.`);
-            }
+        if (!plan) {
+            // Create default plan if it doesn't exist
+            plan = this.planRepository.create({
+                name: 'FREE',
+                price: 0,
+                quotas: { maxUsers: 2, maxBranches: 1, maxTables: 10, maxDevices: 1 },
+                features: { inventory: true, analytics: false, advancedReports: false, multiBranch: false, aiMenuExtraction: false }
+            });
+            plan = await this.planRepository.save(plan);
         }
 
-        // Initialize connection to create tables automatically in the background
-        // Removing 'await' here eliminates the 5-10 second latency during signup
-        this.tenancyService.getTenantDataSource(savedTenant.id)
-            .then(() => this.logger.log(`Background schema sync completed for ${dbName}`))
-            .catch(e => this.logger.error(`Background schema sync failed for ${dbName}`, e));
+        const subscription = this.subscriptionRepository.create({
+            tenantId,
+            planId: plan.id,
+            status: 'ACTIVE',
+            startDate: new Date(),
+            nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days trial/cycle
+        });
+
+        const savedSubscription = await this.subscriptionRepository.save(subscription);
+
+        // Update tenant's cached plan info for quick check
+        await this.tenantsRepository.update(tenantId, {
+            subscriptionPlan: plan.name,
+            subscriptionExpiry: subscription.nextBillingDate
+        });
+
+        return savedSubscription;
+    }
+
+    async create(createTenantDto: Partial<Tenant>): Promise<Tenant> {
+        const tenant = this.tenantsRepository.create({
+            ...createTenantDto,
+            provisioningStatus: 'PENDING'
+        });
+        const savedTenant = await this.tenantsRepository.save(tenant);
 
         return savedTenant;
     }
 
+    async findAll(): Promise<Tenant[]> {
+        return this.tenantsRepository.find({
+            order: { createdAt: 'DESC' }
+        });
+    }
+
     async findOne(id: string): Promise<Tenant | null> {
-        return this.tenantsRepository.findOne({ where: { id } });
+        return this.tenantsRepository.findOne({
+            where: { id },
+            relations: ['settings', 'subscriptions', 'subscriptions.plan']
+        });
     }
 
     async findBySubdomain(subdomain: string): Promise<Tenant | null> {
-        return this.tenantsRepository.findOne({ where: { subdomain } });
+        return this.tenantsRepository.findOne({
+            where: { subdomain },
+            relations: ['settings', 'subscriptions', 'subscriptions.plan']
+        });
     }
 
     async updateProfile(id: string, updateData: Partial<Tenant>): Promise<Tenant> {
@@ -131,5 +162,9 @@ export class TenantsService {
                     features: { inventory: true, analytics: false, advancedReports: false, multiBranch: false }
                 };
         }
+    }
+
+    async getTenantDataSource(tenantId: string): Promise<DataSource> {
+        return this.tenancyService.getTenantDataSource(tenantId);
     }
 }

@@ -3,6 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from '../entities/category.entity';
 import { MenuItem } from '../entities/menu-item.entity';
+import { RedisService } from '@liaoliaots/nestjs-redis';
+import { ClsService } from 'nestjs-cls';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Injectable()
 export class MenuService {
@@ -11,12 +15,36 @@ export class MenuService {
     private categoryRepo: Repository<Category>,
     @InjectRepository(MenuItem)
     private menuItemRepo: Repository<MenuItem>,
+    private readonly redis: RedisService,
+    private readonly cls: ClsService,
   ) { }
 
+  private async getCacheKey(suffix: string) {
+    const tenantId = this.cls.get('tenantId');
+    return `tenant:${tenantId}:menu:${suffix}`;
+  }
+
+  private async invalidateCache() {
+    const client = this.redis.getOrThrow();
+    const key = await this.getCacheKey('categories');
+    await client.del(key);
+  }
+
   async findAllCategories() {
-    return this.categoryRepo.find({
+    const client = this.redis.getOrThrow();
+    const key = await this.getCacheKey('categories');
+
+    // Try cache
+    const cached = await client.get(key);
+    if (cached) return JSON.parse(cached);
+
+    // Fetch and cache
+    const categories = await this.categoryRepo.find({
       relations: ['items', 'items.upsellItems'],
     });
+
+    await client.set(key, JSON.stringify(categories), 'EX', 3600); // 1 hour cache
+    return categories;
   }
 
   async findAllItems(categoryId?: number) {
@@ -324,19 +352,25 @@ export class MenuService {
   }
 
   // --- Category CRUD ---
-  createCategory(createCategoryDto: any) {
-    return this.categoryRepo.save(createCategoryDto);
+  async createCategory(createCategoryDto: any) {
+    const res = await this.categoryRepo.save(createCategoryDto);
+    await this.invalidateCache();
+    return res;
   }
 
-  updateCategory(id: number, updateCategoryDto: any) {
-    return this.categoryRepo.update(id, updateCategoryDto);
+  async updateCategory(id: number, updateCategoryDto: any) {
+    const res = await this.categoryRepo.update(id, updateCategoryDto);
+    await this.invalidateCache();
+    return res;
   }
 
   async removeCategory(id: number) {
     // Soft delete items first
     await this.menuItemRepo.softDelete({ category: { id } });
     // Soft delete category
-    return this.categoryRepo.softDelete(id);
+    const res = await this.categoryRepo.softDelete(id);
+    await this.invalidateCache();
+    return res;
   }
 
   // --- MenuItem CRUD ---
@@ -350,15 +384,21 @@ export class MenuService {
       ...createMenuItemDto,
       category,
     });
-    return this.menuItemRepo.save(item);
+    const res = await this.menuItemRepo.save(item);
+    await this.invalidateCache();
+    return res;
   }
 
-  updateItem(id: number, updateMenuItemDto: any) {
-    return this.menuItemRepo.update(id, updateMenuItemDto);
+  async updateItem(id: number, updateMenuItemDto: any) {
+    const res = await this.menuItemRepo.update(id, updateMenuItemDto);
+    await this.invalidateCache();
+    return res;
   }
 
-  removeItem(id: number) {
-    return this.menuItemRepo.softDelete(id);
+  async removeItem(id: number) {
+    const res = await this.menuItemRepo.softDelete(id);
+    await this.invalidateCache();
+    return res;
   }
 
   async updateMenuItem(id: number, upsellItemIds: number[]) {
@@ -377,5 +417,29 @@ export class MenuService {
     }
 
     return this.menuItemRepo.save(item);
+  }
+
+  async updateItemImage(id: number, file: Express.Multer.File) {
+    const tenantId = this.cls.get('tenantId');
+    const item = await this.menuItemRepo.findOneBy({ id });
+    if (!item) throw new Error('Item not found');
+
+    const uploadDir = path.join(process.cwd(), 'uploads', 'menu-items', tenantId || 'default');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const filename = `${id}_${Date.now()}${path.extname(file.originalname)}`;
+    const filePath = path.join(uploadDir, filename);
+
+    fs.writeFileSync(filePath, file.buffer);
+
+    const imageUrl = `/uploads/menu-items/${tenantId || 'default'}/${filename}`;
+    item.imageUrl = imageUrl;
+    
+    await this.menuItemRepo.save(item);
+    await this.invalidateCache();
+
+    return { imageUrl };
   }
 }

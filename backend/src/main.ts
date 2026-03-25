@@ -42,6 +42,16 @@ async function bootstrap() {
     // Apply global class serializer to strip @Exclude() properties (deletedAt, tenantId, etc)
     app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
 
+    app.enableShutdownHooks();
+
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
+
+    process.on('uncaughtException', (err) => {
+      console.error('Uncaught Exception:', err);
+    });
+
     await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
     console.log(`Worker ${process.pid} started successfully.`);
   } catch (error) {
@@ -50,24 +60,4 @@ async function bootstrap() {
   }
 }
 
-// @ts-ignore
-if (cluster.default.isPrimary) {
-  const numCPUs = os.cpus().length;
-  console.log(`Primary ${process.pid} is running`);
-  console.log(`Booting ${numCPUs} worker processes...`);
-
-  // Fork workers
-  for (let i = 0; i < numCPUs; i++) {
-    // @ts-ignore
-    cluster.default.fork();
-  }
-
-  // @ts-ignore
-  cluster.default.on('exit', (worker, code, signal) => {
-    console.log(`Worker ${worker.process.pid} died. Restarting...`);
-    // @ts-ignore
-    cluster.default.fork();
-  });
-} else {
-  bootstrap();
-}
+bootstrap();

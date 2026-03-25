@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, MinLength, MaxLength, IsNumber } from 'class-validator';
 
 export class CreateUserDto {
     @IsString()
@@ -25,4 +25,14 @@ export class CreateUserDto {
 
     @IsOptional()
     roleId?: number;
+
+    @IsOptional()
+    hourlyRate?: number;
+
+    @IsOptional()
+    fixedSalary?: number;
+
+    @IsString()
+    @IsOptional()
+    shift?: string;
 }

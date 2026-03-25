@@ -6,15 +6,11 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 
 @Injectable()
-export class RolesService implements OnModuleInit {
+export class RolesService {
     constructor(
         @InjectRepository(Role)
         private rolesRepository: Repository<Role>,
     ) { }
-
-    async onModuleInit() {
-        await this.seedRoles();
-    }
 
     async seedRoles() {
         const defaultRoles = [
@@ -47,63 +43,49 @@ export class RolesService implements OnModuleInit {
                 name: 'Kitchen',
                 permissions: ['Orders'],
                 isSystem: true,
-            },
+            }
         ];
 
         for (const roleData of defaultRoles) {
             const existing = await this.rolesRepository.findOne({ where: { name: roleData.name } });
             if (!existing) {
-                console.log(`Seeding role: ${roleData.name}`);
                 const role = this.rolesRepository.create(roleData);
                 await this.rolesRepository.save(role);
             }
         }
     }
 
-    create(tenantId: string, createRoleDto: CreateRoleDto) {
-        const role = this.rolesRepository.create({
-            ...createRoleDto,
-            tenant: { id: tenantId } as any // associate role with the tenant
-        });
+    create(createRoleDto: CreateRoleDto) {
+        const role = this.rolesRepository.create(createRoleDto);
         return this.rolesRepository.save(role);
     }
 
-    findAll(tenantId: string) {
-        return this.rolesRepository.find({
-            where: [
-                { isSystem: true }, // Global default roles
-                { tenant: { id: tenantId } } // Tenant-specific custom roles
-            ]
-        });
+    findAll() {
+        return this.rolesRepository.find();
     }
 
-    async findOne(tenantId: string, id: number) {
-        return this.rolesRepository.findOne({
-            where: [
-                { id, isSystem: true },
-                { id, tenant: { id: tenantId } }
-            ]
-        });
+    async findOne(id: number) {
+        return this.rolesRepository.findOne({ where: { id } });
     }
 
     async findByName(name: string) {
         return this.rolesRepository.findOne({ where: { name } });
     }
 
-    async update(tenantId: string, id: number, updateRoleDto: UpdateRoleDto) {
-        const role = await this.findOne(tenantId, id);
+    async update(id: number, updateRoleDto: UpdateRoleDto) {
+        const role = await this.findOne(id);
         if (!role) throw new Error('Role not found');
         if (role.isSystem) throw new Error('Cannot edit a system role');
 
-        await this.rolesRepository.update({ id, tenant: { id: tenantId } }, updateRoleDto);
-        return this.findOne(tenantId, id);
+        await this.rolesRepository.update(id, updateRoleDto);
+        return this.findOne(id);
     }
 
-    async remove(tenantId: string, id: number) {
-        const role = await this.findOne(tenantId, id);
+    async remove(id: number) {
+        const role = await this.findOne(id);
         if (!role) throw new Error('Role not found');
         if (role.isSystem) throw new Error('Cannot delete a system role');
 
-        return this.rolesRepository.delete({ id, tenant: { id: tenantId } });
+        return this.rolesRepository.delete(id);
     }
 }

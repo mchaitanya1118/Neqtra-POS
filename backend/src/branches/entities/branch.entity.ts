@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, OneToMany } from 'typeorm';
-import { Tenant } from '../../tenants/entities/tenant.entity';
 import { User } from '../../entities/user.entity';
 
 @Entity('branches')
@@ -19,11 +18,8 @@ export class Branch {
     @Column({ unique: true, nullable: true })
     licenseKey: string;
 
-    @ManyToOne(() => Tenant, (tenant) => tenant.branches, { onDelete: 'CASCADE' })
-    tenant: Tenant;
-
-    @OneToMany(() => User, (user) => user.branch)
-    users: User[];
+    // @OneToMany(() => User, (user) => user.branch)
+    // users: User[];
 
     @CreateDateColumn()
     createdAt: Date;
